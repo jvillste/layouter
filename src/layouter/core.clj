@@ -108,40 +108,6 @@
    (layout-to-cocoa-key-code-to-character layout))
   (medley/map-vals :character (medley/index-by :cocoa-key-code layout)))
 
-
-;; (def dvorak [{:character "a", :cocoa-key-code 0}
-;;              {:character "s", :cocoa-key-code 1}
-;;              {:character "d", :cocoa-key-code 2}
-;;              {:character "f", :cocoa-key-code 3}
-;;              {:character "h", :cocoa-key-code 4}
-;;              {:character "g", :cocoa-key-code 5}
-;;              {:character "z", :cocoa-key-code 6}
-;;              {:character "x", :cocoa-key-code 7}
-;;              {:character "c", :cocoa-key-code 8}
-;;              {:character "v", :cocoa-key-code 9}
-;;              {:character "b", :cocoa-key-code 11}
-;;              {:character "q", :cocoa-key-code 12}
-;;              {:character "w", :cocoa-key-code 13}
-;;              {:character "e", :cocoa-key-code 14}
-;;              {:character "r", :cocoa-key-code 15}
-;;              {:character "y", :cocoa-key-code 16}
-;;              {:character "t", :cocoa-key-code 17}
-;;              {:character "o", :cocoa-key-code 31}
-;;              {:character "u", :cocoa-key-code 32}
-;;              {:character "å", :cocoa-key-code 33}
-;;              {:character "i", :cocoa-key-code 34}
-;;              {:character "p", :cocoa-key-code 35}
-;;              {:character "l", :cocoa-key-code 37}
-;;              {:character "j", :cocoa-key-code 38}
-;;              {:character "ä", :cocoa-key-code 39}
-;;              {:character "k", :cocoa-key-code 40}
-;;              {:character "ö", :cocoa-key-code 41}
-;;              {:character ",", :cocoa-key-code 43}
-;;              {:character "-", :cocoa-key-code 44}
-;;              {:character "n", :cocoa-key-code 45}
-;;              {:character "m", :cocoa-key-code 46}
-;;              {:character ".", :cocoa-key-code 47}])
-
 (def finger-hand {0 0
                   1 0
                   2 0
@@ -154,23 +120,14 @@
 (def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
 (def key-code-to-character (into {} (map (juxt :cocoa-key-code :character) keyboard-keys)))
 
-(def finger-rating #_{3 0
-                      4 0
-                      2 -1
-                      5 -1
-                      1 -2
-                      6 -2
-                      0 -3
-                      7 -3}
-
-  {3 0
-   4 0
-   2 -1
-   5 -1
-   1 -2
-   6 -2
-   0 -4
-   7 -4})
+(def finger-rating {3 0
+                    4 0
+                    2 -1
+                    5 -1
+                    1 -2
+                    6 -2
+                    0 -4
+                    7 -4})
 
 (def home-position-cocoa-key-codes #{0 1 2 3 38 40 37 41})
 
@@ -244,8 +201,8 @@
              :cocoa-key-code (character-to-cocoa-key-code-in-qwerty qwerty-character)}))))
 
 (deftest test-layout-from-qwerty
-  (is (= '({:character "a", :cocoa-key-code 3}
-           {:character "b", :cocoa-key-code 38})
+  (is (= #{{:character "a", :cocoa-key-code 3}
+           {:character "b", :cocoa-key-code 38}}
          (layout-from-qwerty {"a" "f"
                               "b" "j"}))))
 
@@ -258,28 +215,16 @@
                                 (cocoa-key-code-to-key (character-to-cocoa-key-code character-2))))))))
 
 (deftest test-rate-layout
-  (is (= -10
+  (is (= -31.0
          (rate-layout (text-digram-distribution "hello")
                       qwerty)))
 
-  (is (= -3
+  (is (= -6.0
          (rate-layout (text-digram-distribution "hello")
                       (layout-from-qwerty {"h" "j"
                                            "e" "f"
                                            "l" "k"
                                            "o" "d"})))))
-
-;; (defn rate-keys [layout text]
-;;   (let [character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)]
-;;     (reduce +
-;;             (for [[character frequency] (frequencies (string/replace text " " ""))]
-;;               (* frequency
-;;                  (rate-cocoa-key-code (character-to-cocoa-key-code character)))))))
-
-;; (defn rate-layout-and-keys [layout text]
-;;   (+ (rate-layout text layout)
-;;      (rate-keys layout text)))
-
 
 (defn mutate-layout [layout]
   (let [layout-vector (vec layout)
