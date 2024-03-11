@@ -542,21 +542,6 @@
                                                 [70 70 70 255])
                                   :padding 10}))))
 
-(comment
-  (medley/map-vals :java-key-code (medley/index-by :character java-key-codes))
-
-  (let [character-to-java-key-code (medley/map-vals :java-key-code (medley/index-by :character java-key-codes))
-        cocoa-key-code-to-character (into {} (map vec (map reverse (medley/map-vals :cocoa-key-code (medley/index-by :character qwerty)))))
-        cocoa-key-code-to-java-key-code (into {} (for [cocoa-key-code (keys cocoa-key-code-to-character)]
-                                                   [cocoa-key-code
-                                                    (character-to-java-key-code (cocoa-key-code-to-character cocoa-key-code))]))]
-    (vec (for [keyboard-key keyboard-keys]
-           (assoc keyboard-key :java-key-code (cocoa-key-code-to-java-key-code (:cocoa-key-code keyboard-key))))))
-
-  (keyboard-keys {:a :b})
-
-  )
-
 (defn character-view [character-to-cocoa-key-code [character next-character ]]
   (layouts/with-margins 10 0 0 0
     (layouts/vertically-2 {}
