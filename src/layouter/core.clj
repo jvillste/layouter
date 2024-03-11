@@ -23,6 +23,11 @@
             [clojure.set :as set])
   (:import [java.util Random]))
 
+
+
+
+;; KEYS
+
 (def keyboard-keys [{:cocoa-key-code 0 :java-key-code 65 :finger 0 :row 1}
                     {:cocoa-key-code 1 :java-key-code 83 :finger 1 :row 1}
                     {:cocoa-key-code 2 :java-key-code 68 :finger 2 :row 1}
@@ -56,11 +61,20 @@
                     {:cocoa-key-code 46 :java-key-code 77 :finger 4 :row 2}
                     {:cocoa-key-code 47 :java-key-code 46 :finger 6 :row 2}])
 
+(def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
+(def key-code-to-character (into {} (map (juxt :cocoa-key-code :character) keyboard-keys)))
+
 (def java-key-code-to-cocoa-key-code (medley/map-vals :cocoa-key-code
                                                       (medley/index-by :java-key-code keyboard-keys)))
 
 (def cocoa-key-code-to-java-key-code (medley/map-vals :java-key-code
                                                       (medley/index-by :cocoa-key-code keyboard-keys)))
+
+
+
+
+
+;; LAYOUTS
 
 (def qwerty #{{:character "a", :cocoa-key-code 0}
               {:character "s", :cocoa-key-code 1}
@@ -108,6 +122,57 @@
    (layout-to-cocoa-key-code-to-character layout))
   (medley/map-vals :character (medley/index-by :cocoa-key-code layout)))
 
+(defn layout-from-qwerty [new-layout-character-mapping-to-qwerty]
+  (let [character-to-cocoa-key-code-in-qwerty (layout-to-character-to-cocoa-key-code qwerty)]
+    (into #{}
+          (for [[new-layout-character qwerty-character] new-layout-character-mapping-to-qwerty]
+            {:character new-layout-character
+             :cocoa-key-code (character-to-cocoa-key-code-in-qwerty qwerty-character)}))))
+
+(deftest test-layout-from-qwerty
+  (is (= #{{:character "a", :cocoa-key-code 3}
+           {:character "b", :cocoa-key-code 38}}
+         (layout-from-qwerty {"a" "f"
+                              "b" "j"}))))
+
+
+
+
+
+;; DIGRAMS
+
+(defn add-word-digram-distribution [probabilities word]
+  (reduce (fn [probabilities [c1 c2]]
+            (update probabilities
+                    [c1 c2]
+                    (fnil inc 0)))
+          probabilities
+          (map #(map str %)
+               (partition 2 1
+                          word))))
+
+(deftest test-add-word-digram-distribution
+  (is (= {["a" "b"] 2, ["b" "c"] 1, ["c" "a"] 1}
+         (add-word-digram-distribution {} "abcab"))))
+
+(defn text-digram-distribution [text]
+  (reduce add-word-digram-distribution
+          {}
+          (remove empty? (string/split text #"\s+"))))
+
+(deftest test-text-digram-distribution
+  (is (= {["a" "b"] 1, ["c" "d"] 1}
+         (text-digram-distribution "ab cd")))
+
+  (is (= {["a" "b"] 1, ["c" "d"] 1}
+         (text-digram-distribution "ab\ncd"))))
+
+
+
+
+
+;; RATING
+
 (def finger-hand {0 0
                   1 0
                   2 0
@@ -117,8 +182,7 @@
                   6 1
                   7 1})
 
-(def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
-(def key-code-to-character (into {} (map (juxt :cocoa-key-code :character) keyboard-keys)))
+
 
 (def finger-rating {3 0
                     4 0
@@ -167,45 +231,6 @@
      (* 2 (rate-cocoa-key-code (:cocoa-key-code key-1)))
      (* 2 (rate-cocoa-key-code (:cocoa-key-code key-2)))))
 
-(defn add-word-digram-distribution [probabilities word]
-  (reduce (fn [probabilities [c1 c2]]
-            (update probabilities
-                    [c1 c2]
-                    (fnil inc 0)))
-          probabilities
-          (map #(map str %)
-               (partition 2 1
-                          word))))
-
-(deftest test-add-word-digram-distribution
-  (is (= {["a" "b"] 2, ["b" "c"] 1, ["c" "a"] 1}
-         (add-word-digram-distribution {} "abcab"))))
-
-(defn text-digram-distribution [text]
-  (reduce add-word-digram-distribution
-          {}
-          (remove empty? (string/split text #"\s+"))))
-
-(deftest test-text-digram-distribution
-  (is (= {["a" "b"] 1, ["c" "d"] 1}
-         (text-digram-distribution "ab cd")))
-
-  (is (= {["a" "b"] 1, ["c" "d"] 1}
-         (text-digram-distribution "ab\ncd"))))
-
-(defn layout-from-qwerty [new-layout-character-mapping-to-qwerty]
-  (let [character-to-cocoa-key-code-in-qwerty (layout-to-character-to-cocoa-key-code qwerty)]
-    (into #{}
-          (for [[new-layout-character qwerty-character] new-layout-character-mapping-to-qwerty]
-            {:character new-layout-character
-             :cocoa-key-code (character-to-cocoa-key-code-in-qwerty qwerty-character)}))))
-
-(deftest test-layout-from-qwerty
-  (is (= #{{:character "a", :cocoa-key-code 3}
-           {:character "b", :cocoa-key-code 38}}
-         (layout-from-qwerty {"a" "f"
-                              "b" "j"}))))
-
 (defn rate-layout [text-digram-distribution layout]
   (let [character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)]
     (reduce +
@@ -225,6 +250,10 @@
                                            "e" "f"
                                            "l" "k"
                                            "o" "d"})))))
+
+
+
+;; GENETIC ALGORITHM
 
 (defn mutate-layout [layout]
   (let [layout-vector (vec layout)
@@ -311,11 +340,6 @@
                                  {:character "b" :cocoa-key-code 0}
                                  {:character "c" :cocoa-key-code 1}})))))
 
-(comment
-  (def optimized-layout (crossbreed-layouts qwerty
-                                            (random-layout)))
-  ) ;; TODO: remove me
-
 (defn weighted-random [distribution]
   (let [max-sum (* (reduce + (map second distribution))
                    (rand))]
@@ -329,10 +353,6 @@
                  (rest distribution))
           (first propability))))))
 
-;; (defn shift-distribution-to-positive-frequencies [distribution]
-;;   (let [minimum (apply min (map second distribution))]
-;;     (for [[value frequency] distribution]
-;;       [value (+ )])))
 
 (comment
   ((apply comp (repeat 3 mutate-layout))
@@ -400,6 +420,8 @@
 
 (defonce optimized-layouts-atom (atom []))
 
+(def optimized-layout qwerty)
+
 (comment
 
   (def optimized-layout (optimize-layout (sample-text "Clojure is a dynamic, general-purpose programming language, combining the approachability and interactive development of a scripting language with an efficient and robust infrastructure for multithreaded programming. Clojure is a compiled language, yet remains completely dynamic – every feature supported by Clojure is supported at runtime. Clojure provides easy access to the Java frameworks, with optional type hints and type inference, to ensure that calls to Java can avoid reflection.")))
@@ -426,6 +448,12 @@
   (rate-layout (text-digram-distribution "hello world")
                optimized-layout)
   ) ;; TODO: remove me
+
+
+
+
+;; KEYLOGGGER LOG PARSING
+
 
 (defn parse-log [log]
   (->> (string/split log #",")
@@ -473,6 +501,10 @@
          (sort-by second)))
 
   )
+
+
+
+;; UI
 
 (def theme (let [text-color [200 200 200 255]
                  background-color [0 0 0 255]]
@@ -587,13 +619,6 @@
                                          (when (= :key-released (:type event))
                                            (swap! state-atom update :pressed-java-key-codes disj (:key-code event))))
                :can-gain-focus? true)))))
-
-(comment
-  (map :cocoa-key-code
-       (sort-by :finger
-                (filter #(= 2 (:row %))
-                        keyboard-keys)))
-  ) ;; TODO: remove me
 
 (defonce event-channel-atom (atom nil))
 
