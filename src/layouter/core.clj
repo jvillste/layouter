@@ -396,21 +396,21 @@
      {:character "c" :cocoa-key-code 1}})
   ) ;; TODO: remove me
 
+(def continue-optimization?-atom (atom true))
+
 (defn optimize-layout [text]
   (let [text-digram-distribution (text-digram-distribution text)
         generation-size 50
-        maximum-generations 50
+;;        maximum-generations 500
         initial-layouts (repeatedly generation-size random-layout)
-        mutate-layout (apply comp (repeat 10 mutate-layout))]
+        mutate-layout (apply comp (repeat 5 mutate-layout))]
     (loop [generation-number 0
            rating-distribution (for [layout initial-layouts]
                                  [layout (rate-layout text-digram-distribution layout)])
            previous-best-rating (apply max
                                        (map (partial rate-layout text-digram-distribution)
                                             initial-layouts))]
-      (prn)                                      ;; TODO: remove me
-      (prn 'generation-number generation-number) ;; TODO: remove me
-      (prn 'previous-best-rating previous-best-rating) ;; TODO: remove me
+
       (let [next-rating-distribution (for [layout (map mutate-layout
                                                        (repeatedly generation-size
                                                                    #(crossbreed-layouts (weighted-random rating-distribution)
@@ -419,17 +419,30 @@
             next-rating-distribution (take-last generation-size
                                                 (sort-by second
                                                          (concat rating-distribution
-                                                                 next-rating-distribution)))
+                                                                 next-rating-distribution
+                                                                 (for [layout (repeatedly 5 random-layout)]
+                                                                   [layout (rate-layout text-digram-distribution
+                                                                                        layout)]))))
             best-rating (apply max (map second next-rating-distribution))]
-        (prn 'best-rating best-rating) ;; TODO: remove me
 
-        (if (< generation-number
+        (when (= 0 (mod generation-number 50))
+          (prn)                                    ;; TODO: remove me
+          (prn 'generation-number generation-number) ;; TODO: remove me
+          (prn 'previous-best-rating previous-best-rating)
+          (prn 'ratings (take 10 (reverse (sort (map second next-rating-distribution)))))) ;; TODO: remove me
+
+        (if @continue-optimization?-atom
+          #_(< generation-number
                maximum-generations)
           (recur (inc generation-number)
                  next-rating-distribution
                  best-rating)
           (first (last (sort-by second rating-distribution))))))))
 
+
+(comment
+  (reset! continue-optimization?-atom false)
+  ) ;; TODO: remove me
 
 
 (defn sample-text [text]
@@ -440,14 +453,21 @@
 (def target-text #_"hello world"
   "Clojure is a dynamic, general-purpose programming language, combining the approachability and interactive development of a scripting language with an efficient and robust infrastructure for multithreaded programming. Clojure is a compiled language, yet remains completely dynamic – every feature supported by Clojure is supported at runtime. Clojure provides easy access to the Java frameworks, with optional type hints and type inference, to ensure that calls to Java can avoid reflection.")
 
+(defonce optimized-layouts-atom (atom []))
+
 (comment
 
   (def optimized-layout (optimize-layout (sample-text "Clojure is a dynamic, general-purpose programming language, combining the approachability and interactive development of a scripting language with an efficient and robust infrastructure for multithreaded programming. Clojure is a compiled language, yet remains completely dynamic – every feature supported by Clojure is supported at runtime. Clojure provides easy access to the Java frameworks, with optional type hints and type inference, to ensure that calls to Java can avoid reflection.")))
 
-  (do (def optimized-layout (optimize-layout (sample-text target-text)))
-      (when @event-channel-atom
-        (async/>!! @event-channel-atom
-                   {:type :redraw})))
+  (reset! continue-optimization?-atom false)
+  (reset! continue-optimization?-atom true)
+
+  (.start (Thread. (fn []
+                     (def optimized-layout (optimize-layout (sample-text target-text)))
+                     (swap! optimized-layouts-atom conj optimized-layout)
+                     (when @event-channel-atom
+                       (async/>!! @event-channel-atom
+                                  {:type :redraw})))))
 
   (rate-layout (text-digram-distribution "hello world")
                (layout-from-qwerty {"h" "j"
@@ -561,16 +581,18 @@
   )
 
 (defn character-view [character-to-cocoa-key-code [character next-character ]]
-  (layouts/vertically-2 {}
-                        (text character)
-                        (text (or (finger-hand (:finger (cocoa-key-code-to-key (character-to-cocoa-key-code character))))
-                                  "?"))
-                        (text (when (contains? layout-characters character)
-                                (str (abs (int (rate-cocoa-key-code (character-to-cocoa-key-code character)))))))
-                        (text (when (and (contains? layout-characters character)
-                                         (contains? layout-characters next-character))
-                                (str (abs (int (rate-key-pair (cocoa-key-code-to-key (character-to-cocoa-key-code character))
-                                                              (cocoa-key-code-to-key (character-to-cocoa-key-code next-character))))))))))
+  (layouts/with-margins 10 0 0 0
+    (layouts/vertically-2 {}
+                         (text character)
+                         (text (or (finger-hand (:finger (cocoa-key-code-to-key (character-to-cocoa-key-code character))))
+                                   "?"))
+                         (text (when (contains? layout-characters character)
+                                 (str (abs (int (rate-cocoa-key-code (character-to-cocoa-key-code character)))))))
+                         (text (when (and (contains? layout-characters character)
+                                          (contains? layout-characters next-character))
+                                 (str (abs (int (/ (rate-key-pair (cocoa-key-code-to-key (character-to-cocoa-key-code character))
+                                                                  (cocoa-key-code-to-key (character-to-cocoa-key-code next-character)))
+                                                   2)))))))))
 
 (defn layout-view []
   (let [state-atom (dependable-atom/atom {:pressed-java-key-codes #{}
@@ -579,10 +601,10 @@
       (let [layout #_qwerty optimized-layout
             cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
             character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
-            highlighted-characters (into #{} (map str target-text))
+            highlighted-characters #_(into #{} (map str target-text))
             #_(into #{} (map :character (set/intersection optimized-layout
                                                           qwerty)))
-            #_(->> @state-atom
+            (->> @state-atom
                  (:pressed-java-key-codes)
                  (map java-key-code-to-cocoa-key-code)
                  (map cocoa-key-code-to-character)
@@ -600,7 +622,9 @@
                                                                        highlighted-characters))
                                                            ;; (text (pr-str @state-atom))
                                                            (layouts/flow (map (partial character-view character-to-cocoa-key-code)
-                                                                              (partition-all 2 1 (map str (take 100 target-text)))))))
+                                                                              (partition-all 2 1 (map str (take 100 (string/lower-case target-text))))))
+                                                           (text (str "layout rating: " (rate-layout (text-digram-distribution (sample-text target-text))
+                                                                                                     layout)))))
                :keyboard-event-handler (fn [_subtree event]
                                          (when (and (= :key-pressed (:type event))
                                                     (= :back-space (:key event)))
