@@ -1,68 +1,57 @@
 (ns layouter.core
-  (:require [clojure.string :as string]
-            [medley.core :as medley]
-            [com.stuartsierra.frequencies :as frequencies]
-            [clojure.test :refer [deftest is]]
-
-            [clojure.core.async :as async]
-            [flow-gl.graphics.font :as font]
-            [flow-gl.gui.keyboard :as keyboard]
-            [flow-gl.gui.scene-graph :as scene-graph]
-            [flow-gl.gui.visuals :as visuals]
-            [fungl.application :as application]
-            [fungl.component.text-area :as text-area]
-            [fungl.dependable-atom :as dependable-atom]
-            [fungl.layout :as layout]
-            [fungl.layouts :as layouts]
-            [fungl.view-compiler :as view-compiler]
-            [fungl.swing.root-renderer :as root-renderer]
-            [fungl.cache :as cache]
-            [fungl.component :as component]
-            [fungl.derivation :as derivation]
-            [flow-gl.tools.trace :as trace]
-            [clojure.set :as set]
-            [fungl.component.button :as button]
-            [clojure.edn :as edn])
-  (:import [java.util Random]
-           [java.util.concurrent ArrayBlockingQueue]))
-
-
-
+  (:require
+   [clojure.core.async :as async]
+   [clojure.edn :as edn]
+   [clojure.set :as set]
+   [clojure.string :as string]
+   [clojure.test :refer [deftest is]]
+   [com.stuartsierra.frequencies :as frequencies]
+   [flow-gl.graphics.font :as font]
+   [flow-gl.gui.visuals :as visuals]
+   [fungl.application :as application]
+   [fungl.component.button :as button]
+   [fungl.component.text-area :as text-area]
+   [fungl.dependable-atom :as dependable-atom]
+   [fungl.layouts :as layouts]
+   [medley.core :as medley])
+  (:import
+   (java.util Random)))
 
 ;; KEYS
 
-(def keyboard-keys [{:cocoa-key-code 0 :java-key-code 65 :finger 0 :row 1}
-                    {:cocoa-key-code 1 :java-key-code 83 :finger 1 :row 1}
-                    {:cocoa-key-code 2 :java-key-code 68 :finger 2 :row 1}
-                    {:cocoa-key-code 3 :java-key-code 70 :finger 3 :row 1}
-                    {:cocoa-key-code 4 :java-key-code 72 :finger 4 :row 1}
-                    {:cocoa-key-code 5 :java-key-code 71 :finger 3 :row 1}
-                    {:cocoa-key-code 6 :java-key-code 90 :finger 0 :row 2}
-                    {:cocoa-key-code 7 :java-key-code 88 :finger 1 :row 2}
-                    {:cocoa-key-code 8 :java-key-code 67 :finger 3 :row 2}
-                    {:cocoa-key-code 9 :java-key-code 86 :finger 3 :row 2}
-                    {:cocoa-key-code 11 :java-key-code 66 :finger 3 :row 2}
-                    {:cocoa-key-code 12 :java-key-code 81 :finger 0 :row 0}
-                    {:cocoa-key-code 13 :java-key-code 87 :finger 1 :row 0}
-                    {:cocoa-key-code 14 :java-key-code 69 :finger 2 :row 0}
-                    {:cocoa-key-code 15 :java-key-code 82 :finger 3 :row 0}
-                    {:cocoa-key-code 16 :java-key-code 89 :finger 4 :row 0}
-                    {:cocoa-key-code 17 :java-key-code 84 :finger 3 :row 0}
-                    {:cocoa-key-code 31 :java-key-code 79 :finger 6 :row 0}
-                    {:cocoa-key-code 32 :java-key-code 85 :finger 4 :row 0}
-                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :row 0}
-                    {:cocoa-key-code 34 :java-key-code 73 :finger 5 :row 0}
-                    {:cocoa-key-code 35 :java-key-code 80 :finger 7 :row 0}
-                    {:cocoa-key-code 37 :java-key-code 76 :finger 6 :row 1}
-                    {:cocoa-key-code 38 :java-key-code 74 :finger 4 :row 1}
-                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :row 1}
-                    {:cocoa-key-code 40 :java-key-code 75 :finger 5 :row 1}
-                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :row 1}
-                    {:cocoa-key-code 43 :java-key-code 44 :finger 5 :row 2}
-                    {:cocoa-key-code 44 :java-key-code 47 :finger 7 :row 2}
-                    {:cocoa-key-code 45 :java-key-code 78 :finger 3 :row 2}
-                    {:cocoa-key-code 46 :java-key-code 77 :finger 4 :row 2}
-                    {:cocoa-key-code 47 :java-key-code 46 :finger 6 :row 2}])
+(def keyboard-keys [{:cocoa-key-code 0, :java-key-code 65, :finger 0, :row 1, :column 0}
+                    {:cocoa-key-code 1, :java-key-code 83, :finger 1, :row 1, :column 1}
+                    {:cocoa-key-code 2, :java-key-code 68, :finger 2, :row 1, :column 2}
+                    {:cocoa-key-code 3, :java-key-code 70, :finger 3, :row 1, :column 3}
+                    {:cocoa-key-code 4, :java-key-code 72, :finger 4, :row 1, :column 5}
+                    {:cocoa-key-code 5, :java-key-code 71, :finger 3, :row 1, :column 4}
+                    {:cocoa-key-code 6, :java-key-code 90, :finger 0, :row 2, :column 0}
+                    {:cocoa-key-code 7, :java-key-code 88, :finger 1, :row 2, :column 1}
+                    {:cocoa-key-code 8, :java-key-code 67, :finger 3, :row 2, :column 2}
+                    {:cocoa-key-code 9, :java-key-code 86, :finger 3, :row 2, :column 3}
+                    {:cocoa-key-code 11, :java-key-code 66, :finger 3, :row 2, :column 4}
+                    {:cocoa-key-code 12, :java-key-code 81, :finger 0, :row 0, :column 0}
+                    {:cocoa-key-code 13, :java-key-code 87, :finger 1, :row 0, :column 1}
+                    {:cocoa-key-code 14, :java-key-code 69, :finger 2, :row 0, :column 2}
+                    {:cocoa-key-code 15, :java-key-code 82, :finger 3, :row 0, :column 3}
+                    {:cocoa-key-code 16, :java-key-code 89, :finger 4, :row 0, :column 5}
+                    {:cocoa-key-code 17, :java-key-code 84, :finger 3, :row 0, :column 4}
+                    {:cocoa-key-code 31, :java-key-code 79, :finger 6, :row 0, :column 8}
+                    {:cocoa-key-code 32, :java-key-code 85, :finger 4, :row 0, :column 6}
+                    {:cocoa-key-code 33, :java-key-code 16777445, :finger 7, :row 0, :column 10}
+                    {:cocoa-key-code 34, :java-key-code 73, :finger 5, :row 0, :column 7}
+                    {:cocoa-key-code 35, :java-key-code 80, :finger 7, :row 0, :column 9}
+                    {:cocoa-key-code 37, :java-key-code 76, :finger 6, :row 1, :column 8}
+                    {:cocoa-key-code 38, :java-key-code 74, :finger 4, :row 1, :column 6}
+                    {:cocoa-key-code 39, :java-key-code 16777444, :finger 7, :row 1, :column 10}
+                    {:cocoa-key-code 40, :java-key-code 75, :finger 5, :row 1, :column 7}
+                    {:cocoa-key-code 41, :java-key-code 16777462, :finger 7, :row 1, :column 9}
+                    {:cocoa-key-code 43, :java-key-code 44, :finger 5, :row 2, :column 7}
+                    {:cocoa-key-code 44, :java-key-code 47, :finger 7, :row 2, :column 9}
+                    {:cocoa-key-code 45, :java-key-code 78, :finger 3, :row 2, :column 5}
+                    {:cocoa-key-code 46, :java-key-code 77, :finger 4, :row 2, :column 6}
+                    {:cocoa-key-code 47, :java-key-code 46, :finger 6, :row 2, :column 8}])
+
 
 (def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
 (def key-code-to-character (into {} (map (juxt :cocoa-key-code :character) keyboard-keys)))
@@ -139,26 +128,40 @@
                               "b" "j"}))))
 
 
+(defn layout-from-character-rows [row-1 row-2 row-2]
+  ;; (let [character-to-cocoa-key-code-in-qwerty (layout-to-character-to-cocoa-key-code qwerty)]
+  ;;   (into #{}
+  ;;         (for [[new-layout-character qwerty-character] new-layout-character-mapping-to-qwerty]
+  ;;           {:character new-layout-character
+  ;;            :cocoa-key-code (character-to-cocoa-key-code-in-qwerty qwerty-character)})))
+  )
 
 
 
 ;; DIGRAMS
 
 (defn add-word-digram-distribution [probabilities word]
-  (reduce (fn [probabilities [c1 c2]]
-            (update probabilities
-                    (if (= c1 c2)
-                      #{c1}
-                      #{c1 c2})
-                    (fnil inc 0)))
-          probabilities
-          (map #(map str %)
-               (partition 2 1
-                          word))))
+  (if (= 1 (count word))
+    (update probabilities
+            #{word}
+            (fnil inc 0))
+    (reduce (fn [probabilities [c1 c2]]
+              (update probabilities
+                      (if (= c1 c2)
+                        #{c1}
+                        #{c1 c2})
+                      (fnil inc 0)))
+            probabilities
+            (map #(map str %)
+                 (partition 2 1
+                            word)))))
 
 (deftest test-add-word-digram-distribution
   (is (= {#{"a" "b"} 2, #{"b" "c"} 1, #{"a" "c"} 1}
-         (add-word-digram-distribution {} "abcab"))))
+         (add-word-digram-distribution {} "abcab")))
+
+  (is (= {#{"a"} 1}
+         (add-word-digram-distribution {} "a"))))
 
 (defn text-digram-distribution [text]
   (reduce add-word-digram-distribution
@@ -178,7 +181,6 @@
 
 
 
-
 ;; RATING
 
 (def finger-hand {0 0
@@ -189,8 +191,6 @@
                   5 1
                   6 1
                   7 1})
-
-
 
 (def finger-rating {3 0
                     4 0
@@ -209,36 +209,23 @@
        -2)
      (* 0.5 (finger-rating (:finger (cocoa-key-code-to-key cocoa-key-code))))))
 
-(defn rate-key-pair [key-1 key-2]
-  (let [key-2 (if key-2 key-2 key-1)]
-    (+ (cond (not (= (finger-hand (:finger key-1))
-                     (finger-hand (:finger key-2))))
-             0
 
-             (and (= (:finger key-1)
-                     (:finger key-2))
-                  (or (and (= 0 (:row key-1))
-                           (= 2 (:row key-2)))
-                      (and (= 2 (:row key-1))
-                           (= 0 (:row key-2)))))
-             -3
+(defn rate-key-pair [key-pair]
+  (+ (cond (= 2 (count (map finger-hand (map :finger key-pair))))
+           0
 
-             (and (= (:finger key-1)
-                     (:finger key-2))
-                  (or (and (= 0 (:row key-1))
-                           (= 1 (:row key-2)))
-                      (and (= 1 (:row key-1))
-                           (= 0 (:row key-2)))
-                      (and (= 1 (:row key-1))
-                           (= 2 (:row key-2)))
-                      (and (= 2 (:row key-1))
-                           (= 1 (:row key-2)))))
-             -2
+           (and (= 1 (count (map :finger key-pair)))
+                (= #{0 2} (set (map :row key-pair))))
+           -3
 
-             :else
-             -1)
-       (* 2 (rate-cocoa-key-code (:cocoa-key-code key-1)))
-       (* 2 (rate-cocoa-key-code (:cocoa-key-code key-2))))))
+           (and (= 1 (count (map :finger key-pair)))
+                (or (= #{0 1} (set (map :row key-pair)))
+                    (= #{1 2} (set (map :row key-pair)))))
+           -2
+
+           :else
+           -1)
+     (* 2 (reduce + (map rate-cocoa-key-code (map :cocoa-key-code key-pair))))))
 
 (defn rate-layout [text-digram-distribution layout]
   (let [character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)]
@@ -247,15 +234,16 @@
                                                                   [(vec (sort character-set)) digram-count])
                                                                 text-digram-distribution)]
               (* digram-count
-                 (rate-key-pair (cocoa-key-code-to-key (character-to-cocoa-key-code character-1))
-                                (cocoa-key-code-to-key (character-to-cocoa-key-code character-2))))))))
+                 (rate-key-pair [(cocoa-key-code-to-key (character-to-cocoa-key-code character-1))
+                                   (cocoa-key-code-to-key (character-to-cocoa-key-code (or character-2
+                                                                                           character-1)))]))))))
 
 (deftest test-rate-layout
-  (is (= -31.0
+  (is (= -28.0
          (rate-layout (text-digram-distribution "hello")
                       qwerty)))
 
-  (is (= -6.0
+  (is (= -5.0
          (rate-layout (text-digram-distribution "hello")
                       (layout-from-qwerty {"h" "j"
                                            "e" "f"
@@ -295,7 +283,7 @@
 (defn random-layout []
   (loop [remaining-cocoa-key-codes (map :cocoa-key-code qwerty)
          remaining-characters (map :character qwerty)
-         layout []]
+         layout #{}]
     (if (empty? remaining-characters)
       layout
       (let [character (first remaining-characters)
@@ -418,41 +406,162 @@
                  next-ratings)
           (on-ready (first (last (sort-by second ratings)))))))))
 
-
-(defn sample-text [text]
-  (let [layout-characters (into #{} (map :character qwerty))]
-    (apply str (filter (conj layout-characters " ")
-                       (map str (string/lower-case text))))))
+(defn filter-target-text [text]
+  (apply str (filter (conj layout-characters " ")
+                     (map str (string/lower-case text)))))
 
 (def target-text #_"hello world"
-  "Clojure is a dynamic, general-purpose programming language, combining the approachability and interactive development of a scripting language with an efficient and robust infrastructure for multithreaded programming. Clojure is a compiled language, yet remains completely dynamic – every feature supported by Clojure is supported at runtime. Clojure provides easy access to the Java frameworks, with optional type hints and type inference, to ensure that calls to Java can avoid reflection.")
+  (filter-target-text (str (subs (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                                 0 300000)
+                           (subs (slurp "text/the-hacker-crackdown.txt")
+                                 0 300000))
+                      #_(slurp "text/kirjoja-ja-kirjailijoita.txt"
+                               #_"text/ga-fi.txt"
+                               #_"text/ga.txt")))
+
+(comment
+  (count (slurp "text/kirjoja-ja-kirjailijoita.txt"))
+    ;; => 324920
+  (count (slurp "text/the-hacker-crackdown.txt"))
+  ;; => 663795
+  ) ;; TODO: remove me
 
 (defonce optimized-layout qwerty)
 
+(defn normalize-digram-distribution [digram-distribution]
+  (let [total-count (reduce + (vals digram-distribution))]
+    (medley/map-vals (fn [count]
+                       (float (/ count total-count)))
+                     digram-distribution)))
+
+(defn normalized-digram-distribution [text]
+  (->> text
+       filter-target-text
+       text-digram-distribution
+       normalize-digram-distribution
+       ;; (sort-by second)
+       ;; reverse
+       ))
+
+(defn distribution-positions [distribution]
+  (->> distribution
+       (sort-by second)
+       (reverse)
+       (map first)
+       (map-indexed vector)
+       (map reverse)
+       (map vec)
+       (into {})))
+
+(defn remove-spaces [text]
+  (string/replace text #"\s+" ""))
+
 (comment
+  (def english-digram-distribution (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt")))
+
+  (def hacker-distribution (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt")))
+  (def corncob-distribution (normalized-digram-distribution (slurp "text/corncob_lowercase.txt")))
+
+  ;; (let [first-distribution hacker-distribution
+  ;;       second-distribution (normalized-digram-distribution (slurp "text/ga.txt"))
+
+  ;;       first-positions (distribution-positions first-distribution)
+  ;;       second-positions (distribution-positions second-distribution)
+
+  ;;       digram-distributions [(normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+  ;;                             (normalized-digram-distribution (slurp "text/tietokoneet.txt"))]
+  ;;       ]
+
+  ;;   (doseq [digram (sort-by (apply merge (map distribution-positions (reverse digram-distributions)))
+  ;;                           (apply set/union
+  ;;                                  (map set
+  ;;                                       (map #(map first %)
+  ;;                                            digram-distributions))))
+
+  ;;           ;; (sort-by (merge second-positions
+  ;;           ;;                 first-positions)
+  ;;           ;;          (set/union (set (map first first-distribution))
+  ;;           ;;                     (set (map first second-distribution))))
+  ;;           ]
+  ;;     (apply println
+  ;;            digram
+  ;;            (first-positions digram)
+  ;;            (second-positions digram))))
+
+
+  (let [digram-distributions [ ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+                              ;; (normalized-digram-distribution (slurp "text/tietokoneet.txt"))
+                              (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+                              (normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))]
+        digram-to-propability-maps (map #(into {} %)
+                                        digram-distributions)]
+
+    (doseq [digram (sort-by (apply merge (map distribution-positions (reverse digram-distributions)))
+                            (apply set/union
+                                   (map set
+                                        (map #(map first %)
+                                             digram-distributions))))]
+      (when (< 0.4
+               (abs (- (/ (or ((second digram-to-propability-maps) digram)
+                              0)
+                          (or ((first digram-to-propability-maps) digram)
+                              0.0001))
+                       1)))
+        (apply println
+               digram
+               (concat (map #(% digram)
+                            digram-to-propability-maps)
+                       (map #(/ (or (% digram)
+                                    0)
+                                (or ((first digram-to-propability-maps) digram)
+                                    0.0001))
+                            (rest digram-to-propability-maps)))))))
+
+  (count (normalized-digram-distribution (slurp "text/corncob_lowercase.txt")))
+  ;; => 342
+  (count english-digram-distribution)
 
   (def optimized-layout qwerty)
-  (optimize-layout (sample-text target-text)
+  (optimize-layout (filter-target-text target-text)
                    optimized-layout
                    1
                    100
                    (fn [new-layout]
                      (def optimized-layout new-layout)))
 
-  (rate-layout (text-digram-distribution "hello world")
-               (layout-from-qwerty {"h" "j"
-                                    "e" "f"
-                                    "l" "d"
-                                    "o" "k"
-                                    "w" "s"
-                                    "r" "a"
-                                    "d" "l"}))
+  (count (normalized-digram-distribution (filter-target-text (slurp "text/kirjoja-ja-kirjailijoita.txt"))))
+  ;; => 413
 
-  (rate-layout (text-digram-distribution "hello world")
-               optimized-layout)
-  ;; => -49.0
+  (doseq [layout-file-name ["qwerty.edn"
+                            "optimized-layout-for-finnish-and-english.edn"
+                            "optimized-layout-for-finnish.edn"
+                            "optimized-layout-for-english.edn"]]
+    (println)
+    (println layout-file-name)
+    (let [layout (edn/read-string (slurp layout-file-name))]
+      (doseq [target-text-file-name ["text/the-hacker-crackdown.txt"
+                                     "text/kirjoja-ja-kirjailijoita.txt"]]
+        (println target-text-file-name
+                 (rate-layout (take 300 (reverse (sort-by second (normalized-digram-distribution (slurp target-text-file-name)))))
+                              layout)))))
 
-  ) ;; TODO: remove me
+;; qwerty.edn
+;; text/the-hacker-crackdown.txt -8.200177457130849
+;; text/kirjoja-ja-kirjailijoita.txt -8.067552298454757
+
+;; optimized-layout-for-finnish-and-english.edn
+;; text/the-hacker-crackdown.txt -5.41650933789515
+;; text/kirjoja-ja-kirjailijoita.txt -4.781927577581428
+
+;; optimized-layout-for-finnish.edn
+;; text/the-hacker-crackdown.txt -5.869223441281065
+;; text/kirjoja-ja-kirjailijoita.txt -4.6758328653527315
+
+;; optimized-layout-for-english.edn
+;; text/the-hacker-crackdown.txt -5.3888708559434235
+;; text/kirjoja-ja-kirjailijoita.txt -5.800231798034474
+
+  )
 
 
 
@@ -566,10 +675,13 @@
 (defn digram-view [digram-distribution character-to-cocoa-key-code on-mouse-over-digram]
   (layouts/vertically-2 {}
                         (for [digram (take 30 (reverse (sort-by second digram-distribution)))]
-                          {:node (text (str (pr-str digram)
+                          {:node (text (str (apply str (first digram))
                                             " "
-                                            (rate-key-pair (cocoa-key-code-to-key (character-to-cocoa-key-code (first (first digram))))
-                                                           (cocoa-key-code-to-key (character-to-cocoa-key-code (second (first digram)))))))
+                                            (rate-key-pair (map (fn [character]
+                                                                  (cocoa-key-code-to-key (character-to-cocoa-key-code character)))
+                                                                (first digram))
+                                                           #_[(cocoa-key-code-to-key (character-to-cocoa-key-code (first (first digram))))
+                                                            (cocoa-key-code-to-key (character-to-cocoa-key-code (second (first digram))))])))
                            :mouse-event-handler (fn [node event]
                                                   (when (= :nodes-under-mouse-changed (:type event))
                                                     (if (= (:id node)
@@ -580,15 +692,31 @@
                                                   (when (= :mouse-left (:type event))
                                                     (on-mouse-over-digram nil))
                                                   event)})))
+(comment
+  (format "%.2f" 0.1234)
+  ) ;; TODO: remove me
+(comment
+  (let [cocoa-key-code-to-column (merge
+                                  (into {} (map vec (map reverse (map-indexed vector [12 13 14 15 17 16 32 34 31 35 33]))))
+                                  (into {} (map vec (map reverse (map-indexed vector [0 1 2 3 5 4 38 40 37 41 39]))))
+                                  (into {} (map vec (map reverse (map-indexed vector [6 7 8 9 11 45 46 43 47 44])))))]
+    (for [keyboard-key keyboard-keys]
+      (assoc keyboard-key
+             :column (cocoa-key-code-to-column (:cocoa-key-code keyboard-key)))))
 
 
-(defn layout-view-2 [_layout _highlighted-characters]
-  (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})]
+
+  ) ;; TODO: remove me
+
+
+
+(defn layout-view-2 [layout _highlighted-characters]
+  (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})
+        cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
+        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
+        digram-distribution (normalized-digram-distribution (filter-target-text target-text))]
     (fn [layout highlighted-characters]
-      (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
-            character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
-            digram-distribution (text-digram-distribution (sample-text target-text))
-            character-color (into {}
+      (let [character-color (into {}
                                   (concat (for [highlighted-character highlighted-characters]
                                             [highlighted-character [70 100 70 255]])
                                           (for [highlighted-character (:highlighted-characters @state-atom)]
@@ -612,13 +740,12 @@
                                                                                         character-color)
                                                                               (row-view (map cocoa-key-code-to-character [45 46 43 47 44])
                                                                                         character-color)))
-                                                    (text (rate-layout digram-distribution
-                                                                       layout))
+                                                    (text (format "%.3f"
+                                                                  (rate-layout digram-distribution
+                                                                               layout)))
                                                     (digram-view digram-distribution
                                                                  character-to-cocoa-key-code
                                                                  (fn [digram]
-                                                                   (prn digram) ;; TODO: remove me
-
                                                                    (swap! state-atom assoc :highlighted-characters (or digram
                                                                                                                        #{}))))))))))
 
@@ -628,7 +755,7 @@
 ;;     (fn [layout]
 ;;       (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
 ;;             character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
-;;             digram-distribution (text-digram-distribution (sample-text target-text))
+;;             digram-distribution (text-digram-distribution (filter-target-text target-text))
 ;;             highlighted-characters #_(into #{} (map str target-text))
 ;;             #_(into #{} (map :character (set/intersection optimized-layout
 ;;                                                           qwerty)))
@@ -677,7 +804,7 @@
 
 (defn start-optimization [state-atom]
   (.start (Thread. (fn []
-                     (optimize-layout (sample-text target-text)
+                     (optimize-layout (filter-target-text target-text)
                                       (last (:layouts @state-atom))
                                       (rand-int 5)
                                       100
@@ -697,7 +824,8 @@
                                           (start-optimization state-atom))))))))
 
 (defn optimization-view []
-  (let [state-atom (dependable-atom/atom {:layouts [optimized-layout]
+  (let [state-atom (dependable-atom/atom {:layouts [(random-layout)
+                                                    #_optimized-layout]
                                           :optimize? false})]
     (fn []
       (let [state @state-atom]
@@ -717,12 +845,56 @@
                                                                                                                                              layout))))]))))))))
 
 
+;; (defn digram-distribution-view [digram-distribution digrams]
+;;   #_(text "foo")
+;;   ;; {:node (visuals/rectangle-2 {:fill-color [128 128 128 255]
+;;   ;;                              })
+;;   ;;  :width 10
+;;   ;;  :height 10}
+;;   (let []
+;;    (layouts/vertically-2 {:margin 2}
+;;                          (for [[_digram propability] (take 250 english-digram-distribution)]
+;;                            {:node (visuals/rectangle-2 {:fill-color [128 128 128 255]})
+;;                             :width (* 1000
+;;                                       (/ propability
+;;                                          (second (first english-digram-distribution))))
+;;                             :height 2})))
+;;   )
+
+(defn digram-distribution-view [digram-distribution digrams]
+  (let [max-propability (apply max (vals digram-distribution))]
+    (layouts/vertically-2 {:margin 2}
+                          (for [digram digrams]
+                            {:node (visuals/rectangle-2 {:fill-color [128 128 128 255]})
+                             :width (* 700
+                                       (/ (or (digram-distribution digram)
+                                              0)
+                                          max-propability))
+                             :height 2}))))
+
+(defn digram-distribution-comparison-view []
+  (layouts/with-margin 10
+    (let [digram-distributions [(normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+                                (normalized-digram-distribution (slurp "text/kirjoja-ja-kirjailijoita.txt"))
+                                #_(normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))
+                                ;;(normalized-digram-distribution (remove-spaces (slurp "text/tietokoneet.txt")))
+                                ]
+          digrams (reverse (sort-by (apply merge (reverse digram-distributions))
+                                    (apply set/union
+                                           (map set
+                                                (map #(map first %)
+                                                     digram-distributions)))))]
+      (layouts/horizontally-2 {:margin 10}
+                              (for [digram-distribution digram-distributions]
+                                (digram-distribution-view digram-distribution
+                                                          digrams))))))
 
 (defn start []
   (println "\n\n------------ start -------------\n\n")
   (reset! event-channel-atom
-          (application/start-application ;; ui
+          (application/start-application
            #'optimization-view
+           ;; #'digram-distribution-comparison-view
            :on-exit #(reset! event-channel-atom nil))))
 
 (when @event-channel-atom
@@ -730,6 +902,7 @@
              {:type :redraw}))
 
 (comment
-  (spit "optimized-layout.edn" (pr-str optimized-layout))
+  (spit "optimized-layout-for-finnish-and-english.edn" (pr-str optimized-layout))
+  (spit "qwerty.edn" (pr-str qwerty))
   (def optimized-layout (edn/read-string (slurp "optimized-layout.edn")))
   ) ;; TODO: remove me
