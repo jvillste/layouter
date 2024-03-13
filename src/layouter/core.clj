@@ -54,7 +54,6 @@
 
 
 (def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
-(def key-code-to-character (into {} (map (juxt :cocoa-key-code :character) keyboard-keys)))
 
 (def java-key-code-to-cocoa-key-code (medley/map-vals :cocoa-key-code
                                                       (medley/index-by :java-key-code keyboard-keys)))
@@ -235,8 +234,8 @@
                                                                 text-digram-distribution)]
               (* digram-count
                  (rate-key-pair [(cocoa-key-code-to-key (character-to-cocoa-key-code character-1))
-                                   (cocoa-key-code-to-key (character-to-cocoa-key-code (or character-2
-                                                                                           character-1)))]))))))
+                                 (cocoa-key-code-to-key (character-to-cocoa-key-code (or character-2
+                                                                                         character-1)))]))))))
 
 (deftest test-rate-layout
   (is (= -28.0
@@ -249,6 +248,64 @@
                                            "e" "f"
                                            "l" "k"
                                            "o" "d"})))))
+
+
+;; KEYLOGGGER LOG PARSING
+
+
+(defn parse-log [log]
+  (->> (string/split log #",")
+       (remove empty?)
+       (map string/trim)
+       (map (fn [line]
+              (map parse-long (string/split line #" "))))
+       (map (fn [[keycode time]]
+              {:keycode keycode
+               :time time}))))
+
+(def log-file-path "/Users/jukka/nitor-src/posti/matching/temp/data/keylog.txt")
+
+(defn parse-keylog-to-string [log-file-path]
+  (->> (parse-log (slurp log-file-path))
+       (map :keycode)
+       (map (layout-to-cocoa-key-code-to-character qwerty))
+       (string/join "")))
+
+(comment
+
+  (->> (parse-log (slurp log-file-path))
+       (map :keycode)
+       (map (layout-to-cocoa-key-code-to-character qwerty))
+       (string/join ""))
+
+  (let [key-pair-means (->> (parse-log (slurp log-file-path))
+                            (filter :down?)
+                            (partition 2 1)
+                            (map (fn [[a b]]
+                                   {:from (key-code-to-character (:keycode a))
+                                    :to (key-code-to-character (:keycode b))
+                                    :time (- (:time b)
+                                             (:time a))}))
+                            (remove (fn [key-pair]
+                                      (or (= " " (:from key-pair))
+                                          (= " " (:to key-pair))
+                                          (= nil (:from key-pair))
+                                          (= nil (:to key-pair))
+                                          (< 1000000 (:time key-pair))
+                                          (= (:from key-pair)
+                                             (:to key-pair)))))
+                            (group-by (juxt :from :to))
+                            (medley/map-vals (fn [key-pairs]
+                                               (frequencies/mean (frequencies (map :time key-pairs))))))
+        mean (frequencies/mean (frequencies (vals key-pair-means)))]
+
+    (->> (medley/map-vals (fn [value]
+                            (float (/ value mean)))
+                          key-pair-means)
+         (sort-by second)))
+
+  )
+
 
 
 
@@ -410,6 +467,11 @@
   (apply str (filter (conj layout-characters " ")
                      (map str (string/lower-case text)))))
 
+(defn filter-target-text-without-space [text]
+  (apply str
+         (filter layout-characters
+                 (map str (string/lower-case text)))))
+
 (def target-text #_"hello world"
   (filter-target-text (str (subs (slurp "text/kirjoja-ja-kirjailijoita.txt")
                                  0 300000)
@@ -421,14 +483,14 @@
 
 (comment
   (count (slurp "text/kirjoja-ja-kirjailijoita.txt"))
-    ;; => 324920
+  ;; => 324920
   (count (slurp "text/the-hacker-crackdown.txt"))
   ;; => 663795
   ) ;; TODO: remove me
 
 (defonce optimized-layout qwerty)
 
-(defn normalize-digram-distribution [digram-distribution]
+(defn normalize-distribution [digram-distribution]
   (let [total-count (reduce + (vals digram-distribution))]
     (medley/map-vals (fn [count]
                        (float (/ count total-count)))
@@ -438,7 +500,7 @@
   (->> text
        filter-target-text
        text-digram-distribution
-       normalize-digram-distribution
+       normalize-distribution
        ;; (sort-by second)
        ;; reverse
        ))
@@ -456,7 +518,41 @@
 (defn remove-spaces [text]
   (string/replace text #"\s+" ""))
 
+(defn normalized-character-distribution [text]
+  (->> text
+       filter-target-text-without-space
+       frequencies
+       normalize-distribution
+       (medley/map-keys str)))
+
+(deftest test-normalized-character-distribution
+  (is (= {"h" 0.2, "e" 0.2, "l" 0.4, "o" 0.2}
+         (normalized-character-distribution "hello"))))
+
+(defn compare-character-cistributions []
+  (let [character-distributions [(normalized-character-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                                                                         (slurp "text/the-hacker-crackdown.txt")))
+                                 (normalized-character-distribution (parse-keylog-to-string log-file-path))]]
+    (doseq [digram (reverse (sort-by (apply merge character-distributions)
+                                     (set (mapcat keys character-distributions))))]
+      (when (< 0.5
+               (abs (- (/ (or ((second character-distributions) digram)
+                              0)
+                          (or ((first character-distributions) digram)
+                              0.0001))
+                       1)))
+        (apply println
+               digram
+               (concat (map #(% digram)
+                            character-distributions)
+                       (map #(/ (or (% digram)
+                                    0)
+                                (or ((first character-distributions) digram)
+                                    0.000001))
+                            (rest character-distributions))))))))
 (comment
+  (compare-character-cistributions)
+  (normalized-character-distribution "hello")
   (def english-digram-distribution (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt")))
 
   (def hacker-distribution (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt")))
@@ -491,8 +587,11 @@
 
   (let [digram-distributions [ ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
                               ;; (normalized-digram-distribution (slurp "text/tietokoneet.txt"))
-                              (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-                              (normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))]
+                              ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+                              ;; (normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))
+                              (normalized-digram-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                                                                   (slurp "text/the-hacker-crackdown.txt")))
+                              (normalized-digram-distribution (parse-keylog-to-string log-file-path))]
         digram-to-propability-maps (map #(into {} %)
                                         digram-distributions)]
 
@@ -501,7 +600,7 @@
                                    (map set
                                         (map #(map first %)
                                              digram-distributions))))]
-      (when (< 0.4
+      (when (< 1
                (abs (- (/ (or ((second digram-to-propability-maps) digram)
                               0)
                           (or ((first digram-to-propability-maps) digram)
@@ -514,8 +613,9 @@
                        (map #(/ (or (% digram)
                                     0)
                                 (or ((first digram-to-propability-maps) digram)
-                                    0.0001))
+                                    0.000001))
                             (rest digram-to-propability-maps)))))))
+
 
   (count (normalized-digram-distribution (slurp "text/corncob_lowercase.txt")))
   ;; => 342
@@ -545,74 +645,21 @@
                  (rate-layout (take 300 (reverse (sort-by second (normalized-digram-distribution (slurp target-text-file-name)))))
                               layout)))))
 
-;; qwerty.edn
-;; text/the-hacker-crackdown.txt -8.200177457130849
-;; text/kirjoja-ja-kirjailijoita.txt -8.067552298454757
+  ;; qwerty.edn
+  ;; text/the-hacker-crackdown.txt -8.200177457130849
+  ;; text/kirjoja-ja-kirjailijoita.txt -8.067552298454757
 
-;; optimized-layout-for-finnish-and-english.edn
-;; text/the-hacker-crackdown.txt -5.41650933789515
-;; text/kirjoja-ja-kirjailijoita.txt -4.781927577581428
+  ;; optimized-layout-for-finnish-and-english.edn
+  ;; text/the-hacker-crackdown.txt -5.41650933789515
+  ;; text/kirjoja-ja-kirjailijoita.txt -4.781927577581428
 
-;; optimized-layout-for-finnish.edn
-;; text/the-hacker-crackdown.txt -5.869223441281065
-;; text/kirjoja-ja-kirjailijoita.txt -4.6758328653527315
+  ;; optimized-layout-for-finnish.edn
+  ;; text/the-hacker-crackdown.txt -5.869223441281065
+  ;; text/kirjoja-ja-kirjailijoita.txt -4.6758328653527315
 
-;; optimized-layout-for-english.edn
-;; text/the-hacker-crackdown.txt -5.3888708559434235
-;; text/kirjoja-ja-kirjailijoita.txt -5.800231798034474
-
-  )
-
-
-
-
-;; KEYLOGGGER LOG PARSING
-
-
-(defn parse-log [log]
-  (->> (string/split log #",")
-       (remove empty?)
-       (map string/trim)
-       (map (fn [line]
-              (map parse-long (string/split line #" "))))
-       (map (fn [[keycode time]]
-              {:keycode keycode
-               :time time}))))
-
-(def log-file-path "/Users/jukka/Documents/log.txt")
-
-(comment
-
-  (->> (parse-log (slurp log-file-path))
-       (map :keycode)
-       (map key-code-to-character)
-       (string/join ""))
-
-  (let [key-pair-means (->> (parse-log (slurp log-file-path))
-                            (filter :down?)
-                            (partition 2 1)
-                            (map (fn [[a b]]
-                                   {:from (key-code-to-character (:keycode a))
-                                    :to (key-code-to-character (:keycode b))
-                                    :time (- (:time b)
-                                             (:time a))}))
-                            (remove (fn [key-pair]
-                                      (or (= " " (:from key-pair))
-                                          (= " " (:to key-pair))
-                                          (= nil (:from key-pair))
-                                          (= nil (:to key-pair))
-                                          (< 1000000 (:time key-pair))
-                                          (= (:from key-pair)
-                                             (:to key-pair)))))
-                            (group-by (juxt :from :to))
-                            (medley/map-vals (fn [key-pairs]
-                                               (frequencies/mean (frequencies (map :time key-pairs))))))
-        mean (frequencies/mean (frequencies (vals key-pair-means)))]
-
-    (->> (medley/map-vals (fn [value]
-                            (float (/ value mean)))
-                          key-pair-means)
-         (sort-by second)))
+  ;; optimized-layout-for-english.edn
+  ;; text/the-hacker-crackdown.txt -5.3888708559434235
+  ;; text/kirjoja-ja-kirjailijoita.txt -5.800231798034474
 
   )
 
@@ -646,6 +693,14 @@
                   color
                   font))
 
+
+(defonce event-channel-atom (atom nil))
+
+(defn start-view [view]
+  (reset! event-channel-atom
+          (application/start-application view
+                                         :on-exit #(reset! event-channel-atom nil))))
+
 (defn row-view [characters character-color]
   (layouts/horizontally-2 {:margin 1}
                           (for [character characters]
@@ -654,23 +709,48 @@
                                                   [70 70 70 255])
                                   :padding 10}))))
 
-(defn character-view [character-to-cocoa-key-code [character next-character ]]
-  (layouts/with-margins 10 0 0 0
-    (layouts/vertically-2 {}
-                          (text character)
-                          (text (or (:finger (cocoa-key-code-to-key (character-to-cocoa-key-code character)))
-                                    "?"))
-                          (text (or (:row (cocoa-key-code-to-key (character-to-cocoa-key-code character)))
-                                    "?"))
-                          (text (or (finger-hand (:finger (cocoa-key-code-to-key (character-to-cocoa-key-code character))))
-                                    "?"))
-                          (text (when (contains? layout-characters character)
-                                  (str (abs (int (rate-cocoa-key-code (character-to-cocoa-key-code character)))))))
-                          (text (when (and (contains? layout-characters character)
-                                           (contains? layout-characters next-character))
-                                  (str (abs (int (/ (rate-key-pair (cocoa-key-code-to-key (character-to-cocoa-key-code character))
-                                                                   (cocoa-key-code-to-key (character-to-cocoa-key-code next-character)))
-                                                    2)))))))))
+(defn character-view [character-to-cocoa-key-code on-mouse-over-character [character next-character]]
+  (let [character-key (cocoa-key-code-to-key (character-to-cocoa-key-code character))
+        next-character-key (cocoa-key-code-to-key (character-to-cocoa-key-code next-character))]
+    {:node (layouts/vertically-2 {}
+                                 (text character)
+                                 (text (or (:finger character-key)
+                                           "_")
+                                       {:color (if (and (not (= character-key
+                                                                next-character-key))
+                                                        (= (:finger character-key)
+                                                           (:finger next-character-key)))
+                                                 [200 100 100 255]
+                                                 (:text-color theme))})
+                                 (text (or (:row character-key)
+                                           " "))
+                                 (text (or (finger-hand (:finger character-key))
+                                           " ")
+                                       {:color (if (and (not (= character-key
+                                                                next-character-key))
+                                                        (= (finger-hand (:finger character-key))
+                                                           (finger-hand (:finger next-character-key))))
+                                                 [200 100 100 255]
+                                                 (:text-color theme))})
+                                 (let [key-rating (when (contains? layout-characters character)
+                                                    (abs (int (rate-cocoa-key-code (character-to-cocoa-key-code character)))))]
+                                   (text key-rating
+                                         {:color (if (not (or (= 0 key-rating)
+                                                              (= 1 key-rating)))
+                                                   [200 100 100 255]
+                                                   (:text-color theme))}))
+                                 (text (when (and (contains? layout-characters character)
+                                                  (contains? layout-characters next-character))
+                                         (str (abs (int (/ (rate-key-pair [(cocoa-key-code-to-key (character-to-cocoa-key-code character))
+                                                                           (cocoa-key-code-to-key (character-to-cocoa-key-code next-character))])
+                                                           2)))))))
+     :mouse-event-handler (fn [node event]
+                            (when (= :nodes-under-mouse-changed (:type event))
+                              (if (contains? (set (map :id (:nodes-under-mouse event)))
+                                             (:id node))
+                                (on-mouse-over-character character)
+                                (on-mouse-over-character nil)))
+                            event)}))
 
 (defn digram-view [digram-distribution character-to-cocoa-key-code on-mouse-over-digram]
   (layouts/vertically-2 {}
@@ -681,7 +761,7 @@
                                                                   (cocoa-key-code-to-key (character-to-cocoa-key-code character)))
                                                                 (first digram))
                                                            #_[(cocoa-key-code-to-key (character-to-cocoa-key-code (first (first digram))))
-                                                            (cocoa-key-code-to-key (character-to-cocoa-key-code (second (first digram))))])))
+                                                              (cocoa-key-code-to-key (character-to-cocoa-key-code (second (first digram))))])))
                            :mouse-event-handler (fn [node event]
                                                   (when (= :nodes-under-mouse-changed (:type event))
                                                     (if (= (:id node)
@@ -709,45 +789,92 @@
   ) ;; TODO: remove me
 
 
+(defn keyboard-view [cocoa-key-code-to-character character-color]
+  (layouts/vertically-2 {:margin 10}
+                        (layouts/vertically-2 {:margin 1}
+                                              (layouts/horizontally-2 {:margin 10}
+                                                                      (row-view (map cocoa-key-code-to-character [12 13 14 15 17])
+                                                                                character-color)
+                                                                      (row-view (map cocoa-key-code-to-character [16 32 34 31 35 33])
+                                                                                character-color))
+                                              (layouts/with-margins 0 0 0 10
+                                                (layouts/horizontally-2 {:margin 10}
+                                                                        (row-view (map cocoa-key-code-to-character [0 1 2 3 5])
+                                                                                  character-color)
+                                                                        (row-view (map cocoa-key-code-to-character [4 38 40 37 41 39])
+                                                                                  character-color)))
+                                              (layouts/with-margins 0 0 0 30
+                                                (layouts/horizontally-2 {:margin 10}
+                                                                        (row-view (map cocoa-key-code-to-character [6 7 8 9 11])
+                                                                                  character-color)
+                                                                        (row-view (map cocoa-key-code-to-character [45 46 43 47 44])
+                                                                                  character-color))))))
 
-(defn layout-view-2 [layout _highlighted-characters]
+(defn digram-test-view [layout target-text _highlighted-characters]
   (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})
         cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
         character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
         digram-distribution (normalized-digram-distribution (filter-target-text target-text))]
-    (fn [layout highlighted-characters]
+    (fn [layout _target-text highlighted-characters]
       (let [character-color (into {}
                                   (concat (for [highlighted-character highlighted-characters]
                                             [highlighted-character [70 100 70 255]])
                                           (for [highlighted-character (:highlighted-characters @state-atom)]
                                             [highlighted-character [100 150 70 255]])))]
         (layouts/vertically-2 {:margin 10}
-                              (layouts/vertically-2 {:margin 1}
-                                                    (layouts/horizontally-2 {:margin 10}
-                                                                            (row-view (map cocoa-key-code-to-character [12 13 14 15 17])
-                                                                                      character-color)
-                                                                            (row-view (map cocoa-key-code-to-character [16 32 34 31 35 33])
-                                                                                      character-color))
-                                                    (layouts/with-margins 0 0 0 10
-                                                      (layouts/horizontally-2 {:margin 10}
-                                                                              (row-view (map cocoa-key-code-to-character [0 1 2 3 5])
-                                                                                        character-color)
-                                                                              (row-view (map cocoa-key-code-to-character [4 38 40 37 41 39])
-                                                                                        character-color)))
-                                                    (layouts/with-margins 0 0 0 20
-                                                      (layouts/horizontally-2 {:margin 10}
-                                                                              (row-view (map cocoa-key-code-to-character [6 7 8 9 11])
-                                                                                        character-color)
-                                                                              (row-view (map cocoa-key-code-to-character [45 46 43 47 44])
-                                                                                        character-color)))
-                                                    (text (format "%.3f"
-                                                                  (rate-layout digram-distribution
-                                                                               layout)))
-                                                    (digram-view digram-distribution
-                                                                 character-to-cocoa-key-code
-                                                                 (fn [digram]
-                                                                   (swap! state-atom assoc :highlighted-characters (or digram
-                                                                                                                       #{}))))))))))
+                              [keyboard-view cocoa-key-code-to-character
+                               character-color]
+                              (text (format "%.3f"
+                                            (rate-layout digram-distribution
+                                                         layout)))
+                              (digram-view digram-distribution
+                                           character-to-cocoa-key-code
+                                           (fn [digram]
+                                             (swap! state-atom assoc :highlighted-characters (or digram
+                                                                                                 #{})))))))))
+
+
+(defn text-test-view [layout _text]
+  (let [state-atom (dependable-atom/atom {:highlighted-character nil})
+        layout-rating (rate-layout (normalized-digram-distribution text)
+                                   layout)]
+    (fn [layout test-text]
+      (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
+            character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)]
+        (layouts/vertically-2 {:margin 10}
+                              [keyboard-view
+                               cocoa-key-code-to-character
+                               {(:highlighted-character @state-atom) [100 150 70 255]}]
+                              (text (str "layout rating for the text: " layout-rating))
+                              (layouts/horizontally-2 {:margin 20}
+                                                      (layouts/vertically-2 {}
+                                                                            (text "character")
+                                                                            (text "finger")
+                                                                            (text "row")
+                                                                            (text "hand")
+                                                                            (text "key rating")
+                                                                            (text "key pair rating"))
+                                                      (layouts/flow (map (partial character-view
+                                                                                  character-to-cocoa-key-code
+                                                                                  (fn [character-under-mouse]
+                                                                                    (swap! state-atom assoc :highlighted-character character-under-mouse)))
+                                                                         (partition-all 2 1 (map str test-text))))))))))
+(comment
+  (let [test-text "kotivara vetää myynnistä lisää makkaroita"]
+    (start-view (fn []
+                  (layouts/vertically-2 {:margin 10}
+                                        ;; [#'text-test-view
+                                        ;;  qwerty
+                                        ;;  test-text]
+                                        [#'text-test-view
+                                         (edn/read-string (slurp "optimized-layout-for-finnish-and-english.edn"))
+                                         test-text]
+                                        ;; [#'text-test-view
+                                        ;;  (edn/read-string (slurp "optimized-layout-for-finnish.edn"))
+                                        ;;  test-text]
+                                        ))))
+  ) ;; TODO: remove me
+
 
 ;; (defn layout-view [_layout]
 ;;   (let [state-atom (dependable-atom/atom {:pressed-java-key-codes #{}
@@ -765,23 +892,8 @@
 ;;                  (map cocoa-key-code-to-character)
 ;;                  (into #{}))]
 ;;         (assoc (layouts/vertically-2 {:margin 10}
-;;                                      (text (:text @state-atom))
-;;                                      (layouts/vertically-2 {:margin 1}
-;;                                                            (row-view (map cocoa-key-code-to-character [12 13 14 15 17 16 32 34 31 35 33])
-;;                                                                      highlighted-characters)
-;;                                                            (layouts/with-margins 0 0 0 10
-;;                                                              (row-view (map cocoa-key-code-to-character [0 1 2 3 5 4 38 40 37 41 39])
-;;                                                                        highlighted-characters))
-;;                                                            (layouts/with-margins 0 0 0 20
-;;                                                              (row-view (map cocoa-key-code-to-character [6 7 8 9 11 45 46 43 47 44])
-;;                                                                        highlighted-characters))
-;;                                                            ;; (text (pr-str @state-atom))
-;;                                                            ;; (layouts/flow (map (partial character-view character-to-cocoa-key-code)
-;;                                                            ;;                    (partition-all 2 1 (map str (take 100 (string/lower-case target-text))))))
-;;                                                            (text (rate-layout digram-distribution
-;;                                                                               layout))
-;;                                                            #_(digram-view digram-distribution
-;;                                                                           character-to-cocoa-key-code)))
+;;                                      (layouts/flow (map (partial character-view character-to-cocoa-key-code)
+;;                                                         (partition-all 2 1 (map str (take 100 (string/lower-case target-text)))))))
 ;;                :keyboard-event-handler (fn [_subtree event]
 ;;                                          (when (and (= :key-pressed (:type event))
 ;;                                                     (= :back-space (:key event)))
@@ -800,9 +912,8 @@
 ;;                                            (swap! state-atom update :pressed-java-key-codes disj (:key-code event))))
 ;;                :can-gain-focus? true)))))
 
-(defonce event-channel-atom (atom nil))
 
-(defn start-optimization [state-atom]
+(defn start-optimization [state-atom target-text]
   (.start (Thread. (fn []
                      (optimize-layout (filter-target-text target-text)
                                       (last (:layouts @state-atom))
@@ -821,13 +932,14 @@
                                         (async/>!! @event-channel-atom
                                                    {:type :foo})
                                         (when (:optimize? @state-atom)
-                                          (start-optimization state-atom))))))))
+                                          (start-optimization state-atom
+                                                              target-text))))))))
 
-(defn optimization-view []
+(defn optimization-view [_target-text]
   (let [state-atom (dependable-atom/atom {:layouts [(random-layout)
                                                     #_optimized-layout]
                                           :optimize? false})]
-    (fn []
+    (fn [target-text]
       (let [state @state-atom]
         (layouts/vertically-2 {:margin 10}
                               (button/button (if (:optimize? state)
@@ -836,30 +948,28 @@
                                              (fn []
                                                (swap! state-atom update :optimize? not)
                                                (when (:optimize? @state-atom)
-                                                 (start-optimization state-atom))))
+                                                 (start-optimization state-atom
+                                                                     target-text))))
                               (layouts/horizontally-2 {:margin 10}
-                                                      (concat [[layout-view-2 (first (:layouts state)) #{}]]
+                                                      (concat [[digram-test-view
+                                                                (first (:layouts state))
+                                                                target-text
+                                                                #{}]]
                                                               (for [[previous-layout layout] (partition 2 1 (:layouts state))]
-                                                                [layout-view-2 layout (set/difference layout-characters
-                                                                                                      (set (map :character (set/intersection previous-layout
-                                                                                                                                             layout))))]))))))))
+                                                                [digram-test-view
+                                                                 layout
+                                                                 target-text
+                                                                 (set/difference layout-characters
+                                                                                 (set (map :character (set/intersection previous-layout
+                                                                                                                        layout))))])))
+                              [#'text-test-view
+                               (last (:layouts state))
+                               target-text])))))
 
-
-;; (defn digram-distribution-view [digram-distribution digrams]
-;;   #_(text "foo")
-;;   ;; {:node (visuals/rectangle-2 {:fill-color [128 128 128 255]
-;;   ;;                              })
-;;   ;;  :width 10
-;;   ;;  :height 10}
-;;   (let []
-;;    (layouts/vertically-2 {:margin 2}
-;;                          (for [[_digram propability] (take 250 english-digram-distribution)]
-;;                            {:node (visuals/rectangle-2 {:fill-color [128 128 128 255]})
-;;                             :width (* 1000
-;;                                       (/ propability
-;;                                          (second (first english-digram-distribution))))
-;;                             :height 2})))
-;;   )
+(comment
+  (start-view (fn []
+                [#'optimization-view "kotivara vetää myynnistä lisää makkaroita"]))
+  ) ;; TODO: remove me
 
 (defn digram-distribution-view [digram-distribution digrams]
   (let [max-propability (apply max (vals digram-distribution))]
@@ -874,11 +984,15 @@
 
 (defn digram-distribution-comparison-view []
   (layouts/with-margin 10
-    (let [digram-distributions [(normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-                                (normalized-digram-distribution (slurp "text/kirjoja-ja-kirjailijoita.txt"))
+    (let [digram-distributions [;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+                                ;; (normalized-digram-distribution (slurp "text/kirjoja-ja-kirjailijoita.txt"))
+                                (normalized-digram-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                                                                     (slurp "text/the-hacker-crackdown.txt")))
+                                (normalized-digram-distribution (parse-keylog-to-string log-file-path))
                                 #_(normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))
                                 ;;(normalized-digram-distribution (remove-spaces (slurp "text/tietokoneet.txt")))
                                 ]
+          _ (def-locals) ;; TODO: remove me
           digrams (reverse (sort-by (apply merge (reverse digram-distributions))
                                     (apply set/union
                                            (map set
@@ -888,6 +1002,12 @@
                               (for [digram-distribution digram-distributions]
                                 (digram-distribution-view digram-distribution
                                                           digrams))))))
+
+
+(comment
+  (start-view #'digram-distribution-comparison-view)
+  ) ;; TODO: remove me
+
 
 (defn start []
   (println "\n\n------------ start -------------\n\n")
@@ -902,6 +1022,7 @@
              {:type :redraw}))
 
 (comment
+  
   (spit "optimized-layout-for-finnish-and-english.edn" (pr-str optimized-layout))
   (spit "qwerty.edn" (pr-str qwerty))
   (def optimized-layout (edn/read-string (slurp "optimized-layout.edn")))
