@@ -67,6 +67,18 @@
 
 ;; LAYOUTS
 
+
+(defn layout-to-cocoa-key-code-to-character [layout]
+  (medley/map-vals :character (medley/index-by :cocoa-key-code layout)))
+
+(defn layout-to-character-to-cocoa-key-code [layout]
+  (medley/map-vals :cocoa-key-code (medley/index-by :character layout)))
+
+(defn layout-to-java-key-code-to-character [layout]
+  (medley/map-keys
+   (layout-to-cocoa-key-code-to-character layout))
+  (medley/map-vals :character (medley/index-by :cocoa-key-code layout)))
+
 (def qwerty #{{:character "a", :cocoa-key-code 0}
               {:character "s", :cocoa-key-code 1}
               {:character "d", :cocoa-key-code 2}
@@ -102,16 +114,6 @@
 
 (def layout-characters (into #{} (map :character qwerty)))
 
-(defn layout-to-cocoa-key-code-to-character [layout]
-  (medley/map-vals :character (medley/index-by :cocoa-key-code layout)))
-
-(defn layout-to-character-to-cocoa-key-code [layout]
-  (medley/map-vals :cocoa-key-code (medley/index-by :character layout)))
-
-(defn layout-to-java-key-code-to-character [layout]
-  (medley/map-keys
-   (layout-to-cocoa-key-code-to-character layout))
-  (medley/map-vals :character (medley/index-by :cocoa-key-code layout)))
 
 (defn layout-from-qwerty [new-layout-character-mapping-to-qwerty]
   (let [character-to-cocoa-key-code-in-qwerty (layout-to-character-to-cocoa-key-code qwerty)]
@@ -162,10 +164,19 @@
   (is (= {#{"a"} 1}
          (add-word-digram-distribution {} "a"))))
 
+(defn extract-words [text]
+  (remove (fn [word]
+            (= 1 (count word)))
+          (remove empty? (string/split text #"\s+"))))
+
+(deftest test-extract-words
+  (is (= '("abc" "abc" "abc")
+         (extract-words "abc abc  \nabc a"))))
+
 (defn text-digram-distribution [text]
   (reduce add-word-digram-distribution
           {}
-          (remove empty? (string/split text #"\s+"))))
+          (extract-words text)))
 
 (deftest test-text-digram-distribution
   (is (= {#{"a" "b"} 1, #{"d" "c"} 1}
@@ -253,8 +264,8 @@
 ;; KEYLOGGGER LOG PARSING
 
 
-(defn parse-log [log]
-  (->> (string/split log #",")
+(defn parse-key-log [key-log]
+  (->> (string/split key-log #",")
        (remove empty?)
        (map string/trim)
        (map (fn [line]
@@ -263,27 +274,61 @@
               {:keycode keycode
                :time time}))))
 
-(def log-file-path "/Users/jukka/nitor-src/posti/matching/temp/data/keylog.txt")
+(def key-log-file-path "/Users/jukka/nitor-src/posti/matching/temp/data/keylog.txt")
 
-(defn parse-keylog-to-string [log-file-path]
-  (->> (parse-log (slurp log-file-path))
+(def space-cocoa-key-code 49)
+
+(def second-in-microseconds 1000000)
+
+(defn key-log-to-string [parsed-log minimum-pause-for-inserting-space]
+  (->> parsed-log
+       ;; (sort-by :time)
+       (partition-all 2 1)
+       (mapcat (fn [[event following-event]]
+                 (if (and following-event
+                          (<= minimum-pause-for-inserting-space
+                              (- (:time following-event)
+                                 (:time event))))
+                   [event
+                    {:keycode space-cocoa-key-code
+                     :time (inc (:time event))}]
+                   [event])))
        (map :keycode)
-       (map (layout-to-cocoa-key-code-to-character qwerty))
+       (map (assoc (layout-to-cocoa-key-code-to-character qwerty)
+                   space-cocoa-key-code " "))
        (string/join "")))
+
+(deftest test-key-log-to-string
+  (is (= "ab c"
+         (key-log-to-string (let [character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code qwerty)]
+                                   [{:keycode (character-to-cocoa-key-code "a"), :time 0}
+                                    {:keycode (character-to-cocoa-key-code "b"), :time 1}
+                                    {:keycode (character-to-cocoa-key-code "c"), :time 3}])
+                                 2))))
+
+(defn key-log-to-string-from-file [file-name]
+  (-> file-name
+      (slurp)
+      (parse-key-log)
+      (key-log-to-string (* 1 second-in-microseconds))))
+
 
 (comment
 
-  (->> (parse-log (slurp log-file-path))
+  (string/join  " " (extract-words (key-log-to-string-from-file key-log-file-path)))
+  (key-log-to-string (parse-key-log (slurp key-log-file-path)) second-in-microseconds)
+
+  (->> (parse-key-log (slurp key-log-file-path))
        (map :keycode)
        (map (layout-to-cocoa-key-code-to-character qwerty))
        (string/join ""))
 
-  (let [key-pair-means (->> (parse-log (slurp log-file-path))
+  (let [key-pair-means (->> (parse-key-log (slurp key-log-file-path))
                             (filter :down?)
                             (partition 2 1)
                             (map (fn [[a b]]
                                    {:from (key-code-to-character (:keycode a))
-                                    :to (key-code-to-character (:keycode b))
+                                    :to   (key-code-to-character (:keycode b))
                                     :time (- (:time b)
                                              (:time a))}))
                             (remove (fn [key-pair]
@@ -297,7 +342,7 @@
                             (group-by (juxt :from :to))
                             (medley/map-vals (fn [key-pairs]
                                                (frequencies/mean (frequencies (map :time key-pairs))))))
-        mean (frequencies/mean (frequencies (vals key-pair-means)))]
+        mean           (frequencies/mean (frequencies (vals key-pair-means)))]
 
     (->> (medley/map-vals (fn [value]
                             (float (/ value mean)))
@@ -493,7 +538,7 @@
 (defn normalize-distribution [digram-distribution]
   (let [total-count (reduce + (vals digram-distribution))]
     (medley/map-vals (fn [count]
-                       (float (/ count total-count)))
+                       (double (/ count total-count)))
                      digram-distribution)))
 
 (defn normalized-digram-distribution [text]
@@ -529,29 +574,42 @@
   (is (= {"h" 0.2, "e" 0.2, "l" 0.4, "o" 0.2}
          (normalized-character-distribution "hello"))))
 
-(defn compare-character-cistributions []
-  (let [character-distributions [(normalized-character-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
-                                                                         (slurp "text/the-hacker-crackdown.txt")))
-                                 (normalized-character-distribution (parse-keylog-to-string log-file-path))]]
-    (doseq [digram (reverse (sort-by (apply merge character-distributions)
-                                     (set (mapcat keys character-distributions))))]
+
+(defn compare-distributions [distributions]
+  (doseq [value (reverse (sort-by (apply merge (reverse distributions))
+                                  (set (mapcat keys distributions))))]
+    (let [proportional-differences (map #(/ (or (% value)
+                                                0)
+                                            (or ((first distributions) value)
+                                                0.000001))
+                                        (rest distributions))]
       (when (< 0.5
-               (abs (- (/ (or ((second character-distributions) digram)
-                              0)
-                          (or ((first character-distributions) digram)
-                              0.0001))
+               (abs (- (first proportional-differences)
                        1)))
         (apply println
-               digram
-               (concat (map #(% digram)
-                            character-distributions)
-                       (map #(/ (or (% digram)
-                                    0)
-                                (or ((first character-distributions) digram)
-                                    0.000001))
-                            (rest character-distributions))))))))
+               (pr-str value)
+               (concat (map #(% value)
+                            distributions)
+                       ))))))
+
+(defn compare-character-cistributions []
+  (compare-distributions [(normalized-character-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                                                                  (slurp "text/the-hacker-crackdown.txt")))
+                          (normalized-character-distribution (key-log-to-string key-log-file-path))]))
+
+(defn compare-digram-distributions []
+  (compare-distributions [ ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+                          ;; (normalized-digram-distribution (slurp "text/tietokoneet.txt"))
+                          ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
+                          ;; (normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))
+                          (normalized-digram-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                                                               (slurp "text/the-hacker-crackdown.txt")))
+                          (normalized-digram-distribution (key-log-to-string key-log-file-path))]))
 (comment
+  (compare-distributions [(normalized-character-distribution "abccc")
+                          (normalized-character-distribution "abdd")])
   (compare-character-cistributions)
+  (compare-digram-distributions)
   (normalized-character-distribution "hello")
   (def english-digram-distribution (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt")))
 
@@ -585,36 +643,7 @@
   ;;            (second-positions digram))))
 
 
-  (let [digram-distributions [ ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-                              ;; (normalized-digram-distribution (slurp "text/tietokoneet.txt"))
-                              ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-                              ;; (normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))
-                              (normalized-digram-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
-                                                                   (slurp "text/the-hacker-crackdown.txt")))
-                              (normalized-digram-distribution (parse-keylog-to-string log-file-path))]
-        digram-to-propability-maps (map #(into {} %)
-                                        digram-distributions)]
 
-    (doseq [digram (sort-by (apply merge (map distribution-positions (reverse digram-distributions)))
-                            (apply set/union
-                                   (map set
-                                        (map #(map first %)
-                                             digram-distributions))))]
-      (when (< 1
-               (abs (- (/ (or ((second digram-to-propability-maps) digram)
-                              0)
-                          (or ((first digram-to-propability-maps) digram)
-                              0.0001))
-                       1)))
-        (apply println
-               digram
-               (concat (map #(% digram)
-                            digram-to-propability-maps)
-                       (map #(/ (or (% digram)
-                                    0)
-                                (or ((first digram-to-propability-maps) digram)
-                                    0.000001))
-                            (rest digram-to-propability-maps)))))))
 
 
   (count (normalized-digram-distribution (slurp "text/corncob_lowercase.txt")))
@@ -971,37 +1000,40 @@
                 [#'optimization-view "kotivara vetää myynnistä lisää makkaroita"]))
   ) ;; TODO: remove me
 
-(defn digram-distribution-view [digram-distribution digrams]
-  (let [max-propability (apply max (vals digram-distribution))]
+(defn distribution-view [distribution digrams]
+  (let [max-propability (apply max (vals distribution))]
     (layouts/vertically-2 {:margin 2}
                           (for [digram digrams]
                             {:node (visuals/rectangle-2 {:fill-color [128 128 128 255]})
                              :width (* 700
-                                       (/ (or (digram-distribution digram)
+                                       (/ (or (distribution digram)
                                               0)
                                           max-propability))
                              :height 2}))))
 
 (defn digram-distribution-comparison-view []
   (layouts/with-margin 10
-    (let [digram-distributions [;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-                                ;; (normalized-digram-distribution (slurp "text/kirjoja-ja-kirjailijoita.txt"))
-                                (normalized-digram-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
-                                                                     (slurp "text/the-hacker-crackdown.txt")))
-                                (normalized-digram-distribution (parse-keylog-to-string log-file-path))
-                                #_(normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))
-                                ;;(normalized-digram-distribution (remove-spaces (slurp "text/tietokoneet.txt")))
-                                ]
-          _ (def-locals) ;; TODO: remove me
-          digrams (reverse (sort-by (apply merge (reverse digram-distributions))
-                                    (apply set/union
-                                           (map set
-                                                (map #(map first %)
-                                                     digram-distributions)))))]
-      (layouts/horizontally-2 {:margin 10}
-                              (for [digram-distribution digram-distributions]
-                                (digram-distribution-view digram-distribution
-                                                          digrams))))))
+    (let [texts [(str (subs (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                            0 300000)
+                      (subs (slurp "text/the-hacker-crackdown.txt")
+                            0 300000))
+                 (key-log-to-string key-log-file-path)]
+          digram-distributions (map normalized-digram-distribution texts)
+          character-distributions (map normalized-character-distribution texts)]
+      (layouts/vertically-2 {:margin 10}
+                            (layouts/horizontally-2 {:margin 10}
+                                                    (for [digram-distribution digram-distributions]
+                                                      (distribution-view digram-distribution
+                                                                         (reverse (sort-by (apply merge (reverse digram-distributions))
+                                                                                           (apply set/union
+                                                                                                  (map set
+                                                                                                       (map #(map first %)
+                                                                                                            digram-distributions))))))))
+                            (layouts/horizontally-2 {:margin 10}
+                                                    (for [character-distribution character-distributions]
+                                                      (distribution-view character-distribution
+                                                                         (reverse (sort-by (apply merge (reverse character-distributions))
+                                                                                           (set (mapcat keys character-distributions)))))))))))
 
 
 (comment
@@ -1022,7 +1054,7 @@
              {:type :redraw}))
 
 (comment
-  
+
   (spit "optimized-layout-for-finnish-and-english.edn" (pr-str optimized-layout))
   (spit "qwerty.edn" (pr-str qwerty))
   (def optimized-layout (edn/read-string (slurp "optimized-layout.edn")))
