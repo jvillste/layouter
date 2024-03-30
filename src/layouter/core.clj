@@ -19,51 +19,50 @@
 
 ;; KEYS
 
-(def keyboard-keys [{:cocoa-key-code 0, :java-key-code 65, :finger 0, :row 1, :column 0}
-                    {:cocoa-key-code 1, :java-key-code 83, :finger 1, :row 1, :column 1}
-                    {:cocoa-key-code 2, :java-key-code 68, :finger 2, :row 1, :column 2}
-                    {:cocoa-key-code 3, :java-key-code 70, :finger 3, :row 1, :column 3}
-                    {:cocoa-key-code 4, :java-key-code 72, :finger 4, :row 1, :column 5}
-                    {:cocoa-key-code 5, :java-key-code 71, :finger 3, :row 1, :column 4}
-                    {:cocoa-key-code 6, :java-key-code 90, :finger 0, :row 2, :column 0}
-                    {:cocoa-key-code 7, :java-key-code 88, :finger 1, :row 2, :column 1}
-                    {:cocoa-key-code 8, :java-key-code 67, :finger 2, :row 2, :column 2}
-                    {:cocoa-key-code 9, :java-key-code 86, :finger 3, :row 2, :column 3}
-                    {:cocoa-key-code 11, :java-key-code 66, :finger 3, :row 2, :column 4}
-                    {:cocoa-key-code 12, :java-key-code 81, :finger 0, :row 0, :column 0}
-                    {:cocoa-key-code 13, :java-key-code 87, :finger 1, :row 0, :column 1}
-                    {:cocoa-key-code 14, :java-key-code 69, :finger 2, :row 0, :column 2}
-                    {:cocoa-key-code 15, :java-key-code 82, :finger 3, :row 0, :column 3}
-                    {:cocoa-key-code 16, :java-key-code 89, :finger 4, :row 0, :column 5}
-                    {:cocoa-key-code 17, :java-key-code 84, :finger 3, :row 0, :column 4}
-                    {:cocoa-key-code 31, :java-key-code 79, :finger 6, :row 0, :column 8}
-                    {:cocoa-key-code 32, :java-key-code 85, :finger 4, :row 0, :column 6}
-                    {:cocoa-key-code 33, :java-key-code 16777445, :finger 7, :row 0, :column 10}
-                    {:cocoa-key-code 34, :java-key-code 73, :finger 5, :row 0, :column 7}
-                    {:cocoa-key-code 35, :java-key-code 80, :finger 7, :row 0, :column 9}
-                    {:cocoa-key-code 37, :java-key-code 76, :finger 6, :row 1, :column 8}
-                    {:cocoa-key-code 38, :java-key-code 74, :finger 4, :row 1, :column 6}
-                    {:cocoa-key-code 39, :java-key-code 16777444, :finger 7, :row 1, :column 10}
-                    {:cocoa-key-code 40, :java-key-code 75, :finger 5, :row 1, :column 7}
-                    {:cocoa-key-code 41, :java-key-code 16777462, :finger 7, :row 1, :column 9}
-                    {:cocoa-key-code 43, :java-key-code 44, :finger 5, :row 2, :column 7}
-                    {:cocoa-key-code 44, :java-key-code 47, :finger 7, :row 2, :column 9}
-                    {:cocoa-key-code 45, :java-key-code 78, :finger 3, :row 2, :column 5}
-                    {:cocoa-key-code 46, :java-key-code 77, :finger 4, :row 2, :column 6}
-                    {:cocoa-key-code 47, :java-key-code 46, :finger 6, :row 2, :column 8}])
+(def keyboard-keys [{:cocoa-key-code 0  :java-key-code 65       :finger 0 :rating 1  :row 1 :column 0  :home-position? true  :qwerty-character "a"}
+                    {:cocoa-key-code 1  :java-key-code 83       :finger 1 :rating 1  :row 1 :column 1  :home-position? true  :qwerty-character "s"}
+                    {:cocoa-key-code 2  :java-key-code 68       :finger 2 :rating 1  :row 1 :column 2  :home-position? true  :qwerty-character "d"}
+                    {:cocoa-key-code 3  :java-key-code 70       :finger 3 :rating 1  :row 1 :column 3  :home-position? true  :qwerty-character "f"}
+                    {:cocoa-key-code 4  :java-key-code 72       :finger 4 :rating 0  :row 1 :column 5  :home-position? false :qwerty-character "h"}
+                    {:cocoa-key-code 5  :java-key-code 71       :finger 3 :rating 0  :row 1 :column 4  :home-position? false :qwerty-character "g"}
+                    {:cocoa-key-code 6  :java-key-code 90       :finger 1 :rating 0  :row 2 :column 0  :home-position? false :qwerty-character "z"}
+                    {:cocoa-key-code 7  :java-key-code 88       :finger 2 :rating 0  :row 2 :column 1  :home-position? false :qwerty-character "x"}
+                    {:cocoa-key-code 8  :java-key-code 67       :finger 3 :rating 0  :row 2 :column 2  :home-position? false :qwerty-character "c"}
+                    {:cocoa-key-code 9  :java-key-code 86       :finger 3 :rating -1 :row 2 :column 3  :home-position? false :qwerty-character "v"}
+                    {:cocoa-key-code 11 :java-key-code 66       :finger 3 :rating -2 :row 2 :column 4  :home-position? false :qwerty-character "b"}
+                    {:cocoa-key-code 12 :java-key-code 81       :finger 0 :rating 0  :row 0 :column 0  :home-position? false :qwerty-character "q"}
+                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :rating -1 :row 0 :column 1  :home-position? false :qwerty-character "w"}
+                    {:cocoa-key-code 14 :java-key-code 69       :finger 1 :rating 0  :row 0 :column 2  :home-position? false :qwerty-character "e"}
+                    {:cocoa-key-code 15 :java-key-code 82       :finger 2 :rating 0  :row 0 :column 3  :home-position? false :qwerty-character "r"}
+                    {:cocoa-key-code 16 :java-key-code 89       :finger 4 :rating -1 :row 0 :column 5  :home-position? false :qwerty-character "y"}
+                    {:cocoa-key-code 17 :java-key-code 84       :finger 3 :rating 0  :row 0 :column 4  :home-position? false :qwerty-character "t"}
+                    {:cocoa-key-code 31 :java-key-code 79       :finger 6 :rating 0  :row 0 :column 8  :home-position? false :qwerty-character "o"}
+                    {:cocoa-key-code 32 :java-key-code 85       :finger 4 :rating 0  :row 0 :column 6  :home-position? false :qwerty-character "u"}
+                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :rating 0  :row 0 :column 10 :home-position? false :qwerty-character "å"}
+                    {:cocoa-key-code 34 :java-key-code 73       :finger 5 :rating 0  :row 0 :column 7  :home-position? false :qwerty-character "i"}
+                    {:cocoa-key-code 35 :java-key-code 80       :finger 7 :rating 0  :row 0 :column 9  :home-position? false :qwerty-character "p"}
+                    {:cocoa-key-code 37 :java-key-code 76       :finger 6 :rating 1  :row 1 :column 8  :home-position? true  :qwerty-character "l"}
+                    {:cocoa-key-code 38 :java-key-code 74       :finger 4 :rating 1  :row 1 :column 6  :home-position? true  :qwerty-character "j"}
+                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :rating 0  :row 1 :column 10 :home-position? false :qwerty-character "ä"}
+                    {:cocoa-key-code 40 :java-key-code 75       :finger 5 :rating 1  :row 1 :column 7  :home-position? true  :qwerty-character "k"}
+                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :rating 1  :row 1 :column 9  :home-position? true  :qwerty-character "ö"}
+                    {:cocoa-key-code 43 :java-key-code 44       :finger 5 :rating 0  :row 2 :column 7  :home-position? false :qwerty-character ","}
+                    {:cocoa-key-code 44 :java-key-code 47       :finger 7 :rating 0  :row 2 :column 9  :home-position? false :qwerty-character "-"}
+                    {:cocoa-key-code 45 :java-key-code 78       :finger 3 :rating -1 :row 2 :column 5  :home-position? false :qwerty-character "n"}
+                    {:cocoa-key-code 46 :java-key-code 77       :finger 4 :rating 0  :row 2 :column 6  :home-position? false :qwerty-character "m"}
+                    {:cocoa-key-code 47 :java-key-code 46       :finger 6 :rating 0  :row 2 :column 8  :home-position? false :qwerty-character "."}
+                    {:cocoa-key-code 50 :java-key-code 192      :finger 0 :rating 0  :row 2 :column -1 :home-position? false :qwerty-character "<"}])
 
 
 (def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
+
+(def qwerty-character-to-key (medley/index-by :qwerty-character keyboard-keys))
 
 (def java-key-code-to-cocoa-key-code (medley/map-vals :cocoa-key-code
                                                       (medley/index-by :java-key-code keyboard-keys)))
 
 (def cocoa-key-code-to-java-key-code (medley/map-vals :java-key-code
                                                       (medley/index-by :cocoa-key-code keyboard-keys)))
-
-
-
-
 
 ;; LAYOUTS
 
@@ -110,7 +109,42 @@
               {:character "-", :cocoa-key-code 44}
               {:character "n", :cocoa-key-code 45}
               {:character "m", :cocoa-key-code 46}
-              {:character ".", :cocoa-key-code 47}})
+              {:character ".", :cocoa-key-code 47}
+              {:character "<", :cocoa-key-code 50}})
+
+(def colemak #{{:cocoa-key-code 0, :qwerty-character "a", :colemak-character ""}
+               {:cocoa-key-code 1, :qwerty-character "s", :colemak-character ""}
+               {:cocoa-key-code 2, :qwerty-character "d", :colemak-character ""}
+               {:cocoa-key-code 3, :qwerty-character "f", :colemak-character ""}
+               {:cocoa-key-code 4, :qwerty-character "h", :colemak-character ""}
+               {:cocoa-key-code 5, :qwerty-character "g", :colemak-character ""}
+               {:cocoa-key-code 6, :qwerty-character "z", :colemak-character ""}
+               {:cocoa-key-code 7, :qwerty-character "x", :colemak-character ""}
+               {:cocoa-key-code 8, :qwerty-character "c", :colemak-character ""}
+               {:cocoa-key-code 9, :qwerty-character "v", :colemak-character ""}
+               {:cocoa-key-code 11, :qwerty-character "b", :colemak-character ""}
+               {:cocoa-key-code 12, :qwerty-character "q", :colemak-character "q"}
+               {:cocoa-key-code 13, :qwerty-character "w", :colemak-character "w"}
+               {:cocoa-key-code 14, :qwerty-character "e", :colemak-character "f"}
+               {:cocoa-key-code 15, :qwerty-character "r", :colemak-character "p"}
+               {:cocoa-key-code 16, :qwerty-character "y", :colemak-character "j"}
+               {:cocoa-key-code 17, :qwerty-character "t", :colemak-character "b"}
+               {:cocoa-key-code 31, :qwerty-character "o", :colemak-character "y"}
+               {:cocoa-key-code 32, :qwerty-character "u", :colemak-character "l"}
+               {:cocoa-key-code 33, :qwerty-character "å", :colemak-character ""}
+               {:cocoa-key-code 34, :qwerty-character "i", :colemak-character ""}
+               {:cocoa-key-code 35, :qwerty-character "p", :colemak-character "ö"}
+               {:cocoa-key-code 37, :qwerty-character "l", :colemak-character ""}
+               {:cocoa-key-code 38, :qwerty-character "j", :colemak-character ""}
+               {:cocoa-key-code 39, :qwerty-character "ä", :colemak-character ""}
+               {:cocoa-key-code 40, :qwerty-character "k", :colemak-character ""}
+               {:cocoa-key-code 41, :qwerty-character "ö", :colemak-character ""}
+               {:cocoa-key-code 43, :qwerty-character ",", :colemak-character ""}
+               {:cocoa-key-code 44, :qwerty-character "-", :colemak-character ""}
+               {:cocoa-key-code 45, :qwerty-character "n", :colemak-character ""}
+               {:cocoa-key-code 46, :qwerty-character "m", :colemak-character ""}
+               {:cocoa-key-code 47, :qwerty-character ".", :colemak-character ""}
+               {:cocoa-key-code 50, :qwerty-character "<", :colemak-character ""}})
 
 (def layout-characters (into #{} (map :character qwerty)))
 
@@ -143,14 +177,10 @@
 
 (defn add-word-digram-distribution [probabilities word]
   (if (= 1 (count word))
-    (update probabilities
-            #{word}
-            (fnil inc 0))
+    probabilities
     (reduce (fn [probabilities [c1 c2]]
               (update probabilities
-                      (if (= c1 c2)
-                        #{c1}
-                        #{c1 c2})
+                      [c1 c2]
                       (fnil inc 0)))
             probabilities
             (map #(map str %)
@@ -158,10 +188,10 @@
                             word)))))
 
 (deftest test-add-word-digram-distribution
-  (is (= {#{"a" "b"} 2, #{"b" "c"} 1, #{"a" "c"} 1}
-         (add-word-digram-distribution {} "abcab")))
+  (is (= {["a" "b"] 2, ["b" "b"] 1, ["b" "c"] 1, ["c" "a"] 1}
+         (add-word-digram-distribution {} "abbcab")))
 
-  (is (= {#{"a"} 1}
+  (is (= {}
          (add-word-digram-distribution {} "a"))))
 
 (defn extract-words [text]
@@ -173,26 +203,36 @@
   (is (= '("abc" "abc" "abc")
          (extract-words "abc abc  \nabc a"))))
 
-(defn text-digram-distribution [text]
+(defn digram-distribution [text]
   (reduce add-word-digram-distribution
           {}
           (extract-words text)))
 
-(deftest test-text-digram-distribution
-  (is (= {#{"a" "b"} 1, #{"d" "c"} 1}
-         (text-digram-distribution "ab cd")))
+(deftest test-digram-distribution
+  (is (= {["a" "b"] 1, ["c" "d"] 1}
+         (digram-distribution "ab cd")))
 
-  (is (= {#{"a" "b"} 1, #{"d" "c"} 1}
-         (text-digram-distribution "ab\ncd")))
+  (is (= {["a" "b"] 1, ["c" "d"] 1}
+         (digram-distribution "ab\ncd")))
 
-  (is (= {#{"e" "h"} 1, #{"e" "l"} 1, #{"l"} 1, #{"l" "o"} 1}
-         (text-digram-distribution "hello"))))
+  (is (= {["h" "e"] 1, ["e" "l"] 1, ["l" "l"] 1, ["l" "o"] 1}
+         (digram-distribution "hello"))))
 
-(defn normalize-distribution [digram-distribution]
-  (let [total-count (reduce + (vals digram-distribution))]
+
+
+(defn character-distribution [text]
+  (medley/map-keys str
+                   (frequencies text)))
+
+(deftest test-character-distribution
+  (is (= {"h" 1, "e" 1, "l" 2, "o" 1}
+         (character-distribution "hello"))))
+
+(defn normalize-distribution [distribution]
+  (let [total-count (reduce + (vals distribution))]
     (medley/map-vals (fn [count]
                        (double (/ count total-count)))
-                     digram-distribution)))
+                     distribution)))
 
 (defn filter-target-text [text]
   (apply str (filter (conj layout-characters " ")
@@ -206,9 +246,18 @@
 (defn normalized-digram-distribution [text]
   (->> text
        filter-target-text
-       text-digram-distribution
+       digram-distribution
        normalize-distribution))
 
+(defn normalized-character-distribution [text]
+  (->> text
+       filter-target-text
+       character-distribution
+       normalize-distribution))
+
+(defn text-statistics [text]
+  {:digram-distribution (normalized-digram-distribution text)
+   :character-distribution (normalized-character-distribution text)})
 
 
 ;; RATING
@@ -222,62 +271,185 @@
                   6 1
                   7 1})
 
-(def finger-rating {3 0
-                    4 0
-                    2 -1
-                    5 -1
-                    1 -2
-                    6 -2
-                    0 -4
-                    7 -4})
+(defn rate-finger [key]
+  (/ (case (:finger key)
+       3 0
+       4 0
+       2 -1
+       5 -1
+       1 -2
+       6 -2
+       0 -4
+       7 -4)
+     4))
 
-(def home-position-cocoa-key-codes #{0 1 2 3 38 40 37 41})
+(deftest test-rate-finger
+  (is (= -1/4
+         (rate-finger {:finger 2}))))
 
-(defn rate-cocoa-key-code [cocoa-key-code]
-  (+ (if (contains? home-position-cocoa-key-codes cocoa-key-code)
-       0
-       -2)
-     (* 0.5 (finger-rating (:finger (cocoa-key-code-to-key cocoa-key-code))))))
+(defn rate-key [key]
+  (+ (rate-finger key)
+     (:rating key)))
 
-(defn rate-key-pair [key-pair]
-  (+ (cond (= 2 (count (map finger-hand (map :finger key-pair))))
+(defn hands [key-pair]
+  (set (map (comp finger-hand :finger)
+            key-pair)))
+
+(defn same-hand? [key-pair]
+  (= 1 (count (hands key-pair))))
+
+(defn same-finger? [key-pair]
+  (= 1 (count (set (map :finger key-pair)))))
+
+(defn left-hand? [key-pair]
+  (= #{0} (hands key-pair)))
+
+(defn right-hand? [key-pair]
+  (= #{1} (hands key-pair)))
+
+(defn same-row? [key-pair]
+  (= 1 (count (set (map :row key-pair)))))
+
+(defn two-row-leap? [key-pair]
+  (= #{0 2} (set (map :row key-pair))))
+
+(defn one-row-leap? [key-pair]
+  (or (= #{0 1} (set (map :row key-pair)))
+      (= #{1 2} (set (map :row key-pair)))))
+
+(defn on-home-row? [key-pair]
+  (= #{1} (set (map :row key-pair))))
+
+
+
+(defn rate-vertical-movement [key-pair]
+  (/ (cond (not (same-hand? key-pair))
            0
 
-           (and (= 1 (count (map :finger key-pair)))
-                (= #{0 2} (set (map :row key-pair))))
-           -3
+           (and (not (same-finger? key-pair))
+                (one-row-leap? key-pair))
+           -1
 
-           (and (= 1 (count (map :finger key-pair)))
-                (or (= #{0 1} (set (map :row key-pair)))
-                    (= #{1 2} (set (map :row key-pair)))))
+           (and (not (same-finger? key-pair))
+                (two-row-leap? key-pair))
            -2
 
-           :else
-           -1)
-     (* 2 (reduce + (map rate-cocoa-key-code (map :cocoa-key-code key-pair))))))
+           (and (same-finger? key-pair)
+                (one-row-leap? key-pair))
+           -3
 
-(defn rate-layout [text-digram-distribution layout]
-  (let [character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)]
-    (reduce +
-            (for [[[character-1 character-2] digram-propability] (map (fn [[character-set digram-propability]]
-                                                                  [(vec (sort character-set)) digram-propability])
-                                                                text-digram-distribution)]
-              (* digram-propability
-                 (rate-key-pair [(cocoa-key-code-to-key (character-to-cocoa-key-code character-1))
-                                 (cocoa-key-code-to-key (character-to-cocoa-key-code (or character-2
-                                                                                         character-1)))]))))))
+           (and (same-finger? key-pair)
+                (two-row-leap? key-pair))
+           -4
+
+           :else
+           0)
+     4))
+
+(deftest test-rate-vertical-movement
+  (is (= 0
+         (rate-vertical-movement [(qwerty-character-to-key "f")
+                                  (qwerty-character-to-key "j")])))
+
+  (is (= -1/4
+         (rate-vertical-movement [(qwerty-character-to-key "j")
+                                  (qwerty-character-to-key "i")])))
+
+  (is (= -1/2
+         (rate-vertical-movement [(qwerty-character-to-key "i")
+                                  (qwerty-character-to-key "m")])))
+
+  (is (= -3/4
+         (rate-vertical-movement [(qwerty-character-to-key "j")
+                                  (qwerty-character-to-key "u")])))
+
+  (is (= -1
+         (rate-vertical-movement [(qwerty-character-to-key "m")
+                                  (qwerty-character-to-key "u")]))))
+
+(defn roll? [key-pair]
+  (and (same-hand? key-pair)
+       (same-row? key-pair)
+       (not (same-finger? key-pair))))
+
+(defn invards-roll? [key-pair]
+  (and (roll? key-pair)
+       (or (and (left-hand? key-pair)
+                (< (:finger (first key-pair))
+                   (:finger (second key-pair))))
+           (and (right-hand? key-pair)
+                (> (:finger (first key-pair))
+                   (:finger (second key-pair)))))))
+
+(defn rate-roll [key-pair]
+  (/ (cond (and (invards-roll? key-pair)
+                (on-home-row? key-pair))
+           0
+
+           (and (roll? key-pair)
+                (on-home-row? key-pair))
+           -1
+
+           (invards-roll? key-pair)
+           -2
+
+           (roll? key-pair)
+           -3
+
+           :else
+           -4)
+     4))
+
+(deftest test-rate-roll
+  (is (= 0
+         (rate-roll [(qwerty-character-to-key "d")
+                      (qwerty-character-to-key "f")])))
+
+  (is (= -1/4
+         (rate-roll [(qwerty-character-to-key "f")
+                      (qwerty-character-to-key "d")])))
+
+  (is (= -1/2
+         (rate-roll [(qwerty-character-to-key "x")
+                      (qwerty-character-to-key "c")])))
+
+  (is (= -3/4
+         (rate-roll [(qwerty-character-to-key "c")
+                      (qwerty-character-to-key "x")])))
+
+  (is (= -1
+         (rate-roll [(qwerty-character-to-key "f")
+                      (qwerty-character-to-key "j")]))))
+
+(defn rate-key-pair [key-pair]
+  (+ (rate-vertical-movement key-pair)
+     (rate-roll key-pair)))
+
+(defn rate-layout [text-statistics layout]
+  (let [character-to-key (comp cocoa-key-code-to-key
+                               (layout-to-character-to-cocoa-key-code layout))]
+    (+ (reduce +
+               (for [[[character-1 character-2] digram-propability] (:digram-distribution text-statistics)]
+                 (* digram-propability
+                    (rate-key-pair [(character-to-key character-1)
+                                    (character-to-key character-2)]))))
+
+       (reduce +
+               (for [[character character-propability] (:character-distribution text-statistics)]
+                 (* character-propability
+                    (rate-key (character-to-key character))))))))
 
 (deftest test-rate-layout
-  (is (= -28.0
-         (rate-layout (text-digram-distribution "hello")
+  (is (= -1.1875
+         (rate-layout (text-statistics "hello")
                       qwerty)))
 
-  (is (= -5.0
-         (rate-layout (text-digram-distribution "hello")
-                      (layout-from-qwerty {"h" "j"
-                                           "e" "f"
-                                           "l" "k"
-                                           "o" "d"})))))
+  (is (= 0.3500000000000001
+         (rate-layout (text-statistics "hello")
+                      (layout-from-qwerty {"h" "k"
+                                           "e" "j"
+                                           "l" "d"
+                                           "o" "f"})))))
 
 
 ;; KEYLOGGGER LOG PARSING
@@ -476,8 +648,8 @@
           (first propability))))))
 
 
-(defn gradient-descent-one [text-digram-distribution layout]
-  (let [current-rating (rate-layout text-digram-distribution layout)
+(defn gradient-descent-one [text-statistics layout]
+  (let [current-rating (rate-layout text-statistics layout)
         mappings-in-random-order (shuffle layout)]
     (or (->> (for [mapping-1 mappings-in-random-order
                    mapping-2 mappings-in-random-order]
@@ -488,19 +660,19 @@
                    (conj (assoc mapping-2 :cocoa-key-code (:cocoa-key-code mapping-1)))))
              (medley/find-first (fn [layout-candidate]
                                   (< current-rating
-                                     (rate-layout text-digram-distribution
+                                     (rate-layout text-statistics
                                                   layout-candidate)))))
         (set layout))))
 
-(defn gradient-descent-all [text-digram-distribution layout]
+(defn gradient-descent-all [text-statistics layout]
   (loop [layout layout]
-    (let [next-layout (gradient-descent-one text-digram-distribution
+    (let [next-layout (gradient-descent-one text-statistics
                                             layout)]
-      (println "rating after descent:" (rate-layout text-digram-distribution
+      (println "rating after descent:" (rate-layout text-statistics
                                                     layout))
       (if (= next-layout layout)
         (set layout)
-        (recur (gradient-descent-one text-digram-distribution
+        (recur (gradient-descent-one text-statistics
                                      next-layout))))))
 
 (deftest test-gradient-descent-all
@@ -523,7 +695,7 @@
     ;;          {:character "y", :qwerty-character "q"}
     ;;          {:character "z", :qwerty-character "e"}}
     ;;        (make-readable
-    ;;         (gradient-descent-all (text-digram-distribution "abc")
+    ;;         (gradient-descent-all (digram-distribution "abc")
     ;;                               #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
     ;;                                 {:character "b" :cocoa-key-code (qwerty-key-code "w")}
     ;;                                 {:character "c" :cocoa-key-code (qwerty-key-code "e")}
@@ -538,7 +710,7 @@
     ;;          {:character "y", :qwerty-character "e"}
     ;;          {:character "z", :qwerty-character "k"}}
     ;;        (make-readable
-    ;;         (gradient-descent-one (text-digram-distribution "abc")
+    ;;         (gradient-descent-one (digram-distribution "abc")
     ;;                               #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
     ;;                                 {:character "b" :cocoa-key-code (qwerty-key-code "w")}
     ;;                                 {:character "c" :cocoa-key-code (qwerty-key-code "e")}
@@ -548,7 +720,7 @@
     ))
 
 (defn optimize-layout [text initial-layout generation-count on-ready]
-  (let [text-digram-distribution (normalized-digram-distribution text)
+  (let [text-statistics (text-statistics text)
         generation-size 50
         mutate-layout (fn [layout]
                         (nth (iterate mutate-layout layout)
@@ -563,19 +735,19 @@
                                             random-layout))]
     (loop [generation-number 0
            ratings (for [layout initial-layouts]
-                     [layout (rate-layout text-digram-distribution layout)])]
+                     [layout (rate-layout text-statistics layout)])]
 
       (let [crossbreeded-ratings (for [layout (map mutate-layout
                                                    (repeatedly generation-size
                                                                #(crossbreed-layouts (weighted-random ratings)
                                                                                     (weighted-random ratings))))]
-                                   [layout (rate-layout text-digram-distribution layout)])
+                                   [layout (rate-layout text-statistics layout)])
             next-ratings (take-last generation-size
                                     (sort-by second
                                              (concat ratings
                                                      crossbreeded-ratings
                                                      (for [layout (repeatedly 5 random-layout)]
-                                                       [layout (rate-layout text-digram-distribution
+                                                       [layout (rate-layout text-statistics
                                                                             layout)]))))]
 
         (when (= 0 (mod generation-number 10))
@@ -587,20 +759,20 @@
                generation-count)
           (recur (inc generation-number)
                  next-ratings)
-          (on-ready (last (sort-by (partial rate-layout text-digram-distribution)
-                                   (map (partial gradient-descent-all text-digram-distribution)
+          (on-ready (last (sort-by (partial rate-layout text-statistics)
+                                   (map (partial gradient-descent-all text-statistics)
                                         (map first (take-last 10 (sort-by second ratings))))))))))))
 
 (comment
   (def optimized-layouts (doall (repeatedly 5
                                             (fn []
-                                              (gradient-descent-all (normalized-digram-distribution target-text)
+                                              (gradient-descent-all (text-statistics target-text)
                                                                     (random-layout))))))
 
   (count (into #{} optimized-layouts))
   ;; => 10
 
-  (map (partial rate-layout (normalized-digram-distribution target-text))
+  (map (partial rate-layout (text-statistics target-text))
        optimized-layouts)
   ;; => (-5.041461029623238
   ;;     -5.041461029623238
@@ -619,7 +791,7 @@
                                          50
                                          identity))
 
-  (rate-layout (normalized-digram-distribution target-text)
+  (rate-layout (text-statistics target-text)
                optimized-layout)
 
   ;; => -5.041461029623238
@@ -858,7 +1030,7 @@
                                                  [200 100 100 255]
                                                  (:text-color theme))})
                                  (let [key-rating (when (contains? layout-characters character)
-                                                    (abs (int (rate-cocoa-key-code (character-to-cocoa-key-code character)))))]
+                                                    (abs (int (rate-key (character-key character)))))]
                                    (text key-rating
                                          {:color (if (not (or (= 0 key-rating)
                                                               (= 1 key-rating)))
@@ -982,30 +1154,50 @@
                                                                         (row-view (map cocoa-key-code-to-character [4 38 40 37 41 39])
                                                                                   character-color
                                                                                   on-key-event)))
-                                              (layouts/with-margins 0 0 0 30
+                                              (layouts/with-margins 0 0 0 -10
                                                 (layouts/horizontally-2 {:margin 10}
-                                                                        (row-view (map cocoa-key-code-to-character [6 7 8 9 11])
+                                                                        (row-view (map cocoa-key-code-to-character [50 6 7 8 9 11])
                                                                                   character-color
                                                                                   on-key-event)
                                                                         (row-view (map cocoa-key-code-to-character [45 46 43 47 44])
                                                                                   character-color
                                                                                   on-key-event))))))
 
+(defn character-colors-for-key-ratings [cocoa-key-code-to-character]
+  (into {}
+        (for [keyboard-key keyboard-keys]
+          [(cocoa-key-code-to-character (:cocoa-key-code keyboard-key))
+           (let [shade (+ 128
+                          (* 40 (or (:rating keyboard-key)
+                                    0)))]
+             [shade shade shade 255])])))
+
+(comment
+
+  (character-colors-for-key-ratings (layout-to-cocoa-key-code-to-character qwerty))
+  ) ;; TODO: remove me
 
 (defn layout-editor [layout]
   (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)]
     (fn [_layout]
-      [keyboard-view
-       cocoa-key-code-to-character
-       (character-colors-for-fingers cocoa-key-code-to-character)
-       {:on-key-event (fn [event]
-                        (prn 'event event) ;; TODO: remove me
+      {:node [keyboard-view
+              cocoa-key-code-to-character
+              #_(character-colors-for-fingers cocoa-key-code-to-character)
+              (character-colors-for-key-ratings cocoa-key-code-to-character)
+              {:on-key-event (fn [event]
+                               (when (= :mouse-pressed (:type event))
+                                 )
+                               (prn 'event event) ;; TODO: remove me
 
-                        )}])))
+                               )}]
+       :can-gain-focus? true
+       :keyboard-event-handler (fn [_subtree event]
+                                 (prn 'event event) ;; TODO: remove me
+                                 )})))
 
 (comment
   (start-view (fn []
-                [#'layout-editor (first optimized-layouts)]))
+                [#'layout-editor qwerty #_(first optimized-layouts)]))
   ) ;; TODO: remove me
 
 
@@ -1098,7 +1290,7 @@
 ;;     (fn [layout]
 ;;       (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
 ;;             character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
-;;             digram-distribution (text-digram-distribution (filter-target-text target-text))
+;;             digram-distribution (digram-distribution (filter-target-text target-text))
 ;;             highlighted-characters #_(into #{} (map str target-text))
 ;;             #_(into #{} (map :character (set/intersection optimized-layout
 ;;                                                           qwerty)))
@@ -1246,6 +1438,3 @@
   (spit "qwerty.edn" (pr-str qwerty))
   (def optimized-layout (edn/read-string (slurp "optimized-layout.edn")))
   ) ;; TODO: remove me
-
-
-
