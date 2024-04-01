@@ -19,39 +19,39 @@
 
 ;; KEYS
 
-(def keyboard-keys [{:cocoa-key-code 0  :java-key-code 65       :finger 0 :rating 1  :row 1 :column 0  :home-position? true  :qwerty-character "a"}
-                    {:cocoa-key-code 1  :java-key-code 83       :finger 1 :rating 1  :row 1 :column 1  :home-position? true  :qwerty-character "s"}
-                    {:cocoa-key-code 2  :java-key-code 68       :finger 2 :rating 1  :row 1 :column 2  :home-position? true  :qwerty-character "d"}
-                    {:cocoa-key-code 3  :java-key-code 70       :finger 3 :rating 1  :row 1 :column 3  :home-position? true  :qwerty-character "f"}
-                    {:cocoa-key-code 4  :java-key-code 72       :finger 4 :rating 0  :row 1 :column 5  :home-position? false :qwerty-character "h"}
-                    {:cocoa-key-code 5  :java-key-code 71       :finger 3 :rating 0  :row 1 :column 4  :home-position? false :qwerty-character "g"}
-                    {:cocoa-key-code 6  :java-key-code 90       :finger 1 :rating 0  :row 2 :column 0  :home-position? false :qwerty-character "z"}
-                    {:cocoa-key-code 7  :java-key-code 88       :finger 2 :rating 0  :row 2 :column 1  :home-position? false :qwerty-character "x"}
-                    {:cocoa-key-code 8  :java-key-code 67       :finger 3 :rating 0  :row 2 :column 2  :home-position? false :qwerty-character "c"}
-                    {:cocoa-key-code 9  :java-key-code 86       :finger 3 :rating -1 :row 2 :column 3  :home-position? false :qwerty-character "v"}
-                    {:cocoa-key-code 11 :java-key-code 66       :finger 3 :rating -2 :row 2 :column 4  :home-position? false :qwerty-character "b"}
-                    {:cocoa-key-code 12 :java-key-code 81       :finger 0 :rating 0  :row 0 :column 0  :home-position? false :qwerty-character "q"}
-                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :rating -1 :row 0 :column 1  :home-position? false :qwerty-character "w"}
-                    {:cocoa-key-code 14 :java-key-code 69       :finger 1 :rating 0  :row 0 :column 2  :home-position? false :qwerty-character "e"}
-                    {:cocoa-key-code 15 :java-key-code 82       :finger 2 :rating 0  :row 0 :column 3  :home-position? false :qwerty-character "r"}
-                    {:cocoa-key-code 16 :java-key-code 89       :finger 4 :rating -1 :row 0 :column 5  :home-position? false :qwerty-character "y"}
-                    {:cocoa-key-code 17 :java-key-code 84       :finger 3 :rating 0  :row 0 :column 4  :home-position? false :qwerty-character "t"}
-                    {:cocoa-key-code 31 :java-key-code 79       :finger 6 :rating 0  :row 0 :column 8  :home-position? false :qwerty-character "o"}
-                    {:cocoa-key-code 32 :java-key-code 85       :finger 4 :rating 0  :row 0 :column 6  :home-position? false :qwerty-character "u"}
-                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :rating 0  :row 0 :column 10 :home-position? false :qwerty-character "å"}
-                    {:cocoa-key-code 34 :java-key-code 73       :finger 5 :rating 0  :row 0 :column 7  :home-position? false :qwerty-character "i"}
-                    {:cocoa-key-code 35 :java-key-code 80       :finger 7 :rating 0  :row 0 :column 9  :home-position? false :qwerty-character "p"}
-                    {:cocoa-key-code 37 :java-key-code 76       :finger 6 :rating 1  :row 1 :column 8  :home-position? true  :qwerty-character "l"}
-                    {:cocoa-key-code 38 :java-key-code 74       :finger 4 :rating 1  :row 1 :column 6  :home-position? true  :qwerty-character "j"}
-                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :rating 0  :row 1 :column 10 :home-position? false :qwerty-character "ä"}
-                    {:cocoa-key-code 40 :java-key-code 75       :finger 5 :rating 1  :row 1 :column 7  :home-position? true  :qwerty-character "k"}
-                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :rating 1  :row 1 :column 9  :home-position? true  :qwerty-character "ö"}
-                    {:cocoa-key-code 43 :java-key-code 44       :finger 5 :rating 0  :row 2 :column 7  :home-position? false :qwerty-character ","}
-                    {:cocoa-key-code 44 :java-key-code 47       :finger 7 :rating 0  :row 2 :column 9  :home-position? false :qwerty-character "-"}
-                    {:cocoa-key-code 45 :java-key-code 78       :finger 3 :rating -1 :row 2 :column 5  :home-position? false :qwerty-character "n"}
-                    {:cocoa-key-code 46 :java-key-code 77       :finger 4 :rating 0  :row 2 :column 6  :home-position? false :qwerty-character "m"}
-                    {:cocoa-key-code 47 :java-key-code 46       :finger 6 :rating 0  :row 2 :column 8  :home-position? false :qwerty-character "."}
-                    {:cocoa-key-code 50 :java-key-code 192      :finger 0 :rating 0  :row 2 :column -1 :home-position? false :qwerty-character "<"}])
+(def keyboard-keys [{:cocoa-key-code 0  :java-key-code 65       :finger 0 :rating 0.5  :rating-label :home     :row 1 :column 0  :home-position? true  :qwerty-character "a"}
+                    {:cocoa-key-code 1  :java-key-code 83       :finger 1 :rating 0.5  :rating-label :home     :row 1 :column 1  :home-position? true  :qwerty-character "s"}
+                    {:cocoa-key-code 2  :java-key-code 68       :finger 2 :rating 0.5  :rating-label :home     :row 1 :column 2  :home-position? true  :qwerty-character "d"}
+                    {:cocoa-key-code 3  :java-key-code 70       :finger 3 :rating 0.5  :rating-label :home     :row 1 :column 3  :home-position? true  :qwerty-character "f"}
+                    {:cocoa-key-code 4  :java-key-code 72       :finger 4 :rating 0    :rating-label :regular  :row 1 :column 5  :home-position? false :qwerty-character "h"}
+                    {:cocoa-key-code 5  :java-key-code 71       :finger 3 :rating 0    :rating-label :regular  :row 1 :column 4  :home-position? false :qwerty-character "g"}
+                    {:cocoa-key-code 6  :java-key-code 90       :finger 1 :rating 0    :rating-label :regular  :row 2 :column 0  :home-position? false :qwerty-character "z"}
+                    {:cocoa-key-code 7  :java-key-code 88       :finger 2 :rating 0    :rating-label :regular  :row 2 :column 1  :home-position? false :qwerty-character "x"}
+                    {:cocoa-key-code 8  :java-key-code 67       :finger 3 :rating 0    :rating-label :regular  :row 2 :column 2  :home-position? false :qwerty-character "c"}
+                    {:cocoa-key-code 9  :java-key-code 86       :finger 3 :rating -0.5 :rating-label :sideways :row 2 :column 3  :home-position? false :qwerty-character "v"}
+                    {:cocoa-key-code 11 :java-key-code 66       :finger 3 :rating -1   :rating-label :middle   :row 2 :column 4  :home-position? false :qwerty-character "b"}
+                    {:cocoa-key-code 12 :java-key-code 81       :finger 0 :rating 0    :rating-label :regular  :row 0 :column 0  :home-position? false :qwerty-character "q"}
+                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :rating -0.5 :rating-label :sideways :row 0 :column 1  :home-position? false :qwerty-character "w"}
+                    {:cocoa-key-code 14 :java-key-code 69       :finger 1 :rating 0    :rating-label :regular  :row 0 :column 2  :home-position? false :qwerty-character "e"}
+                    {:cocoa-key-code 15 :java-key-code 82       :finger 2 :rating 0    :rating-label :regular  :row 0 :column 3  :home-position? false :qwerty-character "r"}
+                    {:cocoa-key-code 16 :java-key-code 89       :finger 4 :rating -0.5 :rating-label :middle   :row 0 :column 5  :home-position? false :qwerty-character "y"}
+                    {:cocoa-key-code 17 :java-key-code 84       :finger 3 :rating 0    :rating-label :regular  :row 0 :column 4  :home-position? false :qwerty-character "t"}
+                    {:cocoa-key-code 31 :java-key-code 79       :finger 6 :rating 0    :rating-label :regular  :row 0 :column 8  :home-position? false :qwerty-character "o"}
+                    {:cocoa-key-code 32 :java-key-code 85       :finger 4 :rating 0    :rating-label :regular  :row 0 :column 6  :home-position? false :qwerty-character "u"}
+                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :rating 0    :rating-label :regular  :row 0 :column 10 :home-position? false :qwerty-character "å"}
+                    {:cocoa-key-code 34 :java-key-code 73       :finger 5 :rating 0    :rating-label :regular  :row 0 :column 7  :home-position? false :qwerty-character "i"}
+                    {:cocoa-key-code 35 :java-key-code 80       :finger 7 :rating 0    :rating-label :regular  :row 0 :column 9  :home-position? false :qwerty-character "p"}
+                    {:cocoa-key-code 37 :java-key-code 76       :finger 6 :rating 0.5  :rating-label :home     :row 1 :column 8  :home-position? true  :qwerty-character "l"}
+                    {:cocoa-key-code 38 :java-key-code 74       :finger 4 :rating 0.5  :rating-label :home     :row 1 :column 6  :home-position? true  :qwerty-character "j"}
+                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :rating 0    :rating-label :regular  :row 1 :column 10 :home-position? false :qwerty-character "ä"}
+                    {:cocoa-key-code 40 :java-key-code 75       :finger 5 :rating 0.5  :rating-label :home     :row 1 :column 7  :home-position? true  :qwerty-character "k"}
+                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :rating 0.5  :rating-label :home     :row 1 :column 9  :home-position? true  :qwerty-character "ö"}
+                    {:cocoa-key-code 43 :java-key-code 44       :finger 5 :rating 0    :rating-label :regular  :row 2 :column 7  :home-position? false :qwerty-character ","}
+                    {:cocoa-key-code 44 :java-key-code 47       :finger 7 :rating 0    :rating-label :regular  :row 2 :column 9  :home-position? false :qwerty-character "-"}
+                    {:cocoa-key-code 45 :java-key-code 78       :finger 3 :rating -0.5 :rating-label :sideways :row 2 :column 5  :home-position? false :qwerty-character "n"}
+                    {:cocoa-key-code 46 :java-key-code 77       :finger 4 :rating 0    :rating-label :regular  :row 2 :column 6  :home-position? false :qwerty-character "m"}
+                    {:cocoa-key-code 47 :java-key-code 46       :finger 6 :rating 0    :rating-label :regular  :row 2 :column 8  :home-position? false :qwerty-character "."}
+                    {:cocoa-key-code 50 :java-key-code 192      :finger 0 :rating 0    :rating-label :regular  :row 2 :column -1 :home-position? false :qwerty-character "<"}])
 
 
 (def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
@@ -112,39 +112,39 @@
               {:character ".", :cocoa-key-code 47}
               {:character "<", :cocoa-key-code 50}})
 
-(def colemak #{{:cocoa-key-code 0, :qwerty-character "a", :colemak-character ""}
-               {:cocoa-key-code 1, :qwerty-character "s", :colemak-character ""}
-               {:cocoa-key-code 2, :qwerty-character "d", :colemak-character ""}
-               {:cocoa-key-code 3, :qwerty-character "f", :colemak-character ""}
-               {:cocoa-key-code 4, :qwerty-character "h", :colemak-character ""}
-               {:cocoa-key-code 5, :qwerty-character "g", :colemak-character ""}
-               {:cocoa-key-code 6, :qwerty-character "z", :colemak-character ""}
-               {:cocoa-key-code 7, :qwerty-character "x", :colemak-character ""}
-               {:cocoa-key-code 8, :qwerty-character "c", :colemak-character ""}
-               {:cocoa-key-code 9, :qwerty-character "v", :colemak-character ""}
-               {:cocoa-key-code 11, :qwerty-character "b", :colemak-character ""}
-               {:cocoa-key-code 12, :qwerty-character "q", :colemak-character "q"}
-               {:cocoa-key-code 13, :qwerty-character "w", :colemak-character "w"}
-               {:cocoa-key-code 14, :qwerty-character "e", :colemak-character "f"}
-               {:cocoa-key-code 15, :qwerty-character "r", :colemak-character "p"}
-               {:cocoa-key-code 16, :qwerty-character "y", :colemak-character "j"}
-               {:cocoa-key-code 17, :qwerty-character "t", :colemak-character "b"}
-               {:cocoa-key-code 31, :qwerty-character "o", :colemak-character "y"}
-               {:cocoa-key-code 32, :qwerty-character "u", :colemak-character "l"}
-               {:cocoa-key-code 33, :qwerty-character "å", :colemak-character ""}
-               {:cocoa-key-code 34, :qwerty-character "i", :colemak-character ""}
-               {:cocoa-key-code 35, :qwerty-character "p", :colemak-character "ö"}
-               {:cocoa-key-code 37, :qwerty-character "l", :colemak-character ""}
-               {:cocoa-key-code 38, :qwerty-character "j", :colemak-character ""}
-               {:cocoa-key-code 39, :qwerty-character "ä", :colemak-character ""}
-               {:cocoa-key-code 40, :qwerty-character "k", :colemak-character ""}
-               {:cocoa-key-code 41, :qwerty-character "ö", :colemak-character ""}
-               {:cocoa-key-code 43, :qwerty-character ",", :colemak-character ""}
-               {:cocoa-key-code 44, :qwerty-character "-", :colemak-character ""}
-               {:cocoa-key-code 45, :qwerty-character "n", :colemak-character ""}
-               {:cocoa-key-code 46, :qwerty-character "m", :colemak-character ""}
-               {:cocoa-key-code 47, :qwerty-character ".", :colemak-character ""}
-               {:cocoa-key-code 50, :qwerty-character "<", :colemak-character ""}})
+(def colemak-dh #{{:cocoa-key-code 0, :qwerty-character "a", :colemak-character "a"}
+                  {:cocoa-key-code 1, :qwerty-character "s", :colemak-character "r"}
+                  {:cocoa-key-code 2, :qwerty-character "d", :colemak-character "s"}
+                  {:cocoa-key-code 3, :qwerty-character "f", :colemak-character "t"}
+                  {:cocoa-key-code 4, :qwerty-character "h", :colemak-character "m"}
+                  {:cocoa-key-code 5, :qwerty-character "g", :colemak-character "g"}
+                  {:cocoa-key-code 6, :qwerty-character "z", :colemak-character "x"}
+                  {:cocoa-key-code 7, :qwerty-character "x", :colemak-character "c"}
+                  {:cocoa-key-code 8, :qwerty-character "c", :colemak-character "d"}
+                  {:cocoa-key-code 9, :qwerty-character "v", :colemak-character "v"}
+                  {:cocoa-key-code 11, :qwerty-character "b", :colemak-character ""}
+                  {:cocoa-key-code 12, :qwerty-character "q", :colemak-character "q"}
+                  {:cocoa-key-code 13, :qwerty-character "w", :colemak-character "w"}
+                  {:cocoa-key-code 14, :qwerty-character "e", :colemak-character "f"}
+                  {:cocoa-key-code 15, :qwerty-character "r", :colemak-character "p"}
+                  {:cocoa-key-code 16, :qwerty-character "y", :colemak-character "j"}
+                  {:cocoa-key-code 17, :qwerty-character "t", :colemak-character "b"}
+                  {:cocoa-key-code 31, :qwerty-character "o", :colemak-character "y"}
+                  {:cocoa-key-code 32, :qwerty-character "u", :colemak-character "l"}
+                  {:cocoa-key-code 33, :qwerty-character "å", :colemak-character "å"}
+                  {:cocoa-key-code 34, :qwerty-character "i", :colemak-character ""}
+                  {:cocoa-key-code 35, :qwerty-character "p", :colemak-character "ö"}
+                  {:cocoa-key-code 37, :qwerty-character "l", :colemak-character ""}
+                  {:cocoa-key-code 38, :qwerty-character "j", :colemak-character ""}
+                  {:cocoa-key-code 39, :qwerty-character "ä", :colemak-character ""}
+                  {:cocoa-key-code 40, :qwerty-character "k", :colemak-character ""}
+                  {:cocoa-key-code 41, :qwerty-character "ö", :colemak-character ""}
+                  {:cocoa-key-code 43, :qwerty-character ",", :colemak-character ""}
+                  {:cocoa-key-code 44, :qwerty-character "-", :colemak-character ""}
+                  {:cocoa-key-code 45, :qwerty-character "n", :colemak-character ""}
+                  {:cocoa-key-code 46, :qwerty-character "m", :colemak-character ""}
+                  {:cocoa-key-code 47, :qwerty-character ".", :colemak-character ""}
+                  {:cocoa-key-code 50, :qwerty-character "<", :colemak-character "z"}})
 
 (def layout-characters (into #{} (map :character qwerty)))
 
@@ -234,6 +234,34 @@
                        (double (/ count total-count)))
                      distribution)))
 
+(defn select-probability-mass [maximum-mass distribution]
+  (into {}
+        (loop [propabilities (->> distribution
+                                  (sort-by second)
+                                  (reverse))
+               selected-propabilities []
+               total-propability 0]
+          (if (empty? propabilities)
+            selected-propabilities
+            (let [propability (first propabilities)]
+              (if (< maximum-mass
+                     (+ total-propability
+                        (second propability)))
+                selected-propabilities
+                (recur (rest propabilities)
+                       (conj selected-propabilities
+                             propability)
+                       (+ total-propability
+                          (second propability)))))))))
+
+(deftest test-select-probability-mass
+  (is (= {:d 0.4, :c 0.3}
+         (select-probability-mass 0.7
+                                  {:a 0.1
+                                   :b 0.2
+                                   :c 0.3
+                                   :d 0.4}))))
+
 (defn filter-target-text [text]
   (apply str (filter (conj layout-characters " ")
                      (map str (string/lower-case text)))))
@@ -256,7 +284,8 @@
        normalize-distribution))
 
 (defn text-statistics [text]
-  {:digram-distribution (normalized-digram-distribution text)
+  {:digram-distribution (select-probability-mass 0.95
+                                                 (normalized-digram-distribution text))
    :character-distribution (normalized-character-distribution text)})
 
 
@@ -271,25 +300,34 @@
                   6 1
                   7 1})
 
-(defn rate-finger [key]
-  (/ (case (:finger key)
-       3 0
-       4 0
-       2 -1
-       5 -1
-       1 -2
-       6 -2
-       0 -4
-       7 -4)
-     4))
+(def finger-type
+  {0 :pinky
+   1 :ring
+   2 :middle
+   3 :index
+   4 :index
+   5 :middle
+   6 :ring
+   7 :pinky})
 
-(deftest test-rate-finger
-  (is (= -1/4
-         (rate-finger {:finger 2}))))
+(defn rate-finger-type [key]
+  (assoc (case (finger-type (:finger key))
+           :index {:score 0}
+           :middle {:score -1/4}
+           :ring {:score -2/4}
+           :pinky {:score -4/4})
+         :label (finger-type (:finger key))
+         :rating :finger-type))
+
+(deftest test-rate-finger-type
+  (is (= {:score -1/4, :label :middle, :rating :finger-type}
+         (rate-finger-type {:finger 2}))))
 
 (defn rate-key [key]
-  (+ (rate-finger key)
-     (:rating key)))
+  [(rate-finger-type key)
+   {:rating :key
+    :label (:rating-label key)
+    :score (:rating key)}])
 
 (defn hands [key-pair]
   (set (map (comp finger-hand :finger)
@@ -300,6 +338,9 @@
 
 (defn same-finger? [key-pair]
   (= 1 (count (set (map :finger key-pair)))))
+
+(defn same-column? [key-pair]
+  (= 1 (count (set (map :column key-pair)))))
 
 (defn left-hand? [key-pair]
   (= #{0} (hands key-pair)))
@@ -323,49 +364,71 @@
 
 
 (defn rate-vertical-movement [key-pair]
-  (/ (cond (not (same-hand? key-pair))
-           0
+  (assoc (cond (not (same-hand? key-pair))
+               {:label :different-hand
+                :score 0}
 
-           (and (not (same-finger? key-pair))
-                (one-row-leap? key-pair))
-           -1
+               (and (not (same-finger? key-pair))
+                    (one-row-leap? key-pair))
+               {:label :different-finger-one-row-leap
+                :score -1/4}
 
-           (and (not (same-finger? key-pair))
-                (two-row-leap? key-pair))
-           -2
+               (and (not (same-finger? key-pair))
+                    (two-row-leap? key-pair))
+               {:label :different-finger-two-row-leap
+                :score -2/4}
 
-           (and (same-finger? key-pair)
-                (one-row-leap? key-pair))
-           -3
+               (and (same-finger? key-pair)
+                    (one-row-leap? key-pair))
+               {:label :same-finger-one-row-leap
+                :score -3/4}
 
-           (and (same-finger? key-pair)
-                (two-row-leap? key-pair))
-           -4
+               (and (same-finger? key-pair)
+                    (two-row-leap? key-pair))
+               {:label :same-finger-two-row-leap
+                :score -4/4}
 
-           :else
-           0)
-     4))
+               :else
+               {:label :same-row
+                :score 0})
+         :rating :vertical-movement))
 
 (deftest test-rate-vertical-movement
-  (is (= 0
+  (is (= {:label :different-hand, :score 0}
          (rate-vertical-movement [(qwerty-character-to-key "f")
                                   (qwerty-character-to-key "j")])))
 
-  (is (= -1/4
+  (is (= {:label :different-finger-one-row-leap, :score -1/4}
          (rate-vertical-movement [(qwerty-character-to-key "j")
                                   (qwerty-character-to-key "i")])))
 
-  (is (= -1/2
+  (is (= {:label :different-finger-two-row-leap, :score -1/2}
          (rate-vertical-movement [(qwerty-character-to-key "i")
                                   (qwerty-character-to-key "m")])))
 
-  (is (= -3/4
+  (is (= {:label :same-finger-one-row-leap, :score -3/4}
          (rate-vertical-movement [(qwerty-character-to-key "j")
                                   (qwerty-character-to-key "u")])))
 
-  (is (= -1
+  (is (= {:label :same-finger-two-row-leap, :score -1}
          (rate-vertical-movement [(qwerty-character-to-key "m")
                                   (qwerty-character-to-key "u")]))))
+
+
+(defn rate-horizontal-movement [key-pair]
+  (assoc (cond (not (same-finger? key-pair))
+               {:label :different-finger
+                :score 0}
+
+               (same-column? key-pair)
+               {:label :same-column
+                :score 0}
+
+               :else
+               {:label :same-finger-different-column
+                :score -1})
+         :rating :horizontal-movement))
+
 
 (defn roll? [key-pair]
   (and (same-hand? key-pair)
@@ -382,75 +445,186 @@
                    (:finger (second key-pair)))))))
 
 (defn rate-roll [key-pair]
-  (/ (cond (and (invards-roll? key-pair)
-                (on-home-row? key-pair))
-           0
+  (assoc (cond (and (invards-roll? key-pair)
+                    (on-home-row? key-pair))
+               {:label :invards-roll-on-home-row
+                :score 0/4}
 
-           (and (roll? key-pair)
-                (on-home-row? key-pair))
-           -1
+               (and (roll? key-pair)
+                    (on-home-row? key-pair))
+               {:label :outwards-roll-on-home-row
+                :score -1/4}
 
-           (invards-roll? key-pair)
-           -2
+               (invards-roll? key-pair)
+               {:label :inwards-roll
+                :score -2/4}
 
-           (roll? key-pair)
-           -3
+               (roll? key-pair)
+               {:label :outwards-roll
+                :score -3/4}
 
-           :else
-           -4)
-     4))
+               :else
+               {:label :no-roll
+                :score -4/4})
+         :rating :roll))
 
 (deftest test-rate-roll
-  (is (= 0
+  (is (= {:rating :roll :label :invards-roll-on-home-row, :score 0}
          (rate-roll [(qwerty-character-to-key "d")
-                      (qwerty-character-to-key "f")])))
+                     (qwerty-character-to-key "f")])))
 
-  (is (= -1/4
+  (is (= {:rating :roll :label :outwards-roll-on-home-row, :score -1/4}
          (rate-roll [(qwerty-character-to-key "f")
-                      (qwerty-character-to-key "d")])))
+                     (qwerty-character-to-key "d")])))
 
-  (is (= -1/2
+  (is (= {:rating :roll :label :inwards-roll, :score -1/2}
          (rate-roll [(qwerty-character-to-key "x")
-                      (qwerty-character-to-key "c")])))
+                     (qwerty-character-to-key "c")])))
 
-  (is (= -3/4
+  (is (= {:rating :roll :label :outwards-roll, :score -3/4}
          (rate-roll [(qwerty-character-to-key "c")
-                      (qwerty-character-to-key "x")])))
+                     (qwerty-character-to-key "x")])))
 
-  (is (= -1
+  (is (= {:rating :roll :label :no-roll, :score -1}
          (rate-roll [(qwerty-character-to-key "f")
-                      (qwerty-character-to-key "j")]))))
+                     (qwerty-character-to-key "j")]))))
 
 (defn rate-key-pair [key-pair]
-  (+ (rate-vertical-movement key-pair)
-     (rate-roll key-pair)))
+  [(rate-vertical-movement key-pair)
+   (rate-horizontal-movement key-pair)
+   (rate-roll key-pair)])
+
+(defn rate-distribution [rate distribution]
+  (reduce +
+          (for [[value propability] distribution]
+            (* propability
+               (rate value)))))
+
+(defn total-score [ratings]
+  (apply + (map :score ratings)))
 
 (defn rate-layout [text-statistics layout]
   (let [character-to-key (comp cocoa-key-code-to-key
                                (layout-to-character-to-cocoa-key-code layout))]
-    (+ (reduce +
-               (for [[[character-1 character-2] digram-propability] (:digram-distribution text-statistics)]
-                 (* digram-propability
-                    (rate-key-pair [(character-to-key character-1)
-                                    (character-to-key character-2)]))))
-
-       (reduce +
-               (for [[character character-propability] (:character-distribution text-statistics)]
-                 (* character-propability
-                    (rate-key (character-to-key character))))))))
+    (+ (rate-distribution (fn [digram]
+                            (total-score (rate-key-pair (map character-to-key digram))))
+                          (:digram-distribution text-statistics))
+       (rate-distribution (fn [character]
+                            (total-score (rate-key (character-to-key character))))
+                          (:character-distribution text-statistics)))))
 
 (deftest test-rate-layout
   (is (= -1.1875
          (rate-layout (text-statistics "hello")
                       qwerty)))
 
-  (is (= 0.3500000000000001
+  (is (= -0.4
          (rate-layout (text-statistics "hello")
                       (layout-from-qwerty {"h" "k"
                                            "e" "j"
                                            "l" "d"
                                            "o" "f"})))))
 
+
+
+(defn describe-layout-rating [text-statistics layout]
+  (let [character-to-key (comp cocoa-key-code-to-key
+                               (layout-to-character-to-cocoa-key-code layout))]
+    {:digrams (for [digram-propability (->> (:digram-distribution text-statistics)
+                                            (sort-by second)
+                                            (reverse))]
+                {:propability digram-propability
+                 :ratings (rate-key-pair (map character-to-key
+                                              (first digram-propability)))})
+     :characters (for [character-propability (->> (:character-distribution text-statistics)
+                                                  (sort-by second)
+                                                  (reverse))]
+                   {:propability character-propability
+                    :ratings (rate-key (character-to-key (first character-propability)))})}))
+
+(deftest test-describe-layout-rating
+  (is (= '{:digrams
+           ({:propability [["e" "l"] 0.25],
+             :ratings
+             [{:label :different-hand, :score 0, :rating :vertical-movement}
+              {:label :different-finger,
+               :score 0,
+               :rating :horizontal-movement}
+              {:label :no-roll, :score -1, :rating :roll}]}
+            {:propability [["l" "l"] 0.25],
+             :ratings
+             [{:label :same-row, :score 0, :rating :vertical-movement}
+              {:label :same-column, :score 0, :rating :horizontal-movement}
+              {:label :no-roll, :score -1, :rating :roll}]}
+            {:propability [["l" "o"] 0.25],
+             :ratings
+             [{:label :same-finger-one-row-leap,
+               :score -3/4,
+               :rating :vertical-movement}
+              {:label :same-column, :score 0, :rating :horizontal-movement}
+              {:label :no-roll, :score -1, :rating :roll}]}),
+           :characters
+           ({:propability ["l" 0.4],
+             :ratings
+             [{:score -1/2, :label :ring, :rating :finger-type}
+              {:rating :key, :score 0.5}]}
+            {:propability ["o" 0.2],
+             :ratings
+             [{:score -1/2, :label :ring, :rating :finger-type}
+              {:rating :key, :score 0}]}
+            {:propability ["e" 0.2],
+             :ratings
+             [{:score -1/2, :label :ring, :rating :finger-type}
+              {:rating :key, :score 0}]}
+            {:propability ["h" 0.2],
+             :ratings
+             [{:score 0, :label :index, :rating :finger-type}
+              {:rating :key, :score 0}]})}
+         (describe-layout-rating (text-statistics "hello")
+                                 qwerty)))
+
+  (is (= '{:digrams
+           ({:propability [["e" "l"] 0.25],
+             :ratings
+             [{:label :different-hand, :score 0, :rating :vertical-movement}
+              {:label :different-finger,
+               :score 0,
+               :rating :horizontal-movement}
+              {:label :no-roll, :score -1, :rating :roll}]}
+            {:propability [["l" "l"] 0.25],
+             :ratings
+             [{:label :same-row, :score 0, :rating :vertical-movement}
+              {:label :same-column, :score 0, :rating :horizontal-movement}
+              {:label :no-roll, :score -1, :rating :roll}]}
+            {:propability [["l" "o"] 0.25],
+             :ratings
+             [{:label :same-row, :score 0, :rating :vertical-movement}
+              {:label :different-finger,
+               :score 0,
+               :rating :horizontal-movement}
+              {:label :invards-roll-on-home-row, :score 0, :rating :roll}]}),
+           :characters
+           ({:propability ["l" 0.4],
+             :ratings
+             [{:score -1/4, :label :middle, :rating :finger-type}
+              {:rating :key, :score 0.5}]}
+            {:propability ["o" 0.2],
+             :ratings
+             [{:score 0, :label :index, :rating :finger-type}
+              {:rating :key, :score 0.5}]}
+            {:propability ["e" 0.2],
+             :ratings
+             [{:score 0, :label :index, :rating :finger-type}
+              {:rating :key, :score 0.5}]}
+            {:propability ["h" 0.2],
+             :ratings
+             [{:score -1/4, :label :middle, :rating :finger-type}
+              {:rating :key, :score 0.5}]})}
+         (describe-layout-rating (text-statistics "hello")
+                                 (layout-from-qwerty {"h" "k"
+                                                      "e" "j"
+                                                      "l" "d"
+                                                      "o" "f"})))))
 
 ;; KEYLOGGGER LOG PARSING
 
@@ -763,46 +937,6 @@
                                    (map (partial gradient-descent-all text-statistics)
                                         (map first (take-last 10 (sort-by second ratings))))))))))))
 
-(comment
-  (def optimized-layouts (doall (repeatedly 5
-                                            (fn []
-                                              (gradient-descent-all (text-statistics target-text)
-                                                                    (random-layout))))))
-
-  (count (into #{} optimized-layouts))
-  ;; => 10
-
-  (map (partial rate-layout (text-statistics target-text))
-       optimized-layouts)
-  ;; => (-5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238
-  ;;     -5.041461029623238)
-
-  (def optimized-layout (optimize-layout target-text
-                                         (random-layout)
-                                         ;; optimized-layout
-                                         50
-                                         identity))
-
-  (rate-layout (text-statistics target-text)
-               optimized-layout)
-
-  ;; => -5.041461029623238
-
-  ;; => -5.041461029623238
-
-  ;; => -5.041461029623238
-
-  ;; 100 GA + GD
-  ;; -5.041461029623238
-  ) ;; TODO: remove me
 
 
 (def target-text #_"hello world"
@@ -814,11 +948,143 @@
                                #_"text/ga-fi.txt"
                                #_"text/ga.txt")))
 
+(defn rating-description-to-csv-row [rating-description]
+  (concat [(pr-str (:propability rating-description))]
+          (apply concat
+                 (for [rating (:ratings rating-description)]
+                   [(:label rating)
+                    (:score rating)]))))
+
+(deftest test-rating-description-to-csv-row
+  (is (= ("[[\"e\" \"l\"] 0.25]"
+          :different-hand
+          0
+          :different-finger
+          0
+          :no-roll
+          -1)
+         (rating-description-to-csv-row '{:propability [["e" "l"] 0.25],
+                                          :ratings
+                                          [{:label :different-hand, :score 0, :rating :vertical-movement}
+                                           {:label :different-finger,
+                                            :score 0,
+                                            :rating :horizontal-movement}
+                                           {:label :no-roll, :score -1, :rating :roll}]}))))
+
+(defn rating-descriptions-to-csv [rating-descriptions]
+  (apply concat
+         (for [aspect [:digrams :characters]]
+           (map rating-description-to-csv-row
+                (get rating-descriptions aspect)))))
+
+(deftest test-print-rating-descriptions
+  (is (= '(("[[\"e\" \"l\"] 0.25]" :different-hand 0 :different-finger 0 :no-roll -1)
+           ("[[\"l\" \"l\"] 0.25]" :same-row 0 :same-column 0 :no-roll -1)
+           ("[\"l\" 0.4]" :middle -1/4 nil 0.5)
+           ("[\"o\" 0.2]" :index 0 nil 0.5))
+         (rating-descriptions-to-csv '{:digrams
+                                       ({:propability [["e" "l"] 0.25],
+                                         :ratings
+                                         [{:label :different-hand, :score 0, :rating :vertical-movement}
+                                          {:label :different-finger,
+                                           :score 0,
+                                           :rating :horizontal-movement}
+                                          {:label :no-roll, :score -1, :rating :roll}]}
+                                        {:propability [["l" "l"] 0.25],
+                                         :ratings
+                                         [{:label :same-row, :score 0, :rating :vertical-movement}
+                                          {:label :same-column, :score 0, :rating :horizontal-movement}
+                                          {:label :no-roll, :score -1, :rating :roll}]}),
+                                       :characters
+                                       ({:propability ["l" 0.4],
+                                         :ratings
+                                         [{:score -1/4, :label :middle, :rating :finger-type}
+                                          {:rating :key, :score 0.5}]}
+                                        {:propability ["o" 0.2],
+                                         :ratings
+                                         [{:score 0, :label :index, :rating :finger-type}
+                                          {:rating :key, :score 0.5}]})}))))
+
+(defn csv-rows-to-string [rows]
+  (string/join "\n"
+               (for [row rows]
+                 (string/join ";" row))))
+
+(deftest test-csv-rows-to-string
+  (is (= ":a;:b\n:c;:d"
+         (csv-rows-to-string [[:a :b]
+                              [:c :d]]))))
+
+(defn sort-text-statistics [text-statistics]
+  [(reverse (sort-by second (:character-distribution text-statistics)))
+   (reverse (sort-by second (:digram-distribution text-statistics)))])
+
 (comment
-  (count (slurp "text/kirjoja-ja-kirjailijoita.txt"))
-  ;; => 324920
-  (count (slurp "text/the-hacker-crackdown.txt"))
-  ;; => 663795
+
+  (def english-statistics (text-statistics (slurp "text/the-hacker-crackdown.txt")))
+  (def finnish-statistics (text-statistics (slurp "text/kirjoja-ja-kirjailijoita.txt")))
+  (def hybrid-statistics (text-statistics (str (subs (slurp "text/kirjoja-ja-kirjailijoita.txt")
+                                                     0 300000)
+                                               (subs (slurp "text/the-hacker-crackdown.txt")
+                                                     0 300000))))
+
+  (def optimized-finnish-layout (gradient-descent-all finnish-statistics
+                                                      (random-layout)))
+
+  (def optimized-english-layout (gradient-descent-all english-statistics
+                                                      (random-layout)))
+
+  (def optimized-hybrid-layout (gradient-descent-all hybrid-statistics
+                                                     (random-layout)))
+
+  (for [statistics [[:english english-statistics]
+                    [:finnish finnish-statistics]
+                    [:hybrid hybrid-statistics]]
+        layout [[:english optimized-english-layout]
+                [:finnish optimized-finnish-layout]
+                [:hybrid optimized-hybrid-layout]
+                [:qwerty qwerty]]]
+    [(first statistics)
+     (first layout)
+     (rate-layout (second statistics)
+                  (second layout))])
+
+  (spit "temp/rating.csv"
+        (csv-rows-to-string (rating-descriptions-to-csv (describe-layout-rating english-statistics
+                                                                                optimized-hybrid-layout))))
+
+  (map vector
+       (first (sort-text-statistics english-statistics))
+       (first (sort-text-statistics finnish-statistics)))
+
+  (let [sample (fn [statistics]
+                 (set (take 8 (map first (first (sort-text-statistics statistics))))))]
+    (set/difference
+     (set/union (sample english-statistics)
+                (sample finnish-statistics))
+     (set/intersection (sample english-statistics)
+                       (sample finnish-statistics))))
+
+
+  (def target-text-statistics (text-statistics target-text))
+  (def optimized-layouts (doall (repeatedly 2
+                                            (fn []
+                                              (gradient-descent-all target-text-statistics
+                                                                    (random-layout))))))
+
+  (map (partial rate-layout target-text-statistics)
+       optimized-layouts)
+
+  ;; => (-0.7801370918131306 -0.7816704209751654)
+
+
+  (describe-layout-rating target-text-statistics
+                          (nth optimized-layouts
+                               0))
+
+  (set/difference (into #{} (map :character (first optimized-layouts)))
+                  (into #{} (map first (:character-distribution target-text-statistics))))
+
   ) ;; TODO: remove me
 
 (defonce optimized-layout qwerty)
