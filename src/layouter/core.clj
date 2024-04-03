@@ -1074,13 +1074,13 @@
 
 
 (def target-text #_"hello world"
-  (filter-target-text (str (subs (slurp "text/kirjoja-ja-kirjailijoita.txt")
+  (filter-target-text (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
                                  0 300000)
-                           (subs (slurp "text/the-hacker-crackdown.txt")
+                           (subs (slurp "temp/text/the-hacker-crackdown.txt")
                                  0 300000))
-                      #_(slurp "text/kirjoja-ja-kirjailijoita.txt"
-                               #_"text/ga-fi.txt"
-                               #_"text/ga.txt")))
+                      #_(slurp "temp/text/kirjoja-ja-kirjailijoita.txt"
+                               #_"temp/text/ga-fi.txt"
+                               #_"temp/text/ga.txt")))
 
 (comment
   (format "%.2f" (double 0.123455))
@@ -1212,11 +1212,11 @@
 
 (comment
 
-  (def english-statistics (text-statistics (slurp "text/the-hacker-crackdown.txt")))
-  (def finnish-statistics (text-statistics (slurp "text/kirjoja-ja-kirjailijoita.txt")))
-  (def hybrid-statistics (text-statistics (str (subs (slurp "text/kirjoja-ja-kirjailijoita.txt")
+  (def english-statistics (text-statistics (slurp "temp/text/the-hacker-crackdown.txt")))
+  (def finnish-statistics (text-statistics (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")))
+  (def hybrid-statistics (text-statistics (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
                                                      0 300000)
-                                               (subs (slurp "text/the-hacker-crackdown.txt")
+                                               (subs (slurp "temp/text/the-hacker-crackdown.txt")
                                                      0 300000))))
 
   (def optimized-finnish-layout (gradient-descent-all finnish-statistics
@@ -1382,17 +1382,17 @@
                        ))))))
 
 (defn compare-character-cistributions []
-  (compare-distributions [(normalized-character-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
-                                                                  (slurp "text/the-hacker-crackdown.txt")))
+  (compare-distributions [(normalized-character-distribution (str (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                                  (slurp "temp/text/the-hacker-crackdown.txt")))
                           (normalized-character-distribution (key-log-to-string key-log-file-path))]))
 
 (defn compare-digram-distributions []
-  (compare-distributions [ ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-                          ;; (normalized-digram-distribution (slurp "text/tietokoneet.txt"))
-                          ;; (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-                          ;; (normalized-digram-distribution (remove-spaces (slurp "text/the-hacker-crackdown.txt")))
-                          (normalized-digram-distribution (str (slurp "text/kirjoja-ja-kirjailijoita.txt")
-                                                               (slurp "text/the-hacker-crackdown.txt")))
+  (compare-distributions [ ;; (normalized-digram-distribution (slurp "temp/text/the-hacker-crackdown.txt"))
+                          ;; (normalized-digram-distribution (slurp "temp/text/tietokoneet.txt"))
+                          ;; (normalized-digram-distribution (slurp "temp/text/the-hacker-crackdown.txt"))
+                          ;; (normalized-digram-distribution (remove-spaces (slurp "temp/text/the-hacker-crackdown.txt")))
+                          (normalized-digram-distribution (str (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                               (slurp "temp/text/the-hacker-crackdown.txt")))
                           (normalized-digram-distribution (key-log-to-string key-log-file-path))]))
 (comment
   (compare-distributions [(normalized-character-distribution "abccc")
@@ -1400,19 +1400,19 @@
   (compare-character-cistributions)
   (compare-digram-distributions)
   (normalized-character-distribution "hello")
-  (def english-digram-distribution (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt")))
+  (def english-digram-distribution (normalized-digram-distribution (slurp "temp/text/the-hacker-crackdown.txt")))
 
-  (def hacker-distribution (normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt")))
-  (def corncob-distribution (normalized-digram-distribution (slurp "text/corncob_lowercase.txt")))
+  (def hacker-distribution (normalized-digram-distribution (slurp "temp/text/the-hacker-crackdown.txt")))
+  (def corncob-distribution (normalized-digram-distribution (slurp "temp/text/corncob_lowercase.txt")))
 
   ;; (let [first-distribution hacker-distribution
-  ;;       second-distribution (normalized-digram-distribution (slurp "text/ga.txt"))
+  ;;       second-distribution (normalized-digram-distribution (slurp "temp/text/ga.txt"))
 
   ;;       first-positions (distribution-positions first-distribution)
   ;;       second-positions (distribution-positions second-distribution)
 
-  ;;       digram-distributions [(normalized-digram-distribution (slurp "text/the-hacker-crackdown.txt"))
-  ;;                             (normalized-digram-distribution (slurp "text/tietokoneet.txt"))]
+  ;;       digram-distributions [(normalized-digram-distribution (slurp "temp/text/the-hacker-crackdown.txt"))
+  ;;                             (normalized-digram-distribution (slurp "temp/text/tietokoneet.txt"))]
   ;;       ]
 
   ;;   (doseq [digram (sort-by (apply merge (map distribution-positions (reverse digram-distributions)))
@@ -1435,7 +1435,7 @@
 
 
 
-  (count (normalized-digram-distribution (slurp "text/corncob_lowercase.txt")))
+  (count (normalized-digram-distribution (slurp "temp/text/corncob_lowercase.txt")))
   ;; => 342
   (count english-digram-distribution)
 
@@ -1446,7 +1446,7 @@
                    (fn [new-layout]
                      (def optimized-layout new-layout)))
 
-  (count (normalized-digram-distribution (filter-target-text (slurp "text/kirjoja-ja-kirjailijoita.txt"))))
+  (count (normalized-digram-distribution (filter-target-text (slurp "temp/text/kirjoja-ja-kirjailijoita.txt"))))
   ;; => 413
 
   (doseq [layout-file-name ["qwerty.edn"
@@ -1456,27 +1456,27 @@
     (println)
     (println layout-file-name)
     (let [layout (edn/read-string (slurp layout-file-name))]
-      (doseq [target-text-file-name ["text/the-hacker-crackdown.txt"
-                                     "text/kirjoja-ja-kirjailijoita.txt"]]
+      (doseq [target-text-file-name ["temp/text/the-hacker-crackdown.txt"
+                                     "temp/text/kirjoja-ja-kirjailijoita.txt"]]
         (println target-text-file-name
                  (rate-layout (take 300 (reverse (sort-by second (normalized-digram-distribution (slurp target-text-file-name)))))
                               layout)))))
 
   ;; qwerty.edn
-  ;; text/the-hacker-crackdown.txt -8.200177457130849
-  ;; text/kirjoja-ja-kirjailijoita.txt -8.067552298454757
+  ;; temp/text/the-hacker-crackdown.txt -8.200177457130849
+  ;; temp/text/kirjoja-ja-kirjailijoita.txt -8.067552298454757
 
   ;; optimized-layout-for-finnish-and-english.edn
-  ;; text/the-hacker-crackdown.txt -5.41650933789515
-  ;; text/kirjoja-ja-kirjailijoita.txt -4.781927577581428
+  ;; temp/text/the-hacker-crackdown.txt -5.41650933789515
+  ;; temp/text/kirjoja-ja-kirjailijoita.txt -4.781927577581428
 
   ;; optimized-layout-for-finnish.edn
-  ;; text/the-hacker-crackdown.txt -5.869223441281065
-  ;; text/kirjoja-ja-kirjailijoita.txt -4.6758328653527315
+  ;; temp/text/the-hacker-crackdown.txt -5.869223441281065
+  ;; temp/text/kirjoja-ja-kirjailijoita.txt -4.6758328653527315
 
   ;; optimized-layout-for-english.edn
-  ;; text/the-hacker-crackdown.txt -5.3888708559434235
-  ;; text/kirjoja-ja-kirjailijoita.txt -5.800231798034474
+  ;; temp/text/the-hacker-crackdown.txt -5.3888708559434235
+  ;; temp/text/kirjoja-ja-kirjailijoita.txt -5.800231798034474
 
   )
 
@@ -1971,9 +1971,9 @@
 
 (defn digram-distribution-comparison-view []
   (layouts/with-margin 10
-    (let [texts [(str (subs (slurp "text/kirjoja-ja-kirjailijoita.txt")
+    (let [texts [(str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
                             0 300000)
-                      (subs (slurp "text/the-hacker-crackdown.txt")
+                      (subs (slurp "temp/text/the-hacker-crackdown.txt")
                             0 300000))
                  (key-log-to-string key-log-file-path)]
           digram-distributions (map normalized-digram-distribution texts)
