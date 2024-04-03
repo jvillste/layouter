@@ -21,39 +21,44 @@
 
 ;; KEYS
 
-(def keyboard-keys [{:cocoa-key-code 0  :java-key-code 65       :finger 0 :rating 0.5  :rating-label :home     :row 1 :column 0  :home-position? true  :qwerty-character "a"}
-                    {:cocoa-key-code 1  :java-key-code 83       :finger 1 :rating 0.5  :rating-label :home     :row 1 :column 1  :home-position? true  :qwerty-character "s"}
-                    {:cocoa-key-code 2  :java-key-code 68       :finger 2 :rating 0.5  :rating-label :home     :row 1 :column 2  :home-position? true  :qwerty-character "d"}
-                    {:cocoa-key-code 3  :java-key-code 70       :finger 3 :rating 0.5  :rating-label :home     :row 1 :column 3  :home-position? true  :qwerty-character "f"}
-                    {:cocoa-key-code 4  :java-key-code 72       :finger 4 :rating 0    :rating-label :regular  :row 1 :column 5  :home-position? false :qwerty-character "h"}
-                    {:cocoa-key-code 5  :java-key-code 71       :finger 3 :rating 0    :rating-label :regular  :row 1 :column 4  :home-position? false :qwerty-character "g"}
-                    {:cocoa-key-code 6  :java-key-code 90       :finger 1 :rating 0    :rating-label :regular  :row 2 :column 0  :home-position? false :qwerty-character "z"}
-                    {:cocoa-key-code 7  :java-key-code 88       :finger 2 :rating 0    :rating-label :regular  :row 2 :column 1  :home-position? false :qwerty-character "x"}
-                    {:cocoa-key-code 8  :java-key-code 67       :finger 3 :rating 0    :rating-label :regular  :row 2 :column 2  :home-position? false :qwerty-character "c"}
-                    {:cocoa-key-code 9  :java-key-code 86       :finger 3 :rating -0.5 :rating-label :sideways :row 2 :column 3  :home-position? false :qwerty-character "v"}
-                    {:cocoa-key-code 11 :java-key-code 66       :finger 3 :rating -1   :rating-label :middle   :row 2 :column 4  :home-position? false :qwerty-character "b"}
-                    {:cocoa-key-code 12 :java-key-code 81       :finger 0 :rating 0    :rating-label :regular  :row 0 :column 0  :home-position? false :qwerty-character "q"}
-                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :rating -0.5 :rating-label :sideways :row 0 :column 1  :home-position? false :qwerty-character "w"}
-                    {:cocoa-key-code 14 :java-key-code 69       :finger 1 :rating 0    :rating-label :regular  :row 0 :column 2  :home-position? false :qwerty-character "e"}
-                    {:cocoa-key-code 15 :java-key-code 82       :finger 2 :rating 0    :rating-label :regular  :row 0 :column 3  :home-position? false :qwerty-character "r"}
-                    {:cocoa-key-code 16 :java-key-code 89       :finger 4 :rating -0.5 :rating-label :middle   :row 0 :column 5  :home-position? false :qwerty-character "y"}
-                    {:cocoa-key-code 17 :java-key-code 84       :finger 3 :rating 0    :rating-label :regular  :row 0 :column 4  :home-position? false :qwerty-character "t"}
-                    {:cocoa-key-code 31 :java-key-code 79       :finger 6 :rating 0    :rating-label :regular  :row 0 :column 8  :home-position? false :qwerty-character "o"}
-                    {:cocoa-key-code 32 :java-key-code 85       :finger 4 :rating 0    :rating-label :regular  :row 0 :column 6  :home-position? false :qwerty-character "u"}
-                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :rating 0    :rating-label :regular  :row 0 :column 10 :home-position? false :qwerty-character "å"}
-                    {:cocoa-key-code 34 :java-key-code 73       :finger 5 :rating 0    :rating-label :regular  :row 0 :column 7  :home-position? false :qwerty-character "i"}
-                    {:cocoa-key-code 35 :java-key-code 80       :finger 7 :rating 0    :rating-label :regular  :row 0 :column 9  :home-position? false :qwerty-character "p"}
-                    {:cocoa-key-code 37 :java-key-code 76       :finger 6 :rating 0.5  :rating-label :home     :row 1 :column 8  :home-position? true  :qwerty-character "l"}
-                    {:cocoa-key-code 38 :java-key-code 74       :finger 4 :rating 0.5  :rating-label :home     :row 1 :column 6  :home-position? true  :qwerty-character "j"}
-                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :rating 0    :rating-label :regular  :row 1 :column 10 :home-position? false :qwerty-character "ä"}
-                    {:cocoa-key-code 40 :java-key-code 75       :finger 5 :rating 0.5  :rating-label :home     :row 1 :column 7  :home-position? true  :qwerty-character "k"}
-                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :rating 0.5  :rating-label :home     :row 1 :column 9  :home-position? true  :qwerty-character "ö"}
-                    {:cocoa-key-code 43 :java-key-code 44       :finger 5 :rating 0    :rating-label :regular  :row 2 :column 7  :home-position? false :qwerty-character ","}
-                    {:cocoa-key-code 44 :java-key-code 47       :finger 7 :rating 0    :rating-label :regular  :row 2 :column 9  :home-position? false :qwerty-character "-"}
-                    {:cocoa-key-code 45 :java-key-code 78       :finger 3 :rating -0.5 :rating-label :sideways :row 2 :column 5  :home-position? false :qwerty-character "n"}
-                    {:cocoa-key-code 46 :java-key-code 77       :finger 4 :rating 0    :rating-label :regular  :row 2 :column 6  :home-position? false :qwerty-character "m"}
-                    {:cocoa-key-code 47 :java-key-code 46       :finger 6 :rating 0    :rating-label :regular  :row 2 :column 8  :home-position? false :qwerty-character "."}
-                    {:cocoa-key-code 50 :java-key-code 192      :finger 0 :rating 0    :rating-label :regular  :row 2 :column -1 :home-position? false :qwerty-character "<"}])
+(def key-class-effort {:home 1
+                       :regular 1.5
+                       :sideways 2
+                       :middle 2.5})
+
+(def keyboard-keys [{:cocoa-key-code 0  :java-key-code 65       :finger 0 :class :home     :row 1 :column 0  :home-position? true  :qwerty-character "a"}
+                    {:cocoa-key-code 1  :java-key-code 83       :finger 1 :class :home     :row 1 :column 1  :home-position? true  :qwerty-character "s"}
+                    {:cocoa-key-code 2  :java-key-code 68       :finger 2 :class :home     :row 1 :column 2  :home-position? true  :qwerty-character "d"}
+                    {:cocoa-key-code 3  :java-key-code 70       :finger 3 :class :home     :row 1 :column 3  :home-position? true  :qwerty-character "f"}
+                    {:cocoa-key-code 4  :java-key-code 72       :finger 4 :class :regular  :row 1 :column 5  :home-position? false :qwerty-character "h"}
+                    {:cocoa-key-code 5  :java-key-code 71       :finger 3 :class :regular  :row 1 :column 4  :home-position? false :qwerty-character "g"}
+                    {:cocoa-key-code 6  :java-key-code 90       :finger 1 :class :regular  :row 2 :column 0  :home-position? false :qwerty-character "z"}
+                    {:cocoa-key-code 7  :java-key-code 88       :finger 2 :class :regular  :row 2 :column 1  :home-position? false :qwerty-character "x"}
+                    {:cocoa-key-code 8  :java-key-code 67       :finger 3 :class :regular  :row 2 :column 2  :home-position? false :qwerty-character "c"}
+                    {:cocoa-key-code 9  :java-key-code 86       :finger 3 :class :sideways :row 2 :column 3  :home-position? false :qwerty-character "v"}
+                    {:cocoa-key-code 11 :java-key-code 66       :finger 3 :class :middle   :row 2 :column 4  :home-position? false :qwerty-character "b"}
+                    {:cocoa-key-code 12 :java-key-code 81       :finger 0 :class :regular  :row 0 :column 0  :home-position? false :qwerty-character "q"}
+                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :class :sideways :row 0 :column 1  :home-position? false :qwerty-character "w"}
+                    {:cocoa-key-code 14 :java-key-code 69       :finger 1 :class :regular  :row 0 :column 2  :home-position? false :qwerty-character "e"}
+                    {:cocoa-key-code 15 :java-key-code 82       :finger 2 :class :regular  :row 0 :column 3  :home-position? false :qwerty-character "r"}
+                    {:cocoa-key-code 16 :java-key-code 89       :finger 4 :class :middle   :row 0 :column 5  :home-position? false :qwerty-character "y"}
+                    {:cocoa-key-code 17 :java-key-code 84       :finger 3 :class :regular  :row 0 :column 4  :home-position? false :qwerty-character "t"}
+                    {:cocoa-key-code 31 :java-key-code 79       :finger 6 :class :regular  :row 0 :column 8  :home-position? false :qwerty-character "o"}
+                    {:cocoa-key-code 32 :java-key-code 85       :finger 4 :class :regular  :row 0 :column 6  :home-position? false :qwerty-character "u"}
+                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :class :regular  :row 0 :column 10 :home-position? false :qwerty-character "å"}
+                    {:cocoa-key-code 34 :java-key-code 73       :finger 5 :class :regular  :row 0 :column 7  :home-position? false :qwerty-character "i"}
+                    {:cocoa-key-code 35 :java-key-code 80       :finger 7 :class :regular  :row 0 :column 9  :home-position? false :qwerty-character "p"}
+                    {:cocoa-key-code 37 :java-key-code 76       :finger 6 :class :home     :row 1 :column 8  :home-position? true  :qwerty-character "l"}
+                    {:cocoa-key-code 38 :java-key-code 74       :finger 4 :class :home     :row 1 :column 6  :home-position? true  :qwerty-character "j"}
+                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :class :regular  :row 1 :column 10 :home-position? false :qwerty-character "ä"}
+                    {:cocoa-key-code 40 :java-key-code 75       :finger 5 :class :home     :row 1 :column 7  :home-position? true  :qwerty-character "k"}
+                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :class :home     :row 1 :column 9  :home-position? true  :qwerty-character "ö"}
+                    {:cocoa-key-code 43 :java-key-code 44       :finger 5 :class :regular  :row 2 :column 7  :home-position? false :qwerty-character ","}
+                    {:cocoa-key-code 44 :java-key-code 47       :finger 7 :class :regular  :row 2 :column 9  :home-position? false :qwerty-character "-"}
+                    {:cocoa-key-code 45 :java-key-code 78       :finger 3 :class :sideways :row 2 :column 5  :home-position? false :qwerty-character "n"}
+                    {:cocoa-key-code 46 :java-key-code 77       :finger 4 :class :regular  :row 2 :column 6  :home-position? false :qwerty-character "m"}
+                    {:cocoa-key-code 47 :java-key-code 46       :finger 6 :class :regular  :row 2 :column 8  :home-position? false :qwerty-character "."}
+                    {:cocoa-key-code 50 :java-key-code 192      :finger 0 :class :regular  :row 2 :column -1 :home-position? false :qwerty-character "<"}])
 
 
 (def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
@@ -347,7 +352,6 @@
    7 :pinky})
 
 (defn rate-finger-type [key]
-  (def the-key key)
   (assoc (case (finger-type (:finger key))
            :index {:score 0}
            :middle {:score -1/4}
@@ -367,8 +371,8 @@
 
 (defn key-rating [key]
   {:rating :key
-   :label (:rating-label key)
-   :score (:rating key)})
+   :label (:class key)
+   :score (key-class-effort (:class key))})
 
 (def ^:dynamic key-rating-multiplier 1)
 
