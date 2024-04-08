@@ -1477,7 +1477,10 @@
    :layout (optimize-layout-with-multipliers multipliers
                                              statistics)})
 
+(defonce optimized-layouts-atom (atom []))
+
 (comment
+  (reset! optimized-layouts-atom [])
 
   (do (def english-statistics (text-statistics (slurp "temp/text/the-hacker-crackdown.txt")))
       (def finnish-statistics (text-statistics (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")))
@@ -1508,8 +1511,21 @@
                                                                english-statistics
                                                                "en"))
 
+  (do
+    (swap! optimized-layouts-atom
+           conj
+           (optimize-named-layout-with-multipliers {:digram-roll 0
+                                                    :trigram-roll 0
+                                                    :key-rating 2
+                                                    :finger-type 0
+                                                    :horizontal-movement 0
+                                                    :vertical-movement 0}
+                                                   english-statistics
+                                                   "en"))
+    (refresh-view!))
 
-  
+
+
   (start-layout-comparison-view)
 
   (.start (Thread. (fn [] (def optimized-layouts-with-multipliers (doall (for [ ;; roll [0 1 2]
@@ -1941,83 +1957,87 @@
   (into [] (concat one-hand-finger-colors
                    (reverse one-hand-finger-colors))))
 
-(defn character-colors-for-fingers [cocoa-key-code-to-character]
+(defn key-colors-for-fingers []
   (into {}
         (for [keyboard-key keyboard-keys]
-          [(cocoa-key-code-to-character (:cocoa-key-code keyboard-key))
+          [(:cocoa-key-code keyboard-key)
            (get both-hands-finger-colors
                 (:finger keyboard-key))])))
 
-(defn row-view [characters character-color on-event]
+(defn row-view [cocoa-key-codes cocoa-key-code-to-character key-color on-event]
   (layouts/horizontally-2 {:margin 1}
-                          (for [character characters]
-                            {:node (box (layouts/with-minimum-size 30 nil (text character))
-                                        {:fill-color (or (character-color character)
-                                                         [70 70 70 255])
-                                         :padding 10})
-                             :mouse-event-handler (fn [node event]
-                                                    (when (= :nodes-under-mouse-changed (:type event))
-                                                      (if (contains? (set (map :id (:nodes-under-mouse event)))
-                                                                     (:id node))
-                                                        (when on-event
-                                                          (on-event {:type :mouse-entered-character
-                                                                     :caracter character}))
-                                                        (when on-event
-                                                          (on-event {:type :mouse-left-character
-                                                                     :caracter character}))))
-                                                    (when (= :mouse-pressed (:type event))
-                                                      (on-event {:type :mouse-pressed
-                                                                 :character character}))
-                                                    event)})))
+                          (for [cocoa-key-code cocoa-key-codes]
+                            (let [character (cocoa-key-code-to-character cocoa-key-code)]
+                              {:node (box (layouts/with-minimum-size 30 nil (text character))
+                                          {:fill-color (or (key-color cocoa-key-code)
+                                                           [70 70 70 255])
+                                           :padding 10})
+                               :mouse-event-handler (fn [node event]
+                                                      (when (= :nodes-under-mouse-changed (:type event))
+                                                        (if (contains? (set (map :id (:nodes-under-mouse event)))
+                                                                       (:id node))
+                                                          (when on-event
+                                                            (on-event {:type :mouse-entered-character
+                                                                       :caracter character}))
+                                                          (when on-event
+                                                            (on-event {:type :mouse-left-character
+                                                                       :caracter character}))))
+                                                      (when (= :mouse-pressed (:type event))
+                                                        (on-event {:type :mouse-pressed
+                                                                   :character character}))
+                                                      event)}))))
 
-(defn keyboard-view [cocoa-key-code-to-character character-color & [{:keys [on-key-event]}]]
+(defn keyboard-view [cocoa-key-code-to-character key-color & [{:keys [on-key-event]}]]
   (layouts/vertically-2 {:margin 10}
                         (layouts/vertically-2 {:margin 1}
                                               (layouts/horizontally-2 {:margin 10}
-                                                                      (row-view (map cocoa-key-code-to-character [12 13 14 15 17])
-                                                                                character-color
+                                                                      (row-view [12 13 14 15 17]
+                                                                                cocoa-key-code-to-character
+                                                                                key-color
                                                                                 on-key-event)
-                                                                      (row-view (map cocoa-key-code-to-character [16 32 34 31 35 33])
-                                                                                character-color
+                                                                      (row-view [16 32 34 31 35 33]
+                                                                                cocoa-key-code-to-character
+                                                                                key-color
                                                                                 on-key-event))
                                               (layouts/with-margins 0 0 0 10
                                                 (layouts/horizontally-2 {:margin 10}
-                                                                        (row-view (map cocoa-key-code-to-character [0 1 2 3 5])
-                                                                                  character-color
+                                                                        (row-view [0 1 2 3 5]
+                                                                                  cocoa-key-code-to-character
+                                                                                  key-color
                                                                                   on-key-event)
-                                                                        (row-view (map cocoa-key-code-to-character [4 38 40 37 41 39])
-                                                                                  character-color
+                                                                        (row-view [4 38 40 37 41 39]
+                                                                                  cocoa-key-code-to-character
+                                                                                  key-color
                                                                                   on-key-event)))
                                               (layouts/with-margins 0 0 0 -10
                                                 (layouts/horizontally-2 {:margin 10}
-                                                                        (row-view (map cocoa-key-code-to-character [50 6 7 8 9 11])
-                                                                                  character-color
+                                                                        (row-view [50 6 7 8 9 11]
+                                                                                  cocoa-key-code-to-character
+                                                                                  key-color
                                                                                   on-key-event)
-                                                                        (row-view (map cocoa-key-code-to-character [45 46 43 47 44])
-                                                                                  character-color
+                                                                        (row-view [45 46 43 47 44]
+                                                                                  cocoa-key-code-to-character
+                                                                                  key-color
                                                                                   on-key-event))))))
 
-(defn character-colors-for-key-ratings [cocoa-key-code-to-character]
+(defn key-colors-for-key-ratings []
   (into {}
         (for [keyboard-key keyboard-keys]
-          [(cocoa-key-code-to-character (:cocoa-key-code keyboard-key))
-           (let [shade (+ 128
-                          (* 40 (or (:rating keyboard-key)
-                                    0)))]
+          [(:cocoa-key-code keyboard-key)
+           (let [shade (+ 10
+                          (* 246
+                             (or (/ (total-effort (rate-key keyboard-key))
+                                    2)
+                                 0)))]
              [shade shade shade 255])])))
-
-(comment
-
-  (character-colors-for-key-ratings (layout-to-cocoa-key-code-to-character qwerty))
-  ) ;; TODO: remove me
 
 (defn layout-editor [layout]
   (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)]
     (fn [_layout]
       {:node [keyboard-view
               cocoa-key-code-to-character
-              #_(character-colors-for-fingers cocoa-key-code-to-character)
-              (character-colors-for-key-ratings cocoa-key-code-to-character)
+              #_(key-colors-for-fingers)
+              (key-colors-for-key-ratings)
               {:on-key-event (fn [event]
                                (when (= :mouse-pressed (:type event))
                                  )
@@ -2084,19 +2104,20 @@
 (defn rating-description-view [layout _rating rating-description]
   (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})
         cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character (:layout layout))
-        character-colors-for-fingers (character-colors-for-fingers cocoa-key-code-to-character)
+        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code (:layout layout))
+        key-colors-for-fingers (key-colors-for-fingers)
         rating-to-aspect (into {} (for [aspect (keys rating-description)
                                         rating (map :rating (:ratings (first (get rating-description aspect))))]
                                     [rating aspect]))]
     (fn [_layout rating rating-description]
-      (let [character-color (into {}
-                                  (concat (for [highlighted-character (:highlighted-characters @state-atom)]
-                                            [highlighted-character [100 150 70 255]])))]
+      (let [key-color (into {}
+                            (concat (for [highlighted-character (:highlighted-characters @state-atom)]
+                                      [(character-to-cocoa-key-code highlighted-character) [100 150 70 255]])))]
         (layouts/vertically-2 {:margin 10}
                               (text (:name layout))
                               [keyboard-view cocoa-key-code-to-character
-                               (merge character-colors-for-fingers
-                                      character-color)]
+                               (merge key-colors-for-fingers
+                                      key-color)]
                               [rating-description-table state-atom rating-to-aspect rating-description rating])))))
 
 (comment
@@ -2136,72 +2157,73 @@
                             (handler))
                           event)})
 
-(defn layout-rating-comparison-view [_layouts]
+(defn layout-rating-comparison-view []
   (let [state-atom (dependable-atom/atom {})]
-    (fn [layouts]
-      (if-let [rating-description (:rating-description @state-atom)]
-        (on-click (fn []
-                    (swap! state-atom dissoc :rating-description))
-                  [rating-description-view
-                   (:layout @state-atom)
-                   (:rating @state-atom)
-                   rating-description])
-        (let [layouts (for [layout layouts]
-                        (assoc layout :summary (merge-summary (summarize-rating-description (:layout-rating-description layout)))))
-              columns (for [column (into #{} (apply concat (map keys (map :summary layouts))))]
-                        {:key column
-                         :minimum (apply min (map column (map :summary layouts)))
-                         :maximum (apply max (map column (map :summary layouts)))})]
-          [layouts/grid (concat [(concat [(visuals/text "layout")]
-                                         (for [column columns]
-                                           (on-click (fn []
-                                                       (if (= column (:sort-column @state-atom))
-                                                         (swap! state-atom update :sort-descending? not)
-                                                         (swap! state-atom assoc :sort-column column)))
-                                                     (cell (visuals/text (name (:key column)))))))]
-                                (for [layout (-> (sort-by (fn [layout]
-                                                            (get (:summary layout)
-                                                                 (:key (or (:sort-column @state-atom)
-                                                                           (first columns)))))
-                                                          layouts)
-                                                 (cond-> (:sort-descending? @state-atom)
-                                                   (reverse)))]
-                                  (concat [(visuals/text (:name layout))]
-                                          (for [column columns]
-                                            (on-click (fn []
-                                                        (swap! state-atom assoc :rating-description (:layout-rating-description layout)
-                                                               :rating (:key column)
-                                                               :layout layout))
-                                                      (cell (assoc (visuals/rectangle-2 {:fill-color [100 100 100 255]})
-                                                                   :height 30
-                                                                   :width (* 300
-                                                                             (abs (/ (get (:summary layout)
-                                                                                          (:key column))
-                                                                                     (:maximum column))))
-                                                                   #_(let [offset (* 0.99 (:minimum column))]
-                                                                       (* 300
-                                                                          (abs (/ (- (get (:summary layout)
-                                                                                          (:key column))
-                                                                                     offset)
-                                                                                  (- (:maximum column)
-                                                                                     offset))))))))))))])))))
+    (fn []
+      (let [layouts (for [layout (concat [ ;; {:name "qwerty"
+                                          ;;  :layout qwerty}
+                                          ;; trigram-english
+                                          ;; {:name "random"
+                                          ;;  :layout (random-layout)}
+                                          ;; {:name "dvorak"
+                                          ;;  :layout dvorak}
+                                          {:name "colemak dh"
+                                           :layout colemak-dh}]
+                                         @optimized-layouts-atom
+                                         ;;optimized-layouts-with-multipliers
+                                         )]
+                      (assoc layout :layout-rating-description (describe-layout-rating english-statistics
+                                                                                       (:layout layout))))]
+        (if-let [rating-description (:rating-description @state-atom)]
+          (on-click (fn []
+                      (swap! state-atom dissoc :rating-description))
+                    [rating-description-view
+                     (:layout @state-atom)
+                     (:rating @state-atom)
+                     rating-description])
+          (let [layouts (for [layout layouts]
+                          (assoc layout :summary (merge-summary (summarize-rating-description (:layout-rating-description layout)))))
+                columns (for [column (into #{} (apply concat (map keys (map :summary layouts))))]
+                          {:key column
+                           :minimum (apply min (map column (map :summary layouts)))
+                           :maximum (apply max (map column (map :summary layouts)))})]
+            [layouts/grid (concat [(concat [(visuals/text "layout")]
+                                           (for [column columns]
+                                             (on-click (fn []
+                                                         (if (= column (:sort-column @state-atom))
+                                                           (swap! state-atom update :sort-descending? not)
+                                                           (swap! state-atom assoc :sort-column column)))
+                                                       (cell (visuals/text (name (:key column)))))))]
+                                  (for [layout (-> (sort-by (fn [layout]
+                                                              (get (:summary layout)
+                                                                   (:key (or (:sort-column @state-atom)
+                                                                             (first columns)))))
+                                                            layouts)
+                                                   (cond-> (:sort-descending? @state-atom)
+                                                     (reverse)))]
+                                    (concat [(visuals/text (:name layout))]
+                                            (for [column columns]
+                                              (on-click (fn []
+                                                          (swap! state-atom assoc :rating-description (:layout-rating-description layout)
+                                                                 :rating (:key column)
+                                                                 :layout layout))
+                                                        (cell (assoc (visuals/rectangle-2 {:fill-color [100 100 100 255]})
+                                                                     :height 30
+                                                                     :width (* 300
+                                                                               (abs (/ (get (:summary layout)
+                                                                                            (:key column))
+                                                                                       (:maximum column))))
+                                                                     #_(let [offset (* 0.99 (:minimum column))]
+                                                                         (* 300
+                                                                            (abs (/ (- (get (:summary layout)
+                                                                                            (:key column))
+                                                                                       offset)
+                                                                                    (- (:maximum column)
+                                                                                       offset))))))))))))]))))))
 
 (defn start-layout-comparison-view []
   (start-view (fn []
-                [#'layout-rating-comparison-view (binding [digram-roll-mulptiplier 1
-                                                           key-rating-multiplier 2]
-                                                   (for [layout (concat [;; {:name "qwerty"
-                                                                         ;;  :layout qwerty}
-                                                                         trigram-english
-                                                                         {:name "random"
-                                                                          :layout (random-layout)}
-                                                                         {:name "dvorak"
-                                                                          :layout dvorak}
-                                                                         {:name "colemak dh"
-                                                                          :layout colemak-dh}]
-                                                                        optimized-layouts-with-multipliers)]
-                                                     (assoc layout :layout-rating-description (describe-layout-rating english-statistics
-                                                                                                                      (:layout layout)))))])))
+                [#'layout-rating-comparison-view])))
 (comment
   (start-layout-comparison-view)
   )
@@ -2210,7 +2232,7 @@
   (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})
         cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
         character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
-        character-colors-for-fingers (character-colors-for-fingers cocoa-key-code-to-character)]
+        key-colors-for-fingers (key-colors-for-fingers cocoa-key-code-to-character)]
     (fn [layout digram-distribution highlighted-characters]
       (let [character-color (into {}
                                   (concat (for [highlighted-character highlighted-characters]
@@ -2219,7 +2241,7 @@
                                             [highlighted-character [100 150 70 255]])))]
         (layouts/vertically-2 {:margin 10}
                               [keyboard-view cocoa-key-code-to-character
-                               (merge character-colors-for-fingers
+                               (merge key-colors-for-fingers
                                       character-color)]
                               (text (format "%.3f"
                                             (float (rate-layout digram-distribution
@@ -2259,7 +2281,7 @@
         (layouts/vertically-2 {:margin 10}
                               [keyboard-view
                                cocoa-key-code-to-character
-                               (merge (character-colors-for-fingers cocoa-key-code-to-character)
+                               (merge (key-colors-for-fingers cocoa-key-code-to-character)
                                       {(:highlighted-character @state-atom) [200 150 70 255]})]
                               (text (str "layout rating for the text: " layout-rating))
                               (layouts/horizontally-2 {:margin 20}
@@ -2439,9 +2461,12 @@
                                          ;; #'digram-distribution-comparison-view
                                          :on-exit #(reset! event-channel-atom nil))))
 
-(when @event-channel-atom
-  (async/>!! @event-channel-atom
-             {:type :redraw}))
+(defn refresh-view! []
+  (when @event-channel-atom
+    (async/>!! @event-channel-atom
+               {:type :redraw})))
+
+(refresh-view!)
 
 (comment
 
