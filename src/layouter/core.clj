@@ -187,7 +187,11 @@
               {:cocoa-key-code 47, :qwerty-character ".", :character "v"}
               {:cocoa-key-code 50, :qwerty-character "<", :character "<"}})
 
-(def layout-characters (into #{} (map :character qwerty)))
+(def disabled-layout-characters #{"," "." "-" "<" "ö" "ä" "å"})
+(def qwerty-characters-for-disabled-keys #{"w" "y" "b"})
+
+(def layout-characters (set/difference (into #{} (map :character qwerty))
+                                       disabled-layout-characters))
 
 
 (defn layout-from-qwerty [new-layout-character-mapping-to-qwerty]
@@ -562,7 +566,8 @@
   (adjacent-numbers? (map :finger key-sequence)))
 
 (defn two-adjacent-rows? [key-sequence]
-  (let [rows (map :row key-sequence)]
+
+                                (let [rows (map :row key-sequence)]
     (and (adjacent-numbers? rows)
          (= 2 (count (set rows))))))
 
@@ -742,17 +747,18 @@
                             (qwerty-character-to-key "c")]))))
 
 
-(def ^:dynamic roll-mulptiplier 1)
+(def ^:dynamic digram-roll-mulptiplier 1)
+(def ^:dynamic trigram-roll-mulptiplier 1)
 (def ^:dynamic horizontal-movement-multiplier 1)
 (def ^:dynamic vertical-movement-multiplier 1)
 
 (defn rate-key-pair [key-pair]
   [(multiply-effort vertical-movement-multiplier (rate-vertical-movement key-pair))
    (multiply-effort horizontal-movement-multiplier (rate-horizontal-movement key-pair))
-   (multiply-effort roll-mulptiplier (rate-n-gram-roll key-pair))])
+   (multiply-effort digram-roll-mulptiplier (rate-n-gram-roll key-pair))])
 
 (defn rate-key-triple [key-triple]
-  [(multiply-effort roll-mulptiplier (rate-n-gram-roll key-triple))])
+  [(multiply-effort trigram-roll-mulptiplier (rate-n-gram-roll key-triple))])
 
 (defn rate-distribution [rate distribution]
   (reduce +
@@ -1106,8 +1112,14 @@
                             {:character "d" :cocoa-key-code 3}})))
 
 (defn random-layout []
-  (loop [remaining-cocoa-key-codes (map :cocoa-key-code qwerty)
-         remaining-characters (map :character qwerty)
+  (loop [remaining-cocoa-key-codes (map :cocoa-key-code (remove (fn [key]
+                                                                  (contains? qwerty-characters-for-disabled-keys
+                                                                             (:character key)))
+                                                                qwerty))
+         remaining-characters (filter (fn [character]
+                                        (contains? layout-characters
+                                                   character))
+                                      (map :character qwerty))
          layout #{}]
     (if (empty? remaining-characters)
       layout
@@ -1117,6 +1129,10 @@
                (rest remaining-characters)
                (conj layout {:character character
                              :cocoa-key-code cocoa-key-code}))))))
+
+(comment
+  (random-layout)
+  )
 
 (def ^:dynamic random (Random.))
 
@@ -1201,9 +1217,6 @@
   (loop [current-layout layout
          next-layout (gradient-descent-one text-statistics
                                            layout)]
-
-    ;; (println "rating after descent:" (rate-layout current-layout
-    ;;                                               layout))
 
     (if (nil? next-layout)
       (set current-layout)
@@ -1321,10 +1334,7 @@
   ) ;; TODO: remove me
 
 (defn rating-description-to-row [rating-description]
-  (concat [(pr-str (first (:propability rating-description))
-                   ;; " "
-                   ;; (format "%.5f" (second (:propability rating-description)))
-                   )]
+  (concat [(string/join "" (first (:propability rating-description)))]
           (apply concat
                  (for [rating (:ratings rating-description)]
                    [(name (:label rating))
@@ -1445,14 +1455,27 @@
                             :b {:m1 2
                                 :m2 3}}))))
 
-(defn optimize-layout-with-multipliers [{:keys [roll key-rating finger-type horizontal-movement vertical-movement]} statistics]
-  (binding [roll-mulptiplier roll
+(defn optimize-layout-with-multipliers [{:keys [digram-roll trigram-roll key-rating finger-type horizontal-movement vertical-movement]} statistics]
+  (binding [digram-roll-mulptiplier digram-roll
+            trigram-roll-mulptiplier trigram-roll
             key-rating-multiplier key-rating
             finger-type-multiplier finger-type
             horizontal-movement-multiplier horizontal-movement
             vertical-movement-multiplier vertical-movement]
     (gradient-descent-all statistics
                           (random-layout))))
+
+(defn optimize-named-layout-with-multipliers [multipliers statistics statistics-name]
+  {:name (str (string/join ""
+                           (map str
+                                (apply concat
+                                       (medley/map-keys (fn [key]
+                                                          (subs (name key)
+                                                                0 1))
+                                                        multipliers))))
+              statistics-name)
+   :layout (optimize-layout-with-multipliers multipliers
+                                             statistics)})
 
 (comment
 
@@ -1476,43 +1499,50 @@
                                                                                (slurp "temp/text/the-hacker-crackdown.txt")))))))
   ;; => 443
 
+  (def trigram-english (optimize-named-layout-with-multipliers {:digram-roll 1
+                                                                :trigram-roll 1
+                                                                :key-rating 1
+                                                                :finger-type 1
+                                                                :horizontal-movement 0.5
+                                                                :vertical-movement 0.5}
+                                                               english-statistics
+                                                               "en"))
+
+
+  
+  (start-layout-comparison-view)
+
   (.start (Thread. (fn [] (def optimized-layouts-with-multipliers (doall (for [ ;; roll [0 1 2]
                                                                                ;; key-rating [0 1 2]
                                                                                ;; finger-type [0 1 2]
                                                                                ;; horizontal-movement [0 1 2]
                                                                                ;; vertical-movement [0 1 2]
 
-                                                                               roll [1]
-                                                                               key [1]
-                                                                               movement [1]
-                                                                               [statistics-name statistics] [[:english english-statistics] ;;[:finnish finnish-statistics] [:hybrid hybrid-statistics]
+                                                                               digram-roll [1]
+                                                                               trigram-roll [1]
+                                                                               key [0.5 1 2]
+                                                                               movement [0.5 1 2]
+                                                                               [statistics-name statistics] [[:en english-statistics] ;;[:fin finnish-statistics] [:hyb hybrid-statistics]
                                                                                                              ]]
-                                                                           (let [multipliers {:roll roll
+                                                                           (let [multipliers {:digram-roll digram-roll
+                                                                                              :trigram-roll trigram-roll
                                                                                               :key-rating key
                                                                                               :finger-type key
                                                                                               :horizontal-movement movement
                                                                                               :vertical-movement movement}]
                                                                              (do (prn multipliers statistics-name)
-                                                                                 {:name #_(pr-str multipliers)
-                                                                                  (str (medley/map-keys (fn [key]
-                                                                                                          (subs (name key)
-                                                                                                                0 1))
-                                                                                                        multipliers)
-                                                                                       statistics-name)
-                                                                                  :layout (optimize-layout-with-multipliers {:roll roll
-                                                                                                                             :key-rating key
-                                                                                                                             :finger-type key
-                                                                                                                             :horizontal-movement movement
-                                                                                                                             :vertical-movement movement}
-                                                                                                                            statistics)}))))))))
+                                                                                 (optimize-named-layout-with-multipliers multipliers
+                                                                                                                         statistics
+                                                                                                                         statistics-name)))))
+                            ))))
 
   (spit "temp/optimized-layouts-with-multipliers-2" (pr-str optimized-layouts-with-multipliers))
   (def optimized-finnish-layout (gradient-descent-all finnish-statistics
                                                       (random-layout)))
 
-  (binding [roll-mulptiplier 1
+  (binding [digram-roll-mulptiplier 1
             key-rating-multiplier 2]
-    (let [file-name-body (str "temp/roll-" roll-mulptiplier "-key-" key-rating-multiplier)]
+    (let [file-name-body (str "temp/roll-" digram-roll-mulptiplier "-key-" key-rating-multiplier)]
       ;; (def optimized-english-layout (gradient-descent-all english-statistics
       ;;                                                     (random-layout)))
 
@@ -1538,9 +1568,9 @@
       ;;       (pr-str optimized-hybrid-layout))
       ))
 
-  (binding [roll-mulptiplier 1
+  (binding [digram-roll-mulptiplier 1
             key-rating-multiplier 2]
-    (let [file-name-body (str "temp/roll-" roll-mulptiplier "-key-" key-rating-multiplier)]
+    (let [file-name-body (str "temp/roll-" digram-roll-mulptiplier "-key-" key-rating-multiplier)]
       (spit (str file-name-body "-english-text-qwerty-layout.txt")
             (rating-description-to-text english-statistics
                                         qwerty))
@@ -1571,7 +1601,7 @@
                   (rating-description-to-rows (describe-layout-rating english-statistics
                                                                       optimized-hybrid-layout))))
 
-  (binding [roll-mulptiplier 1
+  (binding [digram-roll-mulptiplier 1
             key-rating-multiplier 2]
     (for [statistics [[:english english-statistics]
                       [:finnish finnish-statistics]
@@ -1921,7 +1951,7 @@
 (defn row-view [characters character-color on-event]
   (layouts/horizontally-2 {:margin 1}
                           (for [character characters]
-                            {:node (box (text character)
+                            {:node (box (layouts/with-minimum-size 30 nil (text character))
                                         {:fill-color (or (character-color character)
                                                          [70 70 70 255])
                                          :padding 10})
@@ -2026,46 +2056,75 @@
 (defn cell [content]
   (layouts/with-margin 10 (layouts/with-maximum-size nil 20 (layouts/center-vertically content))))
 
-(defn rating-description-view [rating rating-description]
-  (let [rating-to-aspect (into {} (for [aspect (keys rating-description)
+(defn rating-description-table [state-atom rating-to-aspect rating-description rating]
+  (layouts/grid (let [aspect (rating-to-aspect rating)]
+                  (concat [(map (fn [value]
+                                  (cell (visuals/text (str value))))
+                                (concat ["value"]
+                                        (interpose ""
+                                                   (map :rating (:ratings (first (get rating-description aspect)))))))]
+                          (map (fn [rating-description]
+                                 (let [[value & ratings] (rating-description-to-row rating-description)]
+                                   (concat [{:node (cell (visuals/text value))
+                                             :mouse-event-handler (fn [node event]
+                                                                    (when (= :nodes-under-mouse-changed (:type event))
+                                                                      (if (contains? (set (map :id (:nodes-under-mouse event)))
+                                                                                     (:id node))
+                                                                        (swap! state-atom assoc :highlighted-characters (set (let [value (first (:propability rating-description))]
+                                                                                                                               (if (string? value)
+                                                                                                                                 [value]
+                                                                                                                                 value))))
+                                                                        (swap! state-atom assoc :highlighted-characters #{})))
+                                                                    event)}]
+                                           (map (fn [value]
+                                                  (cell (visuals/text (str value))))
+                                                ratings))))
+                               (take 30 (get rating-description aspect)))))))
+
+(defn rating-description-view [layout _rating rating-description]
+  (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})
+        cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character (:layout layout))
+        character-colors-for-fingers (character-colors-for-fingers cocoa-key-code-to-character)
+        rating-to-aspect (into {} (for [aspect (keys rating-description)
                                         rating (map :rating (:ratings (first (get rating-description aspect))))]
                                     [rating aspect]))]
-    (layouts/grid (->> #_(rating-description-to-rows rating-description)
-                       (let [aspect (rating-to-aspect rating)]
-                         (concat [(concat ["value"]
-                                          (interpose ""
-                                                     (map :rating (:ratings (first (get rating-description aspect))))))]
-                                 (map rating-description-to-row
-                                      (take 100 (get rating-description aspect)))))
-                       (map (fn [row]
-                              (map (fn [value]
-                                     (cell (visuals/text (str value))))
-                                   row)))))))
+    (fn [_layout rating rating-description]
+      (let [character-color (into {}
+                                  (concat (for [highlighted-character (:highlighted-characters @state-atom)]
+                                            [highlighted-character [100 150 70 255]])))]
+        (layouts/vertically-2 {:margin 10}
+                              (text (:name layout))
+                              [keyboard-view cocoa-key-code-to-character
+                               (merge character-colors-for-fingers
+                                      character-color)]
+                              [rating-description-table state-atom rating-to-aspect rating-description rating])))))
 
 (comment
-  (start-view (fn [] (rating-description-view :vertical-movement
-                                              '{:digrams
-                                                ({:propability [["e" "l"] 0.25],
-                                                  :ratings
-                                                  [{:label :different-hand, :effort 0, :rating :vertical-movement}
-                                                   {:label :different-finger,
-                                                    :effort 0,
-                                                    :rating :horizontal-movement}
-                                                   {:label :no-roll, :effort -1, :rating :roll}]}
-                                                 {:propability [["l" "l"] 0.25],
-                                                  :ratings
-                                                  [{:label :same-row, :effort 0, :rating :vertical-movement}
-                                                   {:label :same-column, :effort 0, :rating :horizontal-movement}
-                                                   {:label :no-roll, :effort -1, :rating :roll}]}),
-                                                :characters
-                                                ({:propability ["l" 0.4],
-                                                  :ratings
-                                                  [{:effort -1/4, :label :middle, :rating :finger-type}
-                                                   {:rating :key, :label :regular :effort 0.5}]}
-                                                 {:propability ["o" 0.2],
-                                                  :ratings
-                                                  [{:effort 0, :label :index, :rating :finger-type}
-                                                   {:rating :key, :label :regular :effort 0.5}]})})))
+  (start-view (fn [] [rating-description-view {:name :random
+                                               :layout (random-layout)}
+                      :vertical-movement
+                      '{:digrams
+                        ({:propability [["e" "l"] 0.25],
+                          :ratings
+                          [{:label :different-hand, :effort 0, :rating :vertical-movement}
+                           {:label :different-finger,
+                            :effort 0,
+                            :rating :horizontal-movement}
+                           {:label :no-roll, :effort -1, :rating :roll}]}
+                         {:propability [["l" "l"] 0.25],
+                          :ratings
+                          [{:label :same-row, :effort 0, :rating :vertical-movement}
+                           {:label :same-column, :effort 0, :rating :horizontal-movement}
+                           {:label :no-roll, :effort -1, :rating :roll}]}),
+                        :characters
+                        ({:propability ["l" 0.4],
+                          :ratings
+                          [{:effort -1/4, :label :middle, :rating :finger-type}
+                           {:rating :key, :label :regular :effort 0.5}]}
+                         {:propability ["o" 0.2],
+                          :ratings
+                          [{:effort 0, :label :index, :rating :finger-type}
+                           {:rating :key, :label :regular :effort 0.5}]})}]))
 
   ) ;; TODO: remove me
 
@@ -2083,15 +2142,17 @@
       (if-let [rating-description (:rating-description @state-atom)]
         (on-click (fn []
                     (swap! state-atom dissoc :rating-description))
-                  (rating-description-view (:rating @state-atom)
-                                           rating-description))
+                  [rating-description-view
+                   (:layout @state-atom)
+                   (:rating @state-atom)
+                   rating-description])
         (let [layouts (for [layout layouts]
                         (assoc layout :summary (merge-summary (summarize-rating-description (:layout-rating-description layout)))))
               columns (for [column (into #{} (apply concat (map keys (map :summary layouts))))]
                         {:key column
                          :minimum (apply min (map column (map :summary layouts)))
                          :maximum (apply max (map column (map :summary layouts)))})]
-          (layouts/grid (concat [(concat [(visuals/text "layout")]
+          [layouts/grid (concat [(concat [(visuals/text "layout")]
                                          (for [column columns]
                                            (on-click (fn []
                                                        (if (= column (:sort-column @state-atom))
@@ -2109,7 +2170,8 @@
                                           (for [column columns]
                                             (on-click (fn []
                                                         (swap! state-atom assoc :rating-description (:layout-rating-description layout)
-                                                               :rating (:key column)))
+                                                               :rating (:key column)
+                                                               :layout layout))
                                                       (cell (assoc (visuals/rectangle-2 {:fill-color [100 100 100 255]})
                                                                    :height 30
                                                                    :width (* 300
@@ -2122,23 +2184,26 @@
                                                                                           (:key column))
                                                                                      offset)
                                                                                   (- (:maximum column)
-                                                                                     offset))))))))))))))))))
+                                                                                     offset))))))))))))])))))
 
-(comment
-  (def optimized-layouts-with-multipliers [(assoc (first optimized-layouts-with-multipliers)
-                                                  :name "all-1-english")])
+(defn start-layout-comparison-view []
   (start-view (fn []
-                [#'layout-rating-comparison-view (binding [roll-mulptiplier 1
+                [#'layout-rating-comparison-view (binding [digram-roll-mulptiplier 1
                                                            key-rating-multiplier 2]
-                                                   (for [layout (concat [ ;; {:name "qwerty"
+                                                   (for [layout (concat [;; {:name "qwerty"
                                                                          ;;  :layout qwerty}
+                                                                         trigram-english
+                                                                         {:name "random"
+                                                                          :layout (random-layout)}
                                                                          {:name "dvorak"
                                                                           :layout dvorak}
                                                                          {:name "colemak dh"
                                                                           :layout colemak-dh}]
                                                                         optimized-layouts-with-multipliers)]
                                                      (assoc layout :layout-rating-description (describe-layout-rating english-statistics
-                                                                                                                      (:layout layout)))))]))
+                                                                                                                      (:layout layout)))))])))
+(comment
+  (start-layout-comparison-view)
   )
 
 (defn digram-test-view [layout _digram-distribution _highlighted-characters]
@@ -2157,8 +2222,8 @@
                                (merge character-colors-for-fingers
                                       character-color)]
                               (text (format "%.3f"
-                                            (rate-layout digram-distribution
-                                                         layout)))
+                                            (float (rate-layout digram-distribution
+                                                                layout))))
                               (digram-view digram-distribution
                                            character-to-cocoa-key-code
                                            (fn [digram]
@@ -2174,6 +2239,12 @@
                                            optimized-layout
                                            (normalized-digram-distribution target-text)
                                            #{}]))))
+
+  (start-view (fn []
+                [digram-test-view
+                 trigram-english
+                 (:digram-distribution english-statistics)
+                 #{}]))
   ) ;; TODO: remove me
 
 
