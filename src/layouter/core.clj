@@ -22,43 +22,44 @@
 ;; KEYS
 
 (def key-class-effort {:home 0
+                       :easy-index 0.15
                        :regular 0.25
                        :sideways 0.55
                        :middle 1})
 
-(def keyboard-keys [{:cocoa-key-code 0  :java-key-code 65       :finger 0 :class :home     :row 1 :column 0  :home-position? true  :qwerty-character "a"}
-                    {:cocoa-key-code 1  :java-key-code 83       :finger 1 :class :home     :row 1 :column 1  :home-position? true  :qwerty-character "s"}
-                    {:cocoa-key-code 2  :java-key-code 68       :finger 2 :class :home     :row 1 :column 2  :home-position? true  :qwerty-character "d"}
-                    {:cocoa-key-code 3  :java-key-code 70       :finger 3 :class :home     :row 1 :column 3  :home-position? true  :qwerty-character "f"}
-                    {:cocoa-key-code 4  :java-key-code 72       :finger 4 :class :regular  :row 1 :column 5  :home-position? false :qwerty-character "h"}
-                    {:cocoa-key-code 5  :java-key-code 71       :finger 3 :class :regular  :row 1 :column 4  :home-position? false :qwerty-character "g"}
-                    {:cocoa-key-code 6  :java-key-code 90       :finger 1 :class :regular  :row 2 :column 0  :home-position? false :qwerty-character "z"}
-                    {:cocoa-key-code 7  :java-key-code 88       :finger 2 :class :regular  :row 2 :column 1  :home-position? false :qwerty-character "x"}
-                    {:cocoa-key-code 8  :java-key-code 67       :finger 3 :class :regular  :row 2 :column 2  :home-position? false :qwerty-character "c"}
-                    {:cocoa-key-code 9  :java-key-code 86       :finger 3 :class :sideways :row 2 :column 3  :home-position? false :qwerty-character "v"}
-                    {:cocoa-key-code 11 :java-key-code 66       :finger 3 :class :middle   :row 2 :column 4  :home-position? false :qwerty-character "b"}
-                    {:cocoa-key-code 12 :java-key-code 81       :finger 0 :class :regular  :row 0 :column 0  :home-position? false :qwerty-character "q"}
-                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :class :sideways :row 0 :column 1  :home-position? false :qwerty-character "w"}
-                    {:cocoa-key-code 14 :java-key-code 69       :finger 1 :class :regular  :row 0 :column 2  :home-position? false :qwerty-character "e"}
-                    {:cocoa-key-code 15 :java-key-code 82       :finger 2 :class :regular  :row 0 :column 3  :home-position? false :qwerty-character "r"}
-                    {:cocoa-key-code 16 :java-key-code 89       :finger 4 :class :middle   :row 0 :column 5  :home-position? false :qwerty-character "y"}
-                    {:cocoa-key-code 17 :java-key-code 84       :finger 3 :class :regular  :row 0 :column 4  :home-position? false :qwerty-character "t"}
-                    {:cocoa-key-code 31 :java-key-code 79       :finger 6 :class :regular  :row 0 :column 8  :home-position? false :qwerty-character "o"}
-                    {:cocoa-key-code 32 :java-key-code 85       :finger 4 :class :regular  :row 0 :column 6  :home-position? false :qwerty-character "u"}
-                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :class :regular  :row 0 :column 10 :home-position? false :qwerty-character "å"}
-                    {:cocoa-key-code 34 :java-key-code 73       :finger 5 :class :regular  :row 0 :column 7  :home-position? false :qwerty-character "i"}
-                    {:cocoa-key-code 35 :java-key-code 80       :finger 7 :class :regular  :row 0 :column 9  :home-position? false :qwerty-character "p"}
-                    {:cocoa-key-code 37 :java-key-code 76       :finger 6 :class :home     :row 1 :column 8  :home-position? true  :qwerty-character "l"}
-                    {:cocoa-key-code 38 :java-key-code 74       :finger 4 :class :home     :row 1 :column 6  :home-position? true  :qwerty-character "j"}
-                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :class :regular  :row 1 :column 10 :home-position? false :qwerty-character "ä"}
-                    {:cocoa-key-code 40 :java-key-code 75       :finger 5 :class :home     :row 1 :column 7  :home-position? true  :qwerty-character "k"}
-                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :class :home     :row 1 :column 9  :home-position? true  :qwerty-character "ö"}
-                    {:cocoa-key-code 43 :java-key-code 44       :finger 5 :class :regular  :row 2 :column 7  :home-position? false :qwerty-character ","}
-                    {:cocoa-key-code 44 :java-key-code 47       :finger 7 :class :regular  :row 2 :column 9  :home-position? false :qwerty-character "-"}
-                    {:cocoa-key-code 45 :java-key-code 78       :finger 3 :class :sideways :row 2 :column 5  :home-position? false :qwerty-character "n"}
-                    {:cocoa-key-code 46 :java-key-code 77       :finger 4 :class :regular  :row 2 :column 6  :home-position? false :qwerty-character "m"}
-                    {:cocoa-key-code 47 :java-key-code 46       :finger 6 :class :regular  :row 2 :column 8  :home-position? false :qwerty-character "."}
-                    {:cocoa-key-code 50 :java-key-code 192      :finger 0 :class :regular  :row 2 :column -1 :home-position? false :qwerty-character "<"}])
+(def keyboard-keys [{:cocoa-key-code 0  :java-key-code 65       :finger 0 :class :home       :row 1 :column 0  :home-position? true  :qwerty-character "a"}
+                    {:cocoa-key-code 1  :java-key-code 83       :finger 1 :class :home       :row 1 :column 1  :home-position? true  :qwerty-character "s"}
+                    {:cocoa-key-code 2  :java-key-code 68       :finger 2 :class :home       :row 1 :column 2  :home-position? true  :qwerty-character "d"}
+                    {:cocoa-key-code 3  :java-key-code 70       :finger 3 :class :home       :row 1 :column 3  :home-position? true  :qwerty-character "f"}
+                    {:cocoa-key-code 4  :java-key-code 72       :finger 4 :class :regular    :row 1 :column 5  :home-position? false :qwerty-character "h"}
+                    {:cocoa-key-code 5  :java-key-code 71       :finger 3 :class :regular    :row 1 :column 4  :home-position? false :qwerty-character "g"}
+                    {:cocoa-key-code 6  :java-key-code 90       :finger 1 :class :regular    :row 2 :column 1  :home-position? false :qwerty-character "z"}
+                    {:cocoa-key-code 7  :java-key-code 88       :finger 2 :class :regular    :row 2 :column 2  :home-position? false :qwerty-character "x"}
+                    {:cocoa-key-code 8  :java-key-code 67       :finger 3 :class :easy-index :row 2 :column 3  :home-position? false :qwerty-character "c"}
+                    {:cocoa-key-code 9  :java-key-code 86       :finger 3 :class :sideways   :row 2 :column 4  :home-position? false :qwerty-character "v"}
+                    {:cocoa-key-code 11 :java-key-code 66       :finger 3 :class :middle     :row 2 :column 4  :home-position? false :qwerty-character "b"}
+                    {:cocoa-key-code 12 :java-key-code 81       :finger 0 :class :regular    :row 0 :column 0  :home-position? false :qwerty-character "q"}
+                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :class :sideways   :row 0 :column 0  :home-position? false :qwerty-character "w"}
+                    {:cocoa-key-code 14 :java-key-code 69       :finger 1 :class :regular    :row 0 :column 1  :home-position? false :qwerty-character "e"}
+                    {:cocoa-key-code 15 :java-key-code 82       :finger 2 :class :regular    :row 0 :column 2  :home-position? false :qwerty-character "r"}
+                    {:cocoa-key-code 16 :java-key-code 89       :finger 4 :class :middle     :row 0 :column 5  :home-position? false :qwerty-character "y"}
+                    {:cocoa-key-code 17 :java-key-code 84       :finger 3 :class :regular    :row 0 :column 3  :home-position? false :qwerty-character "t"}
+                    {:cocoa-key-code 31 :java-key-code 79       :finger 6 :class :regular    :row 0 :column 8  :home-position? false :qwerty-character "o"}
+                    {:cocoa-key-code 32 :java-key-code 85       :finger 4 :class :regular    :row 0 :column 6  :home-position? false :qwerty-character "u"}
+                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :class :regular    :row 0 :column 10 :home-position? false :qwerty-character "å"}
+                    {:cocoa-key-code 34 :java-key-code 73       :finger 5 :class :regular    :row 0 :column 7  :home-position? false :qwerty-character "i"}
+                    {:cocoa-key-code 35 :java-key-code 80       :finger 7 :class :regular    :row 0 :column 9  :home-position? false :qwerty-character "p"}
+                    {:cocoa-key-code 37 :java-key-code 76       :finger 6 :class :home       :row 1 :column 8  :home-position? true  :qwerty-character "l"}
+                    {:cocoa-key-code 38 :java-key-code 74       :finger 4 :class :home       :row 1 :column 6  :home-position? true  :qwerty-character "j"}
+                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :class :regular    :row 1 :column 10 :home-position? false :qwerty-character "ä"}
+                    {:cocoa-key-code 40 :java-key-code 75       :finger 5 :class :home       :row 1 :column 7  :home-position? true  :qwerty-character "k"}
+                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :class :home       :row 1 :column 9  :home-position? true  :qwerty-character "ö"}
+                    {:cocoa-key-code 43 :java-key-code 44       :finger 5 :class :regular    :row 2 :column 7  :home-position? false :qwerty-character ","}
+                    {:cocoa-key-code 44 :java-key-code 47       :finger 7 :class :regular    :row 2 :column 9  :home-position? false :qwerty-character "-"}
+                    {:cocoa-key-code 45 :java-key-code 78       :finger 3 :class :sideways   :row 2 :column 5  :home-position? false :qwerty-character "n"}
+                    {:cocoa-key-code 46 :java-key-code 77       :finger 4 :class :easy-index :row 2 :column 6  :home-position? false :qwerty-character "m"}
+                    {:cocoa-key-code 47 :java-key-code 46       :finger 6 :class :regular    :row 2 :column 8  :home-position? false :qwerty-character "."}
+                    {:cocoa-key-code 50 :java-key-code 192      :finger 0 :class :regular    :row 2 :column 0 :home-position? false :qwerty-character "<"}])
 
 
 (def cocoa-key-code-to-key (medley/index-by :cocoa-key-code keyboard-keys))
@@ -445,12 +446,12 @@
                (and (not (same-finger? key-pair))
                     (one-row-leap? key-pair))
                {:label :different-finger-one-row-leap
-                :effort 0.25}
+                :effort 0.1}
 
                (and (not (same-finger? key-pair))
                     (two-row-leap? key-pair))
                {:label :different-finger-two-row-leap
-                :effort 0.5}
+                :effort 0.2}
 
                (and (same-finger? key-pair)
                     (one-row-leap? key-pair))
@@ -1112,17 +1113,21 @@
                             {:character "d" :cocoa-key-code 3}})))
 
 (defn random-layout []
-  (loop [remaining-cocoa-key-codes (map :cocoa-key-code (remove (fn [key]
-                                                                  (contains? qwerty-characters-for-disabled-keys
-                                                                             (:character key)))
-                                                                qwerty))
+  (loop [remaining-cocoa-key-codes (sort (map :cocoa-key-code (remove (fn [key]
+                                                                        (contains? qwerty-characters-for-disabled-keys
+                                                                                   (:character key)))
+                                                                      qwerty)))
          remaining-characters (filter (fn [character]
                                         (contains? layout-characters
                                                    character))
                                       (map :character qwerty))
          layout #{}]
     (if (empty? remaining-characters)
-      layout
+      (set/union layout
+                 (into #{}
+                       (for [cocoa-key-code remaining-cocoa-key-codes]
+                         {:character ""
+                          :cocoa-key-code cocoa-key-code})))
       (let [character (first remaining-characters)
             cocoa-key-code (rand-nth remaining-cocoa-key-codes)]
         (recur (remove #{cocoa-key-code} remaining-cocoa-key-codes)
@@ -1131,7 +1136,7 @@
                              :cocoa-key-code cocoa-key-code}))))))
 
 (comment
-  (random-layout)
+  (sort-by :cocoa-key-code (random-layout))
   )
 
 (def ^:dynamic random (Random.))
@@ -1455,31 +1460,79 @@
                             :b {:m1 2
                                 :m2 3}}))))
 
-(defn optimize-layout-with-multipliers [{:keys [digram-roll trigram-roll key-rating finger-type horizontal-movement vertical-movement]} statistics]
+(defn binding-multipliers [{:keys [digram-roll trigram-roll key-rating finger-type horizontal-movement vertical-movement]} function]
   (binding [digram-roll-mulptiplier digram-roll
             trigram-roll-mulptiplier trigram-roll
             key-rating-multiplier key-rating
             finger-type-multiplier finger-type
             horizontal-movement-multiplier horizontal-movement
             vertical-movement-multiplier vertical-movement]
-    (gradient-descent-all statistics
-                          (random-layout))))
+    (function)))
+
+(defn optimize-layout-with-multipliers [multipliers statistics]
+  (binding-multipliers multipliers
+                       (fn []
+                         (gradient-descent-all statistics
+                                               (random-layout)))))
+
+(defn multipliers-to-layout-name [multipliers]
+  (string/join ""
+               (map str
+                    (apply concat
+                           (medley/map-keys (fn [key]
+                                              (subs (name key)
+                                                    0 1))
+                                            multipliers)))))
 
 (defn optimize-named-layout-with-multipliers [multipliers statistics statistics-name]
-  {:name (str (string/join ""
-                           (map str
-                                (apply concat
-                                       (medley/map-keys (fn [key]
-                                                          (subs (name key)
-                                                                0 1))
-                                                        multipliers))))
+  {:name (str (multipliers-to-layout-name multipliers)
               statistics-name)
+   :multipliers multipliers
    :layout (optimize-layout-with-multipliers multipliers
                                              statistics)})
 
 (defonce optimized-layouts-atom (atom []))
 
 (comment
+
+  ;; (binding-multipliers {:digram-roll 0
+  ;;                       :trigram-roll 0
+  ;;                       :key-rating 2
+  ;;                       :finger-type 0
+  ;;                       :horizontal-movement 0
+  ;;                       :vertical-movement 0}
+  ;;                      (fn []
+  ;;                       (gradient-descent-one english-statistics
+  ;;                                             (:layout {:name "d0t0k2f0h0v0en",
+  ;;                                                       :layout
+  ;;                                                       #{{:character "e", :cocoa-key-code 40}
+  ;;                                                         {:character "t", :cocoa-key-code 37}
+  ;;                                                         {:character "u", :cocoa-key-code 35}
+  ;;                                                         {:character "d", :cocoa-key-code 7}
+  ;;                                                         {:character "g", :cocoa-key-code 5}
+  ;;                                                         {:character "z", :cocoa-key-code 45}
+  ;;                                                         {:character "a", :cocoa-key-code 0}
+  ;;                                                         {:character "n", :cocoa-key-code 38}
+  ;;                                                         {:character "v", :cocoa-key-code 34}
+  ;;                                                         {:character "r", :cocoa-key-code 17}
+  ;;                                                         {:character "l", :cocoa-key-code 50}
+  ;;                                                         {:character "k", :cocoa-key-code 46}
+  ;;                                                         {:character "y", :cocoa-key-code 39}
+  ;;                                                         {:character "h", :cocoa-key-code 6}
+  ;;                                                         {:character "f", :cocoa-key-code 33}
+  ;;                                                         {:character "b", :cocoa-key-code 47}
+  ;;                                                         {:character "i", :cocoa-key-code 2}
+  ;;                                                         {:character "c", :cocoa-key-code 31}
+  ;;                                                         {:character "x", :cocoa-key-code 44}
+  ;;                                                         {:character "w", :cocoa-key-code 32}
+  ;;                                                         {:character "s", :cocoa-key-code 3}
+  ;;                                                         {:character "p", :cocoa-key-code 43}
+  ;;                                                         {:character "m", :cocoa-key-code 4}
+  ;;                                                         {:character "j", :cocoa-key-code 14}
+  ;;                                                         {:character "o", :cocoa-key-code 41}
+  ;;                                                         {:character "q", :cocoa-key-code 9}}}))))
+
+
   (reset! optimized-layouts-atom [])
 
   (do (def english-statistics (text-statistics (slurp "temp/text/the-hacker-crackdown.txt")))
@@ -1514,11 +1567,11 @@
   (do
     (swap! optimized-layouts-atom
            conj
-           (optimize-named-layout-with-multipliers {:digram-roll 0
+           (optimize-named-layout-with-multipliers {:digram-roll 0.5
                                                     :trigram-roll 0
                                                     :key-rating 2
-                                                    :finger-type 0
-                                                    :horizontal-movement 0
+                                                    :finger-type 0.2
+                                                    :horizontal-movement 0.1
                                                     :vertical-movement 0}
                                                    english-statistics
                                                    "en"))
@@ -1964,11 +2017,13 @@
            (get both-hands-finger-colors
                 (:finger keyboard-key))])))
 
+(def key-size 50)
+
 (defn row-view [cocoa-key-codes cocoa-key-code-to-character key-color on-event]
   (layouts/horizontally-2 {:margin 1}
                           (for [cocoa-key-code cocoa-key-codes]
                             (let [character (cocoa-key-code-to-character cocoa-key-code)]
-                              {:node (box (layouts/with-minimum-size 30 nil (text character))
+                              {:node (box (layouts/with-minimum-size key-size key-size (text character))
                                           {:fill-color (or (key-color cocoa-key-code)
                                                            [70 70 70 255])
                                            :padding 10})
@@ -1990,16 +2045,17 @@
 (defn keyboard-view [cocoa-key-code-to-character key-color & [{:keys [on-key-event]}]]
   (layouts/vertically-2 {:margin 10}
                         (layouts/vertically-2 {:margin 1}
-                                              (layouts/horizontally-2 {:margin 10}
-                                                                      (row-view [12 13 14 15 17]
-                                                                                cocoa-key-code-to-character
-                                                                                key-color
-                                                                                on-key-event)
-                                                                      (row-view [16 32 34 31 35 33]
-                                                                                cocoa-key-code-to-character
-                                                                                key-color
-                                                                                on-key-event))
-                                              (layouts/with-margins 0 0 0 10
+                                              (layouts/with-margins 0 0 0 (* 0.3 key-size)
+                                               (layouts/horizontally-2 {:margin 10}
+                                                                       (row-view [12 13 14 15 17]
+                                                                                 cocoa-key-code-to-character
+                                                                                 key-color
+                                                                                 on-key-event)
+                                                                       (row-view [16 32 34 31 35 33]
+                                                                                 cocoa-key-code-to-character
+                                                                                 key-color
+                                                                                 on-key-event)))
+                                              (layouts/with-margins 0 0 0 (* 0.7 key-size)
                                                 (layouts/horizontally-2 {:margin 10}
                                                                         (row-view [0 1 2 3 5]
                                                                                   cocoa-key-code-to-character
@@ -2009,7 +2065,7 @@
                                                                                   cocoa-key-code-to-character
                                                                                   key-color
                                                                                   on-key-event)))
-                                              (layouts/with-margins 0 0 0 -10
+                                              (layouts/with-margins 0 0 0 0
                                                 (layouts/horizontally-2 {:margin 10}
                                                                         (row-view [50 6 7 8 9 11]
                                                                                   cocoa-key-code-to-character
@@ -2019,6 +2075,15 @@
                                                                                   cocoa-key-code-to-character
                                                                                   key-color
                                                                                   on-key-event))))))
+
+(comment
+  (start-view (fn []
+                [keyboard-view (into {} (for [keyboard-key keyboard-keys]
+                                          [(:cocoa-key-code keyboard-key)
+                                           (str (:column keyboard-key))]))
+                 (constantly [128 128 128 255])]))
+  ) ;; TODO: remove me
+
 
 (defn key-colors-for-key-ratings []
   (into {}
