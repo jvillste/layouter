@@ -1257,9 +1257,8 @@
 (defn gradient-descent-one [text-statistics layout]
   (assert (not (nil? layout)))
   (let [current-effort (rate-layout text-statistics layout)
-        mappings-in-random-order (shuffle layout)
-        {:keys [effort layout]} (->> (for [mapping-1 mappings-in-random-order
-                                           mapping-2 mappings-in-random-order]
+        {:keys [effort layout]} (->> (for [mapping-1 layout
+                                           mapping-2 layout]
                                        (-> layout
                                            (disj mapping-1
                                                  mapping-2)
