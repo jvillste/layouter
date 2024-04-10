@@ -577,7 +577,7 @@
 
 (defn two-adjacent-rows? [key-sequence]
 
-                                (let [rows (map :row key-sequence)]
+  (let [rows (map :row key-sequence)]
     (and (adjacent-numbers? rows)
          (= 2 (count (set rows))))))
 
@@ -1297,11 +1297,11 @@
                                       layout)))]
 
     (is (= '({:character "a", :qwerty-character "f"}
-             {:character "b", :qwerty-character "k"}
-             {:character "c", :qwerty-character "j"}
-             {:character "x", :qwerty-character "q"}
-             {:character "y", :qwerty-character "w"}
-             {:character "z", :qwerty-character "e"})
+             {:character "b", :qwerty-character "q"}
+             {:character "c", :qwerty-character "e"}
+             {:character "x", :qwerty-character "w"}
+             {:character "y", :qwerty-character "j"}
+             {:character "z", :qwerty-character "k"})
            (make-readable (gradient-descent-all (text-statistics "abc")
                                                 #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
                                                   {:character "b" :cocoa-key-code (qwerty-key-code "w")}
@@ -1311,10 +1311,10 @@
                                                   {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))
 
     (is (= '({:character "a", :qwerty-character "q"}
-             {:character "b", :qwerty-character "j"}
+             {:character "b", :qwerty-character "f"}
              {:character "c", :qwerty-character "e"}
-             {:character "x", :qwerty-character "f"}
-             {:character "y", :qwerty-character "w"}
+             {:character "x", :qwerty-character "w"}
+             {:character "y", :qwerty-character "j"}
              {:character "z", :qwerty-character "k"})
            (make-readable
             (gradient-descent-one (text-statistics "abc")
@@ -1859,15 +1859,15 @@
   (layouts/vertically-2 {:margin 10}
                         (layouts/vertically-2 {:margin 1}
                                               (layouts/with-margins 0 0 0 (* 0.3 key-size)
-                                               (layouts/horizontally-2 {:margin 10}
-                                                                       (row-view [12 13 14 15 17]
-                                                                                 cocoa-key-code-to-character
-                                                                                 key-color
-                                                                                 on-key-event)
-                                                                       (row-view [16 32 34 31 35 33]
-                                                                                 cocoa-key-code-to-character
-                                                                                 key-color
-                                                                                 on-key-event)))
+                                                (layouts/horizontally-2 {:margin 10}
+                                                                        (row-view [12 13 14 15 17]
+                                                                                  cocoa-key-code-to-character
+                                                                                  key-color
+                                                                                  on-key-event)
+                                                                        (row-view [16 32 34 31 35 33]
+                                                                                  cocoa-key-code-to-character
+                                                                                  key-color
+                                                                                  on-key-event)))
                                               (layouts/with-margins 0 0 0 (* 0.7 key-size)
                                                 (layouts/horizontally-2 {:margin 10}
                                                                         (row-view [0 1 2 3 5]
@@ -2105,8 +2105,8 @@
                                                  (cond-> (:sort-descending? @state-atom)
                                                    (reverse)))]
                                   (concat [(layout-comparison-text (if-let [multipliers (:multipliers layout)]
-                                                           (multipliers-to-layout-name multipliers)
-                                                           (:name layout)))]
+                                                                     (multipliers-to-layout-name multipliers)
+                                                                     (:name layout)))]
                                           (for [column columns]
                                             (on-click (fn []
                                                         (prn (:multipliers layout))
@@ -2127,7 +2127,7 @@
                                                                                                        (- (:maximum column)
                                                                                                           offset))))))
                                                                                  (layout-comparison-text (str (format "%.2f" (get (:summary layout)
-                                                                                                                      (:key column))))))))))))])))))
+                                                                                                                                  (:key column))))))))))))])))))
 
 (defn start-layout-comparison-view []
   (start-view (fn []
@@ -2571,4 +2571,3 @@
   (spit "qwerty.edn" (pr-str qwerty))
   (def optimized-layout (edn/read-string (slurp "optimized-layout.edn")))
   ) ;; TODO: remove me
-
