@@ -188,6 +188,12 @@
               {:cocoa-key-code 47, :qwerty-character ".", :character "v"}
               {:cocoa-key-code 50, :qwerty-character "<", :character "<"}})
 
+(def english-characters ["a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m"
+                         "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z"])
+
+(def finnish-characters (concat english-characters
+                                ["ä" "å" "ö"]))
+
 (def disabled-layout-characters #{"," "." "-" "<" "ö" "ä" "å"})
 (def qwerty-characters-for-disabled-keys #{"w" "y" "b"})
 
@@ -311,44 +317,41 @@
                                    :c 0.3
                                    :d 0.4}))))
 
-(defn filter-target-text [text]
-  (apply str (filter (conj layout-characters " ")
+(defn filter-target-text [text characters]
+  (apply str (filter (conj (set characters) " ")
                      (map str (string/lower-case text)))))
 
-(defn filter-target-text-without-space [text]
+(defn filter-target-text-without-space [text characters]
   (apply str
-         (filter layout-characters
+         (filter (set characters)
                  (map str (string/lower-case text)))))
 
-(defn normalized-n-gram-distribution [n text]
-  (->> text
-       filter-target-text
+(defn normalized-n-gram-distribution [n text characters]
+  (->> (filter-target-text text characters)
        (n-gram-distribution n)
        normalize-distribution))
 
-(defn normalized-digram-distribution [text]
-  (normalized-n-gram-distribution 2 text))
+(defn normalized-digram-distribution [text characters]
+  (normalized-n-gram-distribution 2 text characters))
 
-(defn normalized-trigram-distribution [text]
-  (->> text
-       filter-target-text
+(defn normalized-trigram-distribution [text characters]
+  (->> (filter-target-text text characters)
        (n-gram-distribution 3)
        normalize-distribution))
 
-(defn normalized-character-distribution [text]
-  (->> text
-       filter-target-text
+(defn normalized-character-distribution [text characters]
+  (->> (filter-target-text text characters)
        character-distribution
        normalize-distribution))
 
-(defn text-statistics [text]
+(defn text-statistics [text characters]
   {:digram-distribution (select-probability-mass 0.95
-                                                 (normalized-n-gram-distribution 2 text))
+                                                 (normalized-n-gram-distribution 2 text characters))
 
    :trigram-distribution (select-probability-mass 0.50
-                                                  (normalized-n-gram-distribution 3 text))
+                                                  (normalized-n-gram-distribution 3 text characters))
 
-   :character-distribution (normalized-character-distribution text)})
+   :character-distribution (normalized-character-distribution text characters)})
 
 
 ;; RATING
@@ -664,35 +667,35 @@
       (let [effort-reductions (-> []
                                   (cond->
                                       (adjacent-fingers?  key-sequence)
-                                      (conj {:effort-reduction-label :adjacent
-                                             :effort-reduction 2/10})
+                                    (conj {:effort-reduction-label :adjacent
+                                           :effort-reduction 2/10})
 
-                                      (not (adjacent-fingers?  key-sequence))
-                                      (conj {:effort-reduction-label :unadjacent
-                                             :effort-reduction 0})
+                                    (not (adjacent-fingers?  key-sequence))
+                                    (conj {:effort-reduction-label :unadjacent
+                                           :effort-reduction 0})
 
-                                      (invards-progression? key-sequence)
-                                      (conj {:effort-reduction-label :invards
-                                             :effort-reduction 1/10})
+                                    (invards-progression? key-sequence)
+                                    (conj {:effort-reduction-label :invards
+                                           :effort-reduction 1/10})
 
-                                      (not (invards-progression? key-sequence))
-                                      (conj {:effort-reduction-label :outwards
-                                             :effort-reduction 0})
+                                    (not (invards-progression? key-sequence))
+                                    (conj {:effort-reduction-label :outwards
+                                           :effort-reduction 0})
 
-                                      (on-home-row? key-sequence)
-                                      (conj {:effort-reduction-label :home-row
-                                             :effort-reduction 2/10})
+                                    (on-home-row? key-sequence)
+                                    (conj {:effort-reduction-label :home-row
+                                           :effort-reduction 2/10})
 
-                                      (and (not (on-home-row? key-sequence))
-                                           (same-row? key-sequence))
-                                      (conj {:effort-reduction-label :same-non-home-row
-                                             :effort-reduction 1/20})
+                                    (and (not (on-home-row? key-sequence))
+                                         (same-row? key-sequence))
+                                    (conj {:effort-reduction-label :same-non-home-row
+                                           :effort-reduction 1/20})
 
-                                      (and (not (on-home-row? key-sequence))
-                                           (not (same-row? key-sequence))
-                                           (two-adjacent-rows? key-sequence))
-                                      (conj {:effort-reduction-label :two-adjacent-rows
-                                             :effort-reduction 0})))]
+                                    (and (not (on-home-row? key-sequence))
+                                         (not (same-row? key-sequence))
+                                         (two-adjacent-rows? key-sequence))
+                                    (conj {:effort-reduction-label :two-adjacent-rows
+                                           :effort-reduction 0})))]
         {:rating rating
          :effort (double (- 1/2 (reduce + (remove nil? (map :effort-reduction effort-reductions)))))
          :label (keyword (str (string/join "-" (map (comp name :effort-reduction-label)
@@ -812,9 +815,9 @@
     (+ (rate-distribution (fn [digram]
                             (total-effort (rate-key-pair (map character-to-key digram))))
                           (:digram-distribution text-statistics))
-       (rate-distribution (fn [trigram]
-                            (total-effort (rate-key-triple (map character-to-key trigram))))
-                          (:trigram-distribution text-statistics))
+       #_(rate-distribution (fn [trigram]
+                              (total-effort (rate-key-triple (map character-to-key trigram))))
+                            (:trigram-distribution text-statistics))
        (rate-distribution (fn [character]
                             (total-effort (rate-key (character-to-key character))))
                           (:character-distribution text-statistics))
@@ -837,25 +840,26 @@
 (defn describe-layout-rating [text-statistics layout]
   (let [character-to-key (comp cocoa-key-code-to-key
                                (layout-to-character-to-cocoa-key-code layout))]
-    {:distributions {:digrams (for [digram-propability (->> (:digram-distribution text-statistics)
-                                                            (sort-by second)
-                                                            (reverse))]
-                                {:propability digram-propability
-                                 :ratings (rate-key-pair (map character-to-key
-                                                              (first digram-propability)))})
-                     :trigrams (for [trigram-propability (->> (:trigram-distribution text-statistics)
-                                                              (sort-by second)
-                                                              (reverse))]
-                                 {:propability trigram-propability
-                                  :ratings (rate-key-triple (map character-to-key
-                                                                 (first trigram-propability)))})
-                     :characters (for [character-propability (->> (:character-distribution text-statistics)
-                                                                  (sort-by second)
-                                                                  (reverse))]
-                                   {:propability character-propability
-                                    :ratings (rate-key (character-to-key (first character-propability)))})}
-     :holistic-ratings {:hand-balance (rate-hand-balance (:character-distribution text-statistics)
-                                                         character-to-key)}}))
+    {:distributions {:digrams (doall (for [digram-propability (->> (:digram-distribution text-statistics)
+                                                                   (sort-by second)
+                                                                   (reverse))]
+                                       {:propability digram-propability
+                                        :ratings (rate-key-pair (map character-to-key
+                                                                     (first digram-propability)))}))
+                     :trigrams (doall (for [trigram-propability (->> (:trigram-distribution text-statistics)
+                                                                     (sort-by second)
+                                                                     (reverse))]
+                                        {:propability trigram-propability
+                                         :ratings (rate-key-triple (map character-to-key
+                                                                        (first trigram-propability)))}))
+                     :characters (doall (for [character-propability (->> (:character-distribution text-statistics)
+                                                                         (sort-by second)
+                                                                         (reverse))]
+                                          {:propability character-propability
+                                           :ratings (rate-key (character-to-key (first character-propability)))}))}
+     :holistic-ratings {:hand-balance (* (multiplier :hand-balance)
+                                         (rate-hand-balance (:character-distribution text-statistics)
+                                                            character-to-key))}}))
 
 (deftest test-describe-layout-rating
   (is (= '{:distributions
@@ -1168,15 +1172,12 @@
                             {:character "c" :cocoa-key-code 2}
                             {:character "d" :cocoa-key-code 3}})))
 
-(defn random-layout []
+(defn random-layout [characters]
   (loop [remaining-cocoa-key-codes (sort (map :cocoa-key-code (remove (fn [key]
                                                                         (contains? qwerty-characters-for-disabled-keys
                                                                                    (:character key)))
                                                                       qwerty)))
-         remaining-characters (filter (fn [character]
-                                        (contains? layout-characters
-                                                   character))
-                                      (map :character qwerty))
+         remaining-characters characters
          layout #{}]
     (if (empty? remaining-characters)
       (set/union layout
@@ -1254,16 +1255,21 @@
                  (rest distribution))
           (first propability))))))
 
+(defn swap-mappings [layout mapping-1 mapping-2]
+  (-> layout
+      (disj mapping-1
+            mapping-2)
+      (conj (assoc mapping-1 :cocoa-key-code (:cocoa-key-code mapping-2)))
+      (conj (assoc mapping-2 :cocoa-key-code (:cocoa-key-code mapping-1)))))
+
 (defn gradient-descent-one [text-statistics layout]
   (assert (not (nil? layout)))
   (let [current-effort (rate-layout text-statistics layout)
         {:keys [effort layout]} (->> (for [mapping-1 layout
                                            mapping-2 layout]
                                        (-> layout
-                                           (disj mapping-1
-                                                 mapping-2)
-                                           (conj (assoc mapping-1 :cocoa-key-code (:cocoa-key-code mapping-2)))
-                                           (conj (assoc mapping-2 :cocoa-key-code (:cocoa-key-code mapping-1)))))
+                                           (swap-mappings mapping-1
+                                                          mapping-2)))
                                      (pmap (fn [layout]
                                              {:effort (rate-layout text-statistics
                                                                    layout)
@@ -1302,7 +1308,7 @@
              {:character "x", :qwerty-character "w"}
              {:character "y", :qwerty-character "j"}
              {:character "z", :qwerty-character "k"})
-           (make-readable (gradient-descent-all (text-statistics "abc")
+           (make-readable (gradient-descent-all (text-statistics "abc" ["a" "b" "c"])
                                                 #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
                                                   {:character "b" :cocoa-key-code (qwerty-key-code "w")}
                                                   {:character "c" :cocoa-key-code (qwerty-key-code "e")}
@@ -1317,7 +1323,7 @@
              {:character "y", :qwerty-character "j"}
              {:character "z", :qwerty-character "k"})
            (make-readable
-            (gradient-descent-one (text-statistics "abc")
+            (gradient-descent-one (text-statistics "abc" ["a" "b" "c"])
                                   #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
                                     {:character "b" :cocoa-key-code (qwerty-key-code "w")}
                                     {:character "c" :cocoa-key-code (qwerty-key-code "e")}
@@ -1325,62 +1331,205 @@
                                     {:character "y" :cocoa-key-code (qwerty-key-code "j")}
                                     {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))))
 
-(defn optimize-layout [text initial-layout generation-count on-ready]
-  (let [text-statistics (text-statistics text)
-        generation-size 50
-        mutate-layout (fn [layout]
-                        (nth (iterate mutate-layout layout)
-                             (rand-int 3)))
-        initial-layouts (concat [initial-layout]
-                                (map mutate-layout
-                                     (repeat (dec (/ generation-size
-                                                     2))
-                                             initial-layout))
-                                (repeatedly (/ generation-size
-                                               2)
-                                            random-layout))]
-    (loop [generation-number 0
-           ratings (for [layout initial-layouts]
-                     [layout (rate-layout text-statistics layout)])]
 
-      (let [crossbreeded-ratings (for [layout (map mutate-layout
-                                                   (repeatedly generation-size
-                                                               #(crossbreed-layouts (weighted-random ratings)
-                                                                                    (weighted-random ratings))))]
-                                   [layout (rate-layout text-statistics layout)])
-            next-ratings (take-last generation-size
-                                    (sort-by second
-                                             (concat ratings
-                                                     crossbreeded-ratings
-                                                     (for [layout (repeatedly 5 random-layout)]
-                                                       [layout (rate-layout text-statistics
-                                                                            layout)]))))]
+(defn best-rating [layouts-with-ratings]
+  (first (sort (map second layouts-with-ratings))))
 
-        (when (= 0 (mod generation-number 10))
-          (prn) ;; TODO: remove me
-          (prn 'generation-number generation-number) ;; TODO: remove me
-          (prn 'ratings (take 10 (reverse (sort (map second next-ratings)))))) ;; TODO: remove me
+(defn optimize-layout
+  ([text-statistics]
+   (optimize-layout text-statistics nil))
 
-        (if (< generation-number
-               generation-count)
-          (recur (inc generation-number)
-                 next-ratings)
-          (on-ready (last (sort-by (partial rate-layout text-statistics)
-                                   (map (partial gradient-descent-all text-statistics)
-                                        (map first (take-last 10 (sort-by second ratings))))))))))))
+  ([text-statistics initial-layout]
+   (let [characters (keys (:character-distribution text-statistics))
+         initial-layout (or initial-layout
+                            (random-layout characters))
+         generation-size 20
+         generation-batch-size 20
+         mutate-layout (fn [layout]
+                         (nth (iterate mutate-layout layout)
+                              (rand-int 3)))
+         initial-layouts (concat [initial-layout]
+                                 (map mutate-layout
+                                      (repeat (dec (/ generation-size
+                                                      2))
+                                              initial-layout))
+                                 (repeatedly (/ generation-size
+                                                2)
+                                             (partial random-layout characters)))
+         initial-ratings (for [layout initial-layouts]
+                           [layout (rate-layout text-statistics layout)])]
+     (loop [generation-number 0
+            best-previous-generation-batch-rating (best-rating initial-ratings)
+            ratings initial-ratings]
+
+       (let [next-ratings (take generation-size
+                                (sort-by second
+                                         (concat ratings
+                                                 (->> (range generation-size)
+                                                      (pmap (fn [_index]
+                                                              (mutate-layout (crossbreed-layouts (weighted-random ratings)
+                                                                                                 (weighted-random ratings)))))
+                                                      (pmap (fn [layout]
+                                                              [layout (rate-layout text-statistics
+                                                                                   layout)]))))))
+             generation-batch-has-ended (and (<  0 generation-number)
+                                             (= 0 (mod generation-number generation-batch-size)))]
+
+         ;; (when generation-batch-has-ended
+         ;;   (prn) ;; TODO: remove me
+         ;;   (prn 'generation-number generation-number) ;; TODO: remove me
+         ;;   (prn 'best-previous-generation-batch-rating best-previous-generation-batch-rating) ;; TODO: remove me
+         ;;   (prn '(best-rating next-ratings) (best-rating next-ratings)) ;; TODO: remove me
+         ;;   )
+         ;; (prn (best-rating next-ratings)) ;; TODO: remove me
 
 
+         (if (or (not generation-batch-has-ended)
+                 (< (best-rating next-ratings)
+                    best-previous-generation-batch-rating))
+           (recur (inc generation-number)
+                  (if (= 0 (mod generation-number generation-batch-size))
+                    (best-rating next-ratings)
+                    best-previous-generation-batch-rating)
+                  next-ratings)
+           (first (first (sort-by second ratings)))))))))
 
-(def target-text #_"hello world"
-  (filter-target-text (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
-                                 0 300000)
-                           (subs (slurp "temp/text/the-hacker-crackdown.txt")
-                                 0 300000))
-                      #_(slurp "temp/text/kirjoja-ja-kirjailijoita.txt"
-                               #_"temp/text/ga-fi.txt"
-                               #_"temp/text/ga.txt")))
+
+;; (defn optimize-layout
+;;   ([text-statistics]
+;;    (optimize-layout text-statistics nil))
+
+;;   ([text-statistics initial-layout]
+;;    (let [characters (keys (:character-distribution text-statistics))
+;;          initial-layout (or initial-layout
+;;                             (random-layout characters))
+;;          generation-size 50
+;;          generation-batch-size 10
+;;          mutate-layout (fn [layout]
+;;                          (nth (iterate mutate-layout layout)
+;;                               (rand-int 3)))
+;;          initial-layouts (concat [initial-layout]
+;;                                  (map mutate-layout
+;;                                       (repeat (dec (/ generation-size
+;;                                                       2))
+;;                                               initial-layout))
+;;                                  (repeatedly (/ generation-size
+;;                                                 2)
+;;                                              (partial random-layout characters)))
+;;          initial-ratings (for [layout initial-layouts]
+;;                            [layout (rate-layout text-statistics layout)])]
+;;      (loop [generation-number 0
+;;             best-previous-generation-batch-rating (best-rating initial-ratings)
+;;             ratings initial-ratings]
+
+;;        (let [crossbreeded-ratings (for [layout (map mutate-layout
+;;                                                     (repeatedly generation-size
+;;                                                                 #(crossbreed-layouts (weighted-random ratings)
+;;                                                                                      (weighted-random ratings))))]
+;;                                     [layout (rate-layout text-statistics layout)])
+;;              next-ratings (take generation-size
+;;                                 (sort-by second
+;;                                          (concat ratings
+;;                                                  crossbreeded-ratings
+;;                                                  (for [layout (repeatedly 5 (partial random-layout characters))]
+;;                                                    [layout (rate-layout text-statistics
+;;                                                                         layout)]))))
+;;              generation-batch-has-ended (and (<  0 generation-number)
+;;                                              (= 0 (mod generation-number generation-batch-size)))]
+
+;;          (when generation-batch-has-ended
+;;            (prn) ;; TODO: remove me
+;;            (prn 'generation-number generation-number) ;; TODO: remove me
+;;            (prn 'best-previous-generation-batch-rating best-previous-generation-batch-rating) ;; TODO: remove me
+;;            (prn '(best-rating next-ratings) (best-rating next-ratings)) ;; TODO: remove me
+;;            )
+;;          (prn (best-rating next-ratings)) ;; TODO: remove me
+
+
+;;          (if (or (not generation-batch-has-ended)
+;;                  (< (best-rating next-ratings)
+;;                     best-previous-generation-batch-rating))
+;;            (recur (inc generation-number)
+;;                   (if (= 0 (mod generation-number generation-batch-size))
+;;                     (best-rating next-ratings)
+;;                     best-previous-generation-batch-rating)
+;;                   next-ratings)
+;;            (first (first (sort-by second ratings)))))))))
+
+(def target-text "hello world"
+  #_(filter-target-text (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                   0 300000)
+                             (subs (slurp "temp/text/the-hacker-crackdown.txt")
+                                   0 300000))
+                        finnish-characters
+                        #_(slurp "temp/text/kirjoja-ja-kirjailijoita.txt"
+                                 #_"temp/text/ga-fi.txt"
+                                 #_"temp/text/ga.txt")))
+
+(def ga-and-gd-optimized-hybrid-layout #{{:cocoa-key-code 2, :character "a"}
+                                         {:cocoa-key-code 1, :character "s"}
+                                         {:cocoa-key-code 33, :character "x"}
+                                         {:cocoa-key-code 8, :character "l"}
+                                         {:cocoa-key-code 46, :character "ä"}
+                                         {:cocoa-key-code 45, :character "p"}
+                                         {:cocoa-key-code 7, :character "u"}
+                                         {:cocoa-key-code 38, :character "e"}
+                                         {:cocoa-key-code 12, :character "z"}
+                                         {:cocoa-key-code 4, :character "o"}
+                                         {:cocoa-key-code 35, :character "å"}
+                                         {:cocoa-key-code 17, :character "v"}
+                                         {:cocoa-key-code 14, :character "c"}
+                                         {:cocoa-key-code 44, :character "q"}
+                                         {:cocoa-key-code 0, :character "h"}
+                                         {:cocoa-key-code 50, :character ""}
+                                         {:cocoa-key-code 40, :character "n"}
+                                         {:cocoa-key-code 43, :character "m"}
+                                         {:cocoa-key-code 5, :character "k"}
+                                         {:cocoa-key-code 47, :character "y"}
+                                         {:cocoa-key-code 41, :character "d"}
+                                         {:cocoa-key-code 34, :character "r"}
+                                         {:cocoa-key-code 9, :character "j"}
+                                         {:cocoa-key-code 3, :character "t"}
+                                         {:cocoa-key-code 31, :character "ö"}
+                                         {:cocoa-key-code 39, :character "w"}
+                                         {:cocoa-key-code 32, :character "g"}
+                                         {:cocoa-key-code 6, :character "b"}
+                                         {:cocoa-key-code 37, :character "i"}
+                                         {:cocoa-key-code 15, :character "f"}})
 
 (comment
+
+
+  (optimize-layout-with-multipliers )
+  (repeatedly 2
+              (fn []
+                (let [text-statistics hybrid-statistics
+                      ga-optimized-layout (optimize-layout text-statistics)
+                      gd-optimized-layout (gradient-descent-all text-statistics
+                                                                ga-optimized-layout)]
+                  [(rate-layout text-statistics
+                                ga-optimized-layout)
+                   (rate-layout text-statistics
+                                gd-optimized-layout)
+                   gd-optimized-layout])))
+
+  ;; => [1.5025953891375772 1.4977164329644994]
+
+  1.5235971920136926
+  1.5214783475220246
+
+  (rate-layout hybrid-statistics
+               ga-and-gd-optimized-hybrid-layout)
+  ;; => 1.5022908057715776
+
+  (let [text-statistics hybrid-statistics
+        gd-optimized-layout (gradient-descent-all text-statistics
+                                                  (random-layout finnish-characters))]
+    [(rate-layout text-statistics
+                  gd-optimized-layout)
+     gd-optimized-layout])
+
+
   (format "%.2f" (double 0.123455))
 
 
@@ -1515,10 +1664,21 @@
                             :b {:m1 2
                                 :m2 3}}))))
 
-(defn optimize-layout-with-multipliers [multipliers statistics]
+(defn optimize-layout-with-multipliers [multipliers text-statistics]
   (binding [multipliers multipliers]
-    (gradient-descent-all statistics
-                          (random-layout))))
+    (let [layout (gradient-descent-all text-statistics
+                                       #_(random-layout (keys (:character-distribution text-statistics)))
+                                       (optimize-layout text-statistics))]
+      (println (rate-layout text-statistics
+                            layout))
+      layout)))
+
+
+(defn optimize-named-layout-with-multipliers [multipliers statistics]
+  {:multipliers multipliers
+   :statistics-name (:name statistics)
+   :layout (optimize-layout-with-multipliers multipliers
+                                             statistics)})
 
 (defn multipliers-to-layout-name [multipliers]
   (string/join ""
@@ -1529,12 +1689,7 @@
                                                     0 2))
                                             multipliers)))))
 
-(defn optimize-named-layout-with-multipliers [multipliers statistics statistics-name]
-  {;; :name (str (multipliers-to-layout-name multipliers)
-   ;;            statistics-name)
-   :multipliers multipliers
-   :layout (optimize-layout-with-multipliers multipliers
-                                             statistics)})
+
 
 (defonce optimized-layout qwerty)
 
@@ -1551,16 +1706,15 @@
 (defn remove-spaces [text]
   (string/replace text #"\s+" ""))
 
-(defn normalized-character-distribution [text]
-  (->> text
-       filter-target-text-without-space
+(defn normalized-character-distribution [text characters]
+  (->> (filter-target-text-without-space text characters)
        frequencies
        normalize-distribution
        (medley/map-keys str)))
 
 (deftest test-normalized-character-distribution
   (is (= {"h" 0.2, "e" 0.2, "l" 0.4, "o" 0.2}
-         (normalized-character-distribution "hello"))))
+         (normalized-character-distribution "hello" ["h" "e" "l" "o"]))))
 
 
 (defn compare-distributions [distributions]
@@ -1850,7 +2004,8 @@
                                                           (when on-event
                                                             (on-event {:type :mouse-left-character
                                                                        :caracter character}))))
-                                                      (when (= :mouse-pressed (:type event))
+                                                      (when (and (= :mouse-pressed (:type event))
+                                                                 on-event)
                                                         (on-event {:type :mouse-pressed
                                                                    :character character}))
                                                       event)}))))
@@ -2060,30 +2215,88 @@
                             (handler))
                           event)})
 
-(defn layout-rating-comparison-view []
-  (let [state-atom (dependable-atom/atom {})
-        layouts (for [layout (concat [ ;; {:name "qwerty"
-                                      ;;  :layout qwerty}
-                                      ;; trigram-english
-                                      ;; {:name "random"
-                                      ;;  :layout (random-layout)}
-                                      ;; {:name "dvorak"
-                                      ;;  :layout dvorak}
-                                      {:name "colemak dh"
-                                       :layout colemak-dh}]
-                                     @optimized-layouts-atom
-                                     ;;optimized-layouts-with-multipliers
-                                     )]
-                  (assoc layout :layout-rating-description (describe-layout-rating english-statistics
-                                                                                   (:layout layout))))]
-    (fn []
+(defn multiply-color [multiplier color]
+  (vec (concat (map (partial * multiplier)
+                    (take 3 color))
+               [(last color)])))
+
+(deftest test-multiply-color
+  (is (= [2 2 2 1]
+         (multiply-color 2 [1 1 1 1]))))
+
+(defn n-gram-comparison-view [named-layout _n-gram-distribution]
+  (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character (:layout named-layout))
+        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code (:layout named-layout))
+
+        ]
+    (fn [named-layout n-gram-distribution]
+      (layouts/vertically-2 {:margin 10}
+                            (layout-comparison-text (pr-str (:multipliers named-layout)))
+                            (layouts/flow (for [n-gram (map first (take 20 (reverse (sort-by second n-gram-distribution))))]
+                                            (let [key-highlight-color (into {}
+                                                                            (concat (map-indexed (fn [index character]
+                                                                                                   [(character-to-cocoa-key-code character)
+                                                                                                    (multiply-color (- 1 (* 0.3 index))
+                                                                                                                    [140 140 255 255])])
+
+                                                                                                 n-gram)))
+                                                  rating (rate-n-gram-roll (map (comp cocoa-key-code-to-key
+                                                                                      character-to-cocoa-key-code)
+                                                                                n-gram))
+                                                  key-colors-for-fingers (medley/map-vals (partial multiply-color
+                                                                                                   (max 0.4 (- 1 (:effort rating))))
+                                                                                          (key-colors-for-fingers))]
+                                              (layouts/with-margin 20 (layouts/vertically-2 {} (layout-comparison-text (str (:effort rating) " " (apply str n-gram)))
+                                                                                            [keyboard-view
+                                                                                             cocoa-key-code-to-character
+                                                                                             (merge key-colors-for-fingers
+                                                                                                    key-highlight-color)])))))))))
+
+(comment
+  (start-view (fn []
+                [#'n-gram-comparison-view (first @optimized-layouts-atom)
+                 (:digram-distribution hybrid-statistics)]))
+  ) ;; TODO: remove me
+
+
+
+(defn homerow-string [cocoa-key-code-to-character]
+  (apply str (map cocoa-key-code-to-character [0 1 2 3 5])))
+
+(deftest test-homerow-string
+  (is (= "asdfg"
+         (homerow-string (layout-to-cocoa-key-code-to-character qwerty)))))
+
+(defn layout-name [layout]
+  (str (if-let [name  (:name layout)]
+         name
+         (multipliers-to-layout-name (:multipliers layout)))
+       "-"
+       (homerow-string (layout-to-cocoa-key-code-to-character (:layout layout)))
+       "-"
+       (:statistics-name layout)))
+
+(defn layout-rating-comparison-view [_statistics _layouts]
+  (let [state-atom (dependable-atom/atom {})]
+    (fn [statistics layouts]
       (if-let [selected-layout-rating-description (:selected-layout-rating-description @state-atom)]
         (on-click (fn []
                     (swap! state-atom dissoc :selected-layout-rating-description))
-                  [distribtion-rating-description-view
-                   (:layout @state-atom)
-                   (:rating @state-atom)
-                   (:distributions selected-layout-rating-description)])
+                  (cond (= :2-roll (:rating @state-atom))
+                        [n-gram-comparison-view
+                         (:layout @state-atom)
+                         (:digram-distribution statistics)]
+
+                        (= :3-roll (:rating @state-atom))
+                        [n-gram-comparison-view
+                         (:layout @state-atom)
+                         (:trigrams (:distributions selected-layout-rating-description))]
+
+                        :else
+                        [distribtion-rating-description-view
+                         (:layout @state-atom)
+                         (:rating @state-atom)
+                         (:distributions selected-layout-rating-description)]))
         (let [layouts (for [layout layouts]
                         (assoc layout :summary (merge-summary (summarize-rating-description (:layout-rating-description layout)))))
               columns (for [column (into #{} (apply concat (map keys (map :summary layouts))))]
@@ -2104,9 +2317,7 @@
                                                           layouts)
                                                  (cond-> (:sort-descending? @state-atom)
                                                    (reverse)))]
-                                  (concat [(layout-comparison-text (if-let [multipliers (:multipliers layout)]
-                                                                     (multipliers-to-layout-name multipliers)
-                                                                     (:name layout)))]
+                                  (concat [(layout-comparison-text (layout-name layout))]
                                           (for [column columns]
                                             (on-click (fn []
                                                         (prn (:multipliers layout))
@@ -2118,7 +2329,8 @@
                                                                                         :width (* 200
                                                                                                   (abs (/ (get (:summary layout)
                                                                                                                (:key column))
-                                                                                                          (:maximum column))))
+                                                                                                          (max 0.001
+                                                                                                               (:maximum column)))))
                                                                                         #_(let [offset (* 0.99 (:minimum column))]
                                                                                             (* 300
                                                                                                (abs (/ (- (get (:summary layout)
@@ -2126,51 +2338,134 @@
                                                                                                           offset)
                                                                                                        (- (:maximum column)
                                                                                                           offset))))))
-                                                                                 (layout-comparison-text (str (format "%.2f" (get (:summary layout)
+                                                                                 (layout-comparison-text (str (format "%.4f" (get (:summary layout)
                                                                                                                                   (:key column))))))))))))])))))
+
+(def common-multipliers
+  {:digram-roll 1, :trigram-roll 1, :key-rating 1, :finger-type 1, :horizontal-movement 1, :vertical-movement 1, :hand-balance 1}
+  #_{:digram-roll 0.5, :trigram-roll 0.0, :key-rating 1, :finger-type 0.2, :horizontal-movement 0.1, :vertical-movement 0.1, :hand-balance 0.1})
+
+(comment
+
+  (do (def common-multipliers {:digram-roll 1, :trigram-roll 1, :key-rating 1, :finger-type 1, :horizontal-movement 1, :vertical-movement 1, :hand-balance 1})
+      (refresh-view!))
+
+  (do (def common-multipliers {:digram-roll 0, :trigram-roll 0, :key-rating 1, :finger-type 0.1, :horizontal-movement 0, :vertical-movement 0, :hand-balance 0})
+
+      (reset! optimized-layouts-atom [(optimize-named-layout-with-multipliers common-multipliers
+                                                                              hybrid-statistics)])
+      (refresh-view!))
+
+
+  (do (swap! optimized-layouts-atom
+          conj
+          (optimize-named-layout-with-multipliers {:digram-roll 0.8, :trigram-roll 0, :key-rating 1, :finger-type 0.1, :horizontal-movement 0, :vertical-movement 0, :hand-balance 0.1}
+                                                  hybrid-statistics))
+      (refresh-view!))
+  )
+
+(defn layout-comparison-views []
+  (let [layouts (fn [statistics]
+                  (binding [multipliers common-multipliers
+                            #_(assoc multipliers :finger-type 0.1)]
+                    (doall (for [layout (concat ;; (select-best-layouts 1 hybrid-statistics finnish-layouts)
+                                         ;; (select-best-layouts 1 hybrid-statistics english-layouts)
+                                         ;; (select-best-layouts 1 hybrid-statistics @hybrid-layouts-atom)
+                                         ;; [best-hybrid-layout]
+                                         @optimized-layouts-atom
+                                         [ ;; {:name "qwerty"
+                                          ;;   :layout qwerty}
+                                          ;; {:name "dvorak"
+                                          ;;  :layout dvorak}
+                                          ;; {:name "colemak dh"
+                                          ;;  :layout colemak-dh}
+                                          ;; {:name "ga-and-gd-optimized"
+                                          ;;  :layout ga-and-gd-optimized-hybrid-layout}
+                                          ;; {:name "random"
+                                          ;;  :layout (random-layout)}
+                                          ;; english-layout
+                                          ;; hybrid-layout
+
+                                          ;; (-> hybrid-layout
+                                          ;;     (assoc :name "customized-hybrid")
+                                          ;;     (update :layout
+                                          ;;             swap-mappings
+                                          ;;             {:character "r", :cocoa-key-code 34}
+                                          ;;             {:character "l", :cocoa-key-code 41}))
+                                          ]
+                                         ;;optimized-layouts-with-multipliers
+                                         )]
+                             (assoc layout
+                                    :layout-rating-description (describe-layout-rating statistics
+                                                                                       ;;finnish-statistics
+                                                                                       (:layout layout)))))))]
+    (layouts/vertically-2 {:margin 20}
+                          (layout-comparison-text "english statistics")
+                          [#'layout-rating-comparison-view english-statistics(layouts english-statistics)]
+                          (layout-comparison-text "finnish statistics")
+                          [#'layout-rating-comparison-view finnish-statistics (layouts finnish-statistics)]
+                          (layout-comparison-text "hybrid statistics")
+                          [#'layout-rating-comparison-view hybrid-statistics (layouts hybrid-statistics)])))
 
 (defn start-layout-comparison-view []
   (start-view (fn []
-                [#'layout-rating-comparison-view])))
+                [#'layout-comparison-views])))
+
 (comment
   (start-layout-comparison-view)
   )
 
+(declare english-statistics
+         english-statistics-with-diacritics
+         finnish-statistics
+         hybrid-statistics)
+
 (defonce optimized-layouts-atom (atom []))
 
 (comment
+
+  (spit "temp/optimized-layouts.edn" @optimized-layouts-atom)
+
+  (swap! optimized-layouts-atom drop-last)
   (reset! optimized-layouts-atom [])
-  (remove map? @optimized-layouts-atom)
 
-  (do (def english-statistics (text-statistics (slurp "temp/text/the-hacker-crackdown.txt")))
-      (def finnish-statistics (text-statistics (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")))
-      (def hybrid-statistics (text-statistics (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
-                                                         0 300000)
-                                                   (subs (slurp "temp/text/the-hacker-crackdown.txt")
-                                                         0 300000)))))
+  (.start (Thread. (fn []
+                     (doall (repeatedly 1
+                                        (fn []
+                                          (swap! optimized-layouts-atom
+                                                 conj
+                                                 (optimize-named-layout-with-multipliers common-multipliers
+                                                                                         hybrid-statistics))))))))
 
-  (count (slurp "temp/text/kirjoja-ja-kirjailijoita.txt"))
-  ;; => 324920
 
-  (count (slurp "temp/text/the-hacker-crackdown.txt"))
-  ;; => 663795
 
-  (count (reverse (sort-by second (:trigram-distribution hybrid-statistics))))
-  ;; => 428
+   (do (def english-statistics (assoc (text-statistics (slurp "temp/text/the-hacker-crackdown.txt")
+                                                      english-characters)
+                                     :name "en"))
 
-  (count (reverse (sort-by second (:trigram-distribution (text-statistics (str #_(slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
-                                                                               (slurp "temp/text/the-hacker-crackdown.txt")))))))
-  ;; => 443
+      (def english-statistics-with-diacritics (assoc (text-statistics (str "åäö" (slurp "temp/text/the-hacker-crackdown.txt"))
+                                                                      (concat ["ö" "ä" "å"] english-characters))
+                                                     :name "end"))
 
-  (do
-    (swap! optimized-layouts-atom
-           conj
-           (optimize-named-layout-with-multipliers {:digram-roll 0.5, :trigram-roll 0.5, :key-rating 1, :finger-type 0.1, :horizontal-movement 0.1, :vertical-movement 0, :hand-balance 0.1}
-                                                   english-statistics
-                                                   "en"))
-    (refresh-view!))
+      (def finnish-statistics (assoc (text-statistics (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                      finnish-characters)
+                                     :name "fi"))
+      (def hybrid-statistics (assoc (text-statistics (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                                0 300000)
+                                                          (subs (slurp "temp/text/the-hacker-crackdown.txt")
+                                                                0 300000))
+                                                     finnish-characters)
+                                    :name "hy")))
 
-  (spit "temp/optimized-layouts.edn"
+
+  (binding [multipliers multipliers]
+    (sort (map (partial rate-layout hybrid-statistics)
+               (map :layout #_hybrid-layouts-2 [best-hybrid-layout]))))
+
+  (describe-layout-rating finnish-statistics
+                          (first @optimized-layouts-atom))
+
+  (spit "temp/optimized-layouts-2.edn"
         (pr-str @optimized-layouts-atom))
 
   (edn/read-string (slurp "temp/optimized-layouts.edn"))
@@ -2179,6 +2474,10 @@
                           (:layout (first @optimized-layouts-atom)))
 
   (start-layout-comparison-view)
+
+
+
+
 
   (.start (Thread. (fn [] (def optimized-layouts-with-multipliers (doall (for [ ;; roll [0 1 2]
                                                                                ;; key-rating [0 1 2]
@@ -2323,6 +2622,21 @@
   (set/difference (into #{} (map :character (first optimized-layouts)))
                   (into #{} (map first (:character-distribution target-text-statistics))))
 
+  )
+
+(defn select-best-layouts [count statistics layouts]
+  (take count (sort-by (fn [named-layout]
+                         (rate-layout statistics
+                                      (:layout named-layout)))
+                       layouts)))
+(comment
+  (binding [multipliers multipliers]
+    (doall (map layout-name (select-best-layouts 30 hybrid-statistics @hybrid-layouts-atom))))
+
+
+  (binding [multipliers common-multipliers]
+    (doall (map (partial rate-layout hybrid-statistics)
+                (map :layout (select-best-layouts 200 hybrid-statistics @hybrid-layouts-atom)))))
   )
 
 (defn digram-test-view [layout _digram-distribution _highlighted-characters]
@@ -2552,11 +2866,13 @@
 
 (defn start []
   (println "\n\n------------ start -------------\n\n")
-  (reset! event-channel-atom
-          (application/start-application (fn []
-                                           [#'optimization-view target-text])
-                                         ;; #'digram-distribution-comparison-view
-                                         :on-exit #(reset! event-channel-atom nil))))
+  (start-layout-comparison-view)
+  ;; (reset! event-channel-atom
+  ;;         (application/start-application (fn []
+  ;;                                          [#'optimization-view target-text])
+  ;;                                        ;; #'digram-distribution-comparison-view
+  ;;                                        :on-exit #(reset! event-channel-atom nil)))
+  )
 
 (defn refresh-view! []
   (when @event-channel-atom
