@@ -2290,7 +2290,7 @@
                         (= :3-roll (:rating @state-atom))
                         [n-gram-comparison-view
                          (:layout @state-atom)
-                         (:trigrams (:distributions selected-layout-rating-description))]
+                         (:trigram-distribution statistics)]
 
                         :else
                         [distribtion-rating-description-view
