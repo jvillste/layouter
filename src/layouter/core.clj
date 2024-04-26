@@ -20,6 +20,8 @@
    (java.util Random)
    java.util.Locale))
 
+(defonce optimized-layouts-atom (atom []))
+
 ;; KEYS
 
 (def key-class-effort {:home 0
@@ -1681,14 +1683,17 @@
    :layout (optimize-layout-with-multipliers multipliers
                                              statistics)})
 
+(defn format-in-us-locale [format & arguments]
+  (String/format Locale/US
+                 format
+                 (to-array arguments)))
+
 (defn multipliers-to-layout-name [multipliers]
   (string/join ""
                (map str
                     (apply concat
                            (medley/map-vals (fn [value]
-                                              (String/format Locale/US
-                                                             "%.1f"
-                                                             (to-array [(float value)])))
+                                              (format-in-us-locale "%.1f" (float value)))
                                             (medley/map-keys (fn [key]
                                                                (subs (name key)
                                                                      0 2))
@@ -2004,10 +2009,10 @@
                                                                        (:id node))
                                                           (when on-event
                                                             (on-event {:type :mouse-entered-character
-                                                                       :caracter character}))
+                                                                       :character character}))
                                                           (when on-event
                                                             (on-event {:type :mouse-left-character
-                                                                       :caracter character}))))
+                                                                       :character character}))))
                                                       (when (and (= :mouse-pressed (:type event))
                                                                  on-event)
                                                         (on-event {:type :mouse-pressed
@@ -2068,27 +2073,112 @@
                                  0)))]
              [shade shade shade 255])])))
 
-(defn layout-editor [layout]
-  (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)]
-    (fn [_layout]
-      {:node [keyboard-view
-              cocoa-key-code-to-character
-              #_key-colors-for-fingers
-              (key-colors-for-key-ratings)
-              {:on-key-event (fn [event]
-                               (when (= :mouse-pressed (:type event))
-                                 )
-                               (prn 'event event) ;; TODO: remove me
+(defn layout-comparison-text [text]
+  (visuals/text text
+                {:font-size 30}))
 
-                               )}]
-       :can-gain-focus? true
-       :keyboard-event-handler (fn [_subtree event]
-                                 (prn 'event event) ;; TODO: remove me
-                                 )})))
+
+
+(defn layout-editor [_layout-atom _statistics]
+  (let [state-atom (dependable-atom/atom {})]
+    (fn [layout-atom statistics]
+      (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character @layout-atom)
+            character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code @layout-atom)
+            state @state-atom
+            current-effort (rate-layout statistics
+                                        @layout-atom)
+            on-key-event (fn [event]
+                           ;;                           (prn '(:type event) event) ;; TODO: remove me
+
+                           (case (:type event)
+                             :mouse-entered-character
+                             (swap! state-atom assoc :character-under-mouse (:character event))
+                             :mouse-left-character
+                             (swap! state-atom dissoc :character-under-mouse (:character event))
+                             :mouse-pressed
+                             (if-let [selected-character (:selected-character state)]
+                               (do (swap! layout-atom
+                                          swap-mappings
+                                          (medley/find-first (fn [mapping]
+                                                               (= selected-character
+                                                                  (:character mapping)))
+                                                             @layout-atom)
+                                          (medley/find-first (fn [mapping]
+                                                               (= (:character event)
+                                                                  (:character mapping)))
+                                                             @layout-atom))
+                                   (swap! state-atom dissoc :selected-character))
+                               (swap! state-atom assoc :selected-character (:character event)))))]
+        {:node
+         (if-let [selected-character (:selected-character state)]
+           (let [selected-mapping (medley/find-first (fn [mapping]
+                                                       (= selected-character
+                                                          (:character mapping)))
+                                                     @layout-atom)
+                 cocoa-key-code-to-effort (into {}
+                                                (for [mapping (remove #{selected-mapping}
+                                                                      @layout-atom)]
+                                                  [(:cocoa-key-code mapping)
+                                                   (rate-layout statistics
+                                                                (swap-mappings @layout-atom
+                                                                               selected-mapping
+                                                                               mapping))]))
+                 all-efforts (conj (vals cocoa-key-code-to-effort)
+                                   current-effort)
+                 maximum-effort (apply max all-efforts)
+                 minimum-effort (apply min all-efforts)]
+             (layouts/vertically-2 {}
+                                   [keyboard-view
+                                    cocoa-key-code-to-character
+                                    (merge key-colors-for-fingers
+                                           (medley/map-vals (fn [effort]
+                                                              (if (< effort current-effort)
+                                                                [155 255 155 (* 255
+                                                                                (min 1
+                                                                                     (/ (- current-effort effort)
+                                                                                        (max 0.001
+                                                                                             (- current-effort minimum-effort)))))]
+                                                                [255 155 155 (* 255
+                                                                                (min 1
+                                                                                     (/ (- effort current-effort)
+                                                                                        (max 0.001
+                                                                                             (- maximum-effort current-effort)))))]))
+                                                            cocoa-key-code-to-effort)
+                                           {(character-to-cocoa-key-code selected-character) [120 120 200 255]})
+                                    {:on-key-event on-key-event}]
+                                   (layout-comparison-text (string/join " "
+                                                                        [ ;; "effort: "
+                                                                         (format-in-us-locale "%.3f" current-effort)
+                                                                         ;; " difference to minimum effort "
+                                                                         (format-in-us-locale "%.3f" (* 100
+                                                                                                        (/ (- minimum-effort current-effort)
+                                                                                                           current-effort)))
+                                                                         ;; " difference to maximum effort "
+                                                                         (format-in-us-locale "%.3f" (* 100 (/ (- maximum-effort current-effort)
+                                                                                                               current-effort)))
+
+                                                                         (when-let [character-under-mouse (:character-under-mouse state)]
+                                                                           (when-let [effort-after-swap (get cocoa-key-code-to-effort
+                                                                                                             (character-to-cocoa-key-code character-under-mouse))]
+                                                                             (format-in-us-locale "%.3f" (* 100
+                                                                                                            (/ (- effort-after-swap
+                                                                                                                  current-effort)
+                                                                                                               current-effort)))))]))))
+           (layouts/vertically-2 {}
+                                 [keyboard-view
+                                  cocoa-key-code-to-character
+                                  key-colors-for-fingers
+                                  {:on-key-event on-key-event}]
+                                 (layout-comparison-text (str "effort: " (format-in-us-locale "%.3f" current-effort)))))
+
+
+         :can-gain-focus? true}))))
 
 (comment
   (start-view (fn []
-                [#'layout-editor qwerty #_(first optimized-layouts)]))
+                [#'layout-editor
+                 (dependable-atom/atom qwerty)
+                 hybrid-statistics]))
   ) ;; TODO: remove me
 
 (defn merge-summary [summary]
@@ -2138,10 +2228,6 @@
                                                   (cell (visuals/text (str value))))
                                                 ratings))))
                                (take 30 (get rating-description aspect)))))))
-
-(defn layout-comparison-text [text]
-  (visuals/text text
-                {:font-size 30}))
 
 (defn distribtion-rating-description-view [layout _rating distribution-rating-description]
   (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})
@@ -2314,10 +2400,10 @@
                                                          (max 0.4 (- 1 (:effort rating))))
                                                 key-colors-for-fingers)]
     (layouts/vertically-2 {} (layout-comparison-text (str (:effort rating) " " (apply str n-gram)))
-                                                  [keyboard-view
-                                                   cocoa-key-code-to-character
-                                                   (merge key-colors-for-fingers
-                                                          key-highlight-color)])))
+                          [keyboard-view
+                           cocoa-key-code-to-character
+                           (merge key-colors-for-fingers
+                                  key-highlight-color)])))
 
 (defn n-gram-comparison-view [named-layout _n-gram-distribution]
   (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character (:layout named-layout))
@@ -2387,11 +2473,13 @@
                                                          (swap! state-atom update :sort-descending? not)
                                                          (swap! state-atom assoc :sort-column column)))
                                                      (cell (layout-comparison-text (name (:key column)))))))]
-                                (for [layout (-> (sort-by (fn [layout]
-                                                            (get (:summary layout)
-                                                                 (:key (or (:sort-column @state-atom)
-                                                                           (first columns)))))
-                                                          layouts)
+                                (for [layout (-> (if (:sort-column @state-atom)
+                                                   (sort-by (fn [layout]
+                                                              (get (:summary layout)
+                                                                   (:key (or (:sort-column @state-atom)
+                                                                             (first columns)))))
+                                                            layouts)
+                                                   layouts)
                                                  (cond-> (:sort-descending? @state-atom)
                                                    (reverse)))]
                                   (concat [(layout-comparison-text (layout-name layout))]
@@ -2424,43 +2512,52 @@
         character-to-cocoa-key-codes (map layout-to-character-to-cocoa-key-code (map :layout named-layouts))]
     (layouts/vertically-2 {:margin 10}
                           [layout-rating-comparison-view statistics named-layouts]
-                          (layouts/flow (layouts/vertically-2 {:margin 10}
-                                                              (layout-comparison-text (layout-name (first named-layouts)))
-                                                              [keyboard-view
-                                                               (first cocoa-key-code-to-characters)
-                                                               key-colors-for-fingers]
-                                                              (layout-comparison-text (layout-name (second named-layouts)))
-                                                              [keyboard-view
-                                                               (second cocoa-key-code-to-characters)
-                                                               (merge key-colors-for-fingers
-                                                                      (into {}
-                                                                            (for [differing-cocoa-keycode (map first (set/difference (set (second cocoa-key-code-to-characters))
-                                                                                                                                     (set (first cocoa-key-code-to-characters))))]
-                                                                              [differing-cocoa-keycode [100 150 100 255]])))])
-
-                                        (layouts/vertically-2 {:margin 10}
-                                                              (layout-comparison-text "")
-                                                              [key-heat-map-view
-                                                               (first named-layouts)
-                                                               (:character-distribution statistics)]
-                                                              (layout-comparison-text "")
-                                                              [key-heat-map-view
-                                                               (second named-layouts)
-                                                               (:character-distribution statistics)])
-
-                                        (for [n-gram (map first (take 5 (reverse (sort-by second (:digram-distribution statistics)))))]
+                          (layouts/flow (layouts/with-margin 40
                                           (layouts/vertically-2 {:margin 10}
-                                                                (ngram-view (first cocoa-key-code-to-characters)
-                                                                            (first character-to-cocoa-key-codes)
-                                                                            n-gram)
-                                                                (ngram-view (second cocoa-key-code-to-characters)
-                                                                            (second character-to-cocoa-key-codes)
-                                                                            n-gram)))))))
+                                                                (layout-comparison-text "")
+                                                                [keyboard-view
+                                                                 (first cocoa-key-code-to-characters)
+                                                                 key-colors-for-fingers]
+                                                                (layout-comparison-text "")
+                                                                [keyboard-view
+                                                                 (second cocoa-key-code-to-characters)
+                                                                 (merge key-colors-for-fingers
+                                                                        (into {}
+                                                                              (for [differing-cocoa-keycode (map first (set/difference (set (second cocoa-key-code-to-characters))
+                                                                                                                                       (set (first cocoa-key-code-to-characters))))]
+                                                                                [differing-cocoa-keycode [100 150 100 255]])))]))
+
+                                        (layouts/with-margin 40
+                                          (layouts/vertically-2 {:margin 10}
+                                                                (layout-comparison-text "")
+                                                                [key-heat-map-view
+                                                                 (first named-layouts)
+                                                                 (:character-distribution statistics)]
+                                                                (layout-comparison-text "")
+                                                                [key-heat-map-view
+                                                                 (second named-layouts)
+                                                                 (:character-distribution statistics)]))
+
+                                        (for [n-gram (map first (take 30 (reverse (sort-by second (:digram-distribution statistics)))))]
+                                          (layouts/with-margin 40
+                                            (layouts/vertically-2 {:margin 10}
+                                                                  (ngram-view (first cocoa-key-code-to-characters)
+                                                                              (first character-to-cocoa-key-codes)
+                                                                              n-gram)
+                                                                  (ngram-view (second cocoa-key-code-to-characters)
+                                                                              (second character-to-cocoa-key-codes)
+                                                                              n-gram))))))))
 
 (comment
   (start-view (let [statistics hybrid-statistics]
                 (fn []
-                  [#'layout-comparison-view (for [layout (take 2 @optimized-layouts-atom)]
+                  [#'layout-comparison-view (for [layout [{:name "qwerty"
+                                                           :layout qwerty}
+                                                          ;; {:name "dvorak"
+                                                          ;;  :layout dvorak}
+                                                          {:name "colemak dh"
+                                                           :layout colemak-dh}]
+                                                  #_(take 2 @optimized-layouts-atom)]
                                               (assoc layout
                                                      :layout-rating-description (describe-layout-rating statistics
                                                                                                         ;;finnish-statistics
@@ -2505,7 +2602,7 @@
                                          ;; (select-best-layouts 1 hybrid-statistics @hybrid-layouts-atom)
                                          ;; [best-hybrid-layout]
                                          @optimized-layouts-atom
-                                         [ ;; {:name "qwerty"
+                                         [;; {:name "qwerty"
                                           ;;   :layout qwerty}
                                           ;; {:name "dvorak"
                                           ;;  :layout dvorak}
@@ -2552,7 +2649,7 @@
          finnish-statistics
          hybrid-statistics)
 
-(defonce optimized-layouts-atom (atom []))
+
 
 (comment
 
@@ -3019,3 +3116,9 @@
   (spit "qwerty.edn" (pr-str qwerty))
   (def optimized-layout (edn/read-string (slurp "optimized-layout.edn")))
   ) ;; TODO: remove me
+
+
+;; TODO: show character distribution heat map in editor
+;; color keys by highest gain possible by swapping them to another key
+;; allow comparing other metrics than total effort
+;; show effort difference if the selected key would be swapped with the key under cursor
