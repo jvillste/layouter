@@ -7,4 +7,7 @@
                  [com.stuartsierra/frequencies "0.1.0"]
                  [dev.weavejester/medley "1.7.0"]
                  [flow-gl "3"]]
-  :repl-options {:init-ns layouter.core})
+  :repl-options {:init-ns layouter.core}
+
+  :jvm-opts ["-Djdk.attach.allowAttachSelf"] ;; for clj-async-profiler
+  )
