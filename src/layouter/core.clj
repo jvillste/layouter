@@ -356,6 +356,24 @@
 
    :character-distribution (normalized-character-distribution text characters)})
 
+(defonce english-statistics (assoc (text-statistics (slurp "temp/text/the-hacker-crackdown.txt")
+                                                    english-characters)
+                                   :name "en"))
+
+(defonce english-statistics-with-diacritics (assoc (text-statistics (str "åäö" (slurp "temp/text/the-hacker-crackdown.txt"))
+                                                                    (concat ["ö" "ä" "å"] english-characters))
+                                                   :name "end"))
+
+(defonce finnish-statistics (assoc (text-statistics (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                    finnish-characters)
+                                   :name "fi"))
+
+(defonce hybrid-statistics (assoc (text-statistics (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                              0 300000)
+                                                        (subs (slurp "temp/text/the-hacker-crackdown.txt")
+                                                              0 300000))
+                                                   finnish-characters)
+                                  :name "hy"))
 
 ;; RATING
 
@@ -2339,38 +2357,35 @@
                      [1 2 3 4]
                      [1 1 1 1]))))
 
-(defn key-heat-map-view [named-layout _character-distribution]
-  (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character (:layout named-layout))
-        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code (:layout named-layout))]
-    (fn [_named-layout character-distribution]
-      (layouts/vertically-2 {:margin 10}
-                            [keyboard-view
-                             cocoa-key-code-to-character
-                             (let [largest-character-propability (apply max (vals character-distribution))]
-                               (into {}
-                                     (map (fn [[character propability]]
-                                            [(character-to-cocoa-key-code character)
-                                             [255 255 255 (* 255
-                                                             (/ propability
-                                                                largest-character-propability
-                                                                2))]])
-                                          character-distribution))
-                               #_(medley/map-kv-vals (fn [cocoa-key-code color]
-                                                       (vec (concat (take 3 color)
-                                                                    [(* 255
-                                                                        (/ (or (get character-distribution
-                                                                                    (cocoa-key-code-to-character cocoa-key-code))
-                                                                               0)
-                                                                           largest-character-propability))])))
-                                                     key-colors-for-fingers)
-                               #_(merge-with (fn [finger-color character-propability]
-                                               (mix-colors (/ character-propability
-                                                              largest-character-propability)
-                                                           (multiply-color 0.0 finger-color)
-                                                           [200 100 100 255]))
-                                             key-colors-for-fingers
-                                             (medley/map-keys character-to-cocoa-key-code
-                                                              character-distribution)))]))))
+(defn key-heat-map-view [cocoa-key-code-to-character character-to-cocoa-key-code  character-distribution]
+  (layouts/vertically-2 {:margin 10}
+                        [keyboard-view
+                         cocoa-key-code-to-character
+                         (let [largest-character-propability (apply max (vals character-distribution))]
+                           (into {}
+                                 (map (fn [[character propability]]
+                                        [(character-to-cocoa-key-code character)
+                                         [255 255 255 (* 255
+                                                         (/ propability
+                                                            largest-character-propability
+                                                            2))]])
+                                      character-distribution))
+                           #_(medley/map-kv-vals (fn [cocoa-key-code color]
+                                                   (vec (concat (take 3 color)
+                                                                [(* 255
+                                                                    (/ (or (get character-distribution
+                                                                                (cocoa-key-code-to-character cocoa-key-code))
+                                                                           0)
+                                                                       largest-character-propability))])))
+                                                 key-colors-for-fingers)
+                           #_(merge-with (fn [finger-color character-propability]
+                                           (mix-colors (/ character-propability
+                                                          largest-character-propability)
+                                                       (multiply-color 0.0 finger-color)
+                                                       [200 100 100 255]))
+                                         key-colors-for-fingers
+                                         (medley/map-keys character-to-cocoa-key-code
+                                                          character-distribution)))]))
 
 (comment
   (start-view (fn []
@@ -2507,12 +2522,48 @@
                                                                                  (layout-comparison-text (str (format "%.4f" (get (:summary layout)
                                                                                                                                   (:key column))))))))))))])))))
 
-(defn layout-comparison-view [named-layouts statistics]
-  (let [cocoa-key-code-to-characters (map layout-to-cocoa-key-code-to-character (map :layout named-layouts))
+
+(defn named-layout-atom-to-named-layout [named-layout-atom]
+  (-> named-layout-atom
+      (assoc :layout @(:layout-atom named-layout-atom))
+      (dissoc :layout-atom)))
+
+(defn named-layout-to-named-layout-atom [named-layout]
+  (-> named-layout
+      (assoc :layout-atom (dependable-atom/atom (:layout named-layout)))
+      (dissoc :layout)))
+
+(defn n-gram-flow [statistics cocoa-key-code-to-characters character-to-cocoa-key-codes]
+  (layouts/flow (for [n-gram (map first (take 8 (reverse (sort-by second (:digram-distribution statistics)))))]
+                  (layouts/with-margin 40
+                    (layouts/vertically-2 {:margin 10}
+                                          (ngram-view (first cocoa-key-code-to-characters)
+                                                      (first character-to-cocoa-key-codes)
+                                                      n-gram)
+                                          (ngram-view (second cocoa-key-code-to-characters)
+                                                      (second character-to-cocoa-key-codes)
+                                                      n-gram))))))
+
+(defn layout-comparison-view [named-layout-atoms statistics]
+  (let [named-layouts (for [named-layout-atom named-layout-atoms]
+                        (assoc (named-layout-atom-to-named-layout named-layout-atom)
+                               :layout-rating-description (describe-layout-rating statistics
+                                                                                  @(:layout-atom named-layout-atom))))
+        cocoa-key-code-to-characters (map layout-to-cocoa-key-code-to-character (map :layout named-layouts))
         character-to-cocoa-key-codes (map layout-to-character-to-cocoa-key-code (map :layout named-layouts))]
     (layouts/vertically-2 {:margin 10}
                           [layout-rating-comparison-view statistics named-layouts]
                           (layouts/flow (layouts/with-margin 40
+                                          (layouts/vertically-2 {:margin 10}
+                                                                (layout-comparison-text "")
+                                                                [layout-editor
+                                                                 (:layout-atom (first named-layout-atoms))
+                                                                 statistics]
+                                                                (layout-comparison-text "")
+                                                                [layout-editor
+                                                                 (:layout-atom (second named-layout-atoms))
+                                                                 statistics]))
+                                        (layouts/with-margin 40
                                           (layouts/vertically-2 {:margin 10}
                                                                 (layout-comparison-text "")
                                                                 [keyboard-view
@@ -2531,39 +2582,23 @@
                                           (layouts/vertically-2 {:margin 10}
                                                                 (layout-comparison-text "")
                                                                 [key-heat-map-view
-                                                                 (first named-layouts)
+                                                                 (first cocoa-key-code-to-characters)
+                                                                 (first character-to-cocoa-key-codes)
                                                                  (:character-distribution statistics)]
                                                                 (layout-comparison-text "")
                                                                 [key-heat-map-view
-                                                                 (second named-layouts)
-                                                                 (:character-distribution statistics)]))
+                                                                 (second cocoa-key-code-to-characters)
+                                                                 (second character-to-cocoa-key-codes)
+                                                                 (:character-distribution statistics)])))
 
-                                        (for [n-gram (map first (take 30 (reverse (sort-by second (:digram-distribution statistics)))))]
-                                          (layouts/with-margin 40
-                                            (layouts/vertically-2 {:margin 10}
-                                                                  (ngram-view (first cocoa-key-code-to-characters)
-                                                                              (first character-to-cocoa-key-codes)
-                                                                              n-gram)
-                                                                  (ngram-view (second cocoa-key-code-to-characters)
-                                                                              (second character-to-cocoa-key-codes)
-                                                                              n-gram))))))))
+                          [n-gram-flow statistics cocoa-key-code-to-characters character-to-cocoa-key-codes])))
 
 (comment
-  (start-view (let [statistics hybrid-statistics]
-                (fn []
-                  [#'layout-comparison-view (for [layout [{:name "qwerty"
-                                                           :layout qwerty}
-                                                          ;; {:name "dvorak"
-                                                          ;;  :layout dvorak}
-                                                          {:name "colemak dh"
-                                                           :layout colemak-dh}]
-                                                  #_(take 2 @optimized-layouts-atom)]
-                                              (assoc layout
-                                                     :layout-rating-description (describe-layout-rating statistics
-                                                                                                        ;;finnish-statistics
-                                                                                                        (:layout layout))))
-
-                   statistics])))
+  (start-view (fn []
+                [#'layout-comparison-view
+                 [(named-layout-to-named-layout-atom (first @optimized-layouts-atom))
+                  (named-layout-to-named-layout-atom (first @optimized-layouts-atom))]
+                 hybrid-statistics]))
 
   )
 
@@ -2576,12 +2611,9 @@
 
 (comment
 
-  (do (def common-multipliers {:digram-roll 1, :trigram-roll 1, :key-rating 1, :finger-type 1, :horizontal-movement 1, :vertical-movement 1, :hand-balance 1})
-      (refresh-view!))
+  (reset! optimized-layouts-atom [])
 
-  (do (def common-multipliers {:digram-roll 0, :trigram-roll 0, :key-rating 1, :finger-type 0.1, :horizontal-movement 0, :vertical-movement 0, :hand-balance 0})
-
-      (reset! optimized-layouts-atom [(optimize-named-layout-with-multipliers common-multipliers
+  (do (reset! optimized-layouts-atom [(optimize-named-layout-with-multipliers {:digram-roll 0, :trigram-roll 0, :key-rating 1, :finger-type 0.1, :horizontal-movement 0, :vertical-movement 0, :hand-balance 0}
                                                                               hybrid-statistics)])
       (refresh-view!))
 
@@ -2644,10 +2676,7 @@
   (start-layout-comparison-view)
   )
 
-(declare english-statistics
-         english-statistics-with-diacritics
-         finnish-statistics
-         hybrid-statistics)
+
 
 
 
@@ -2668,23 +2697,7 @@
 
 
 
-  (do (def english-statistics (assoc (text-statistics (slurp "temp/text/the-hacker-crackdown.txt")
-                                                      english-characters)
-                                     :name "en"))
 
-      (def english-statistics-with-diacritics (assoc (text-statistics (str "åäö" (slurp "temp/text/the-hacker-crackdown.txt"))
-                                                                      (concat ["ö" "ä" "å"] english-characters))
-                                                     :name "end"))
-
-      (def finnish-statistics (assoc (text-statistics (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
-                                                      finnish-characters)
-                                     :name "fi"))
-      (def hybrid-statistics (assoc (text-statistics (str (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
-                                                                0 300000)
-                                                          (subs (slurp "temp/text/the-hacker-crackdown.txt")
-                                                                0 300000))
-                                                     finnish-characters)
-                                    :name "hy")))
 
 
   (binding [multipliers multipliers]
