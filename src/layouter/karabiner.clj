@@ -56,33 +56,33 @@
 
               {:key-code "s"}
               {:key-code "8"
-               :modifiers ["left_shift"]} ;; (
+               :modifiers ["left_shift" "left_option"]} ;; {
 
               {:key-code "s"
                :modifiers {:mandatory ["left_command"]}}
               {:key-code "9"
-               :modifiers ["left_shift"]} ;; )
+               :modifiers ["left_shift" "left_option"]} ;; }
 
               {:key-code "d"}
               {:key-code "8"
-               :modifiers ["left_shift" "left_option"]} ;; {
+               :modifiers ["left_option"]} ;; [
 
               {:key-code "d"
                :modifiers {:mandatory ["left_command"]}}
               {:key-code "9"
-               :modifiers ["left_shift" "left_option"]} ;; }
+               :modifiers ["left_option"]} ;; ]
 
               {:key-code "f"}
               {:key-code "8"
-               :modifiers ["left_option"]} ;; [
+               :modifiers ["left_shift"]} ;; (
 
               {:key-code "f"
                :modifiers {:mandatory ["left_command"]}}
               {:key-code "9"
-               :modifiers ["left_option"]} ;; ]
+               :modifiers ["left_shift"]} ;; )
 
               {:key-code "c"}
-              {:key-code "grave_accent_and_tilde"} ;; [
+              {:key-code "grave_accent_and_tilde"} ;; <
 
               {:key-code "c" :modifiers {:mandatory ["left_command"]}}
               {:key-code "grave_accent_and_tilde" :modifiers ["left_shift"]} ;; >
@@ -161,6 +161,7 @@
 
               {:key-code "semicolon"}
               {:key-code "0"})
+
             ])
 
 (defn update-config-file []
