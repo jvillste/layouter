@@ -160,9 +160,41 @@
               {:key-code "9"}
 
               {:key-code "semicolon"}
-              {:key-code "0"})
+              {:key-code "0"}
 
-            ])
+              {:key-code "j" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "left_arrow"}
+
+              {:key-code "k" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "down_arrow"}
+
+              {:key-code "l" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "right_arrow"}
+
+              {:key-code "i" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "up_arrow"}
+
+              {:key-code "v"}
+              {:key-code "down_arrow"  :modifiers ["left_command"]}
+
+              {:key-code "v" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "up_arrow"  :modifiers ["left_command"]}
+
+
+
+              {:key-code "g" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open '/Applications/Google Chrome.app'"}
+
+              {:key-code "t" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open '/System/Applications/Utilities/Terminal.app'"}
+
+              {:key-code "f" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open '/System/Library/CoreServices/Finder.app'"}
+
+              {:key-code "e" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open -n /Applications/Emacs.app"}
+
+              )])
 
 (defn update-config-file []
   (spit config-file-path
