@@ -99,6 +99,9 @@
               {:key-code "r"}
               {:key-code "3" :modifiers ["left_shift"]} ;; #
 
+              {:key-code "r" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "backslash"} ;; '
+
               {:key-code "t"}
               {:key-code "4" :modifiers ["left_shift"]} ;; €
 
@@ -171,7 +174,7 @@
               {:key-code "l" :modifiers {:mandatory ["left_command"]}}
               {:key-code "right_arrow"}
 
-              {:key-code "i" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "semicolon" :modifiers {:mandatory ["left_command"]}}
               {:key-code "up_arrow"}
 
               {:key-code "v"}
@@ -185,6 +188,9 @@
               {:key-code "g" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open '/Applications/Google Chrome.app'"}
 
+              {:key-code "g"}
+              {:key-code "escape"}
+
               {:key-code "t" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open '/System/Applications/Utilities/Terminal.app'"}
 
@@ -193,6 +199,55 @@
 
               {:key-code "e" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open -n /Applications/Emacs.app"}
+
+
+              {:key-code "u" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "1" :modifiers ["left_control"]}
+
+              {:key-code "i" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "2" :modifiers ["left_control"]}
+
+              {:key-code "o" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "3" :modifiers ["left_control"]}
+
+              {:key-code "j" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "4" :modifiers ["left_control"]}
+
+              {:key-code "k" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "5" :modifiers ["left_control"]}
+
+              {:key-code "l" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "6" :modifiers ["left_control"]}
+
+              {:key-code "m" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "7" :modifiers ["left_control"]}
+
+              {:key-code "comma" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "8" :modifiers ["left_control"]}
+
+              {:key-code "period" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "9" :modifiers ["left_control"]}
+
+              {:key-code "slash" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "0" :modifiers ["left_control"]}
+
+              {:key-code "u" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "1" :modifiers ["left_control" "left_shift"]}
+
+              {:key-code "i" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "2" :modifiers ["left_control" "left_shift"]}
+
+              {:key-code "o" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "3" :modifiers ["left_control" "left_shift"]}
+
+              {:key-code "m" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "4" :modifiers ["left_control" "left_shift"]}
+
+              {:key-code "comma" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "5" :modifiers ["left_control" "left_shift"]}
+
+              {:key-code "period" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "6" :modifiers ["left_control" "left_shift"]}
 
               )])
 
