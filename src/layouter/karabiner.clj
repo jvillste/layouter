@@ -55,31 +55,22 @@
                :modifiers {:mandatory [], :optional ["any"]}}
 
               {:key-code "s"}
-              {:key-code "8"
-               :modifiers ["left_shift" "left_option"]} ;; {
+              {:key-code "8" :modifiers ["left_shift" "left_option"]} ;; {
 
-              {:key-code "s"
-               :modifiers {:mandatory ["left_command"]}}
-              {:key-code "9"
-               :modifiers ["left_shift" "left_option"]} ;; }
+              {:key-code "s" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "9" :modifiers ["left_shift" "left_option"]} ;; }
 
               {:key-code "d"}
-              {:key-code "8"
-               :modifiers ["left_option"]} ;; [
+              {:key-code "8" :modifiers ["left_option"]} ;; [
 
-              {:key-code "d"
-               :modifiers {:mandatory ["left_command"]}}
-              {:key-code "9"
-               :modifiers ["left_option"]} ;; ]
+              {:key-code "d" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "9" :modifiers ["left_option"]} ;; ]
 
               {:key-code "f"}
-              {:key-code "8"
-               :modifiers ["left_shift"]} ;; (
+              {:key-code "8" :modifiers ["left_shift"]} ;; (
 
-              {:key-code "f"
-               :modifiers {:mandatory ["left_command"]}}
-              {:key-code "9"
-               :modifiers ["left_shift"]} ;; )
+              {:key-code "f" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "9" :modifiers ["left_shift"]} ;; )
 
               {:key-code "c"}
               {:key-code "grave_accent_and_tilde"} ;; <
@@ -93,7 +84,7 @@
               {:key-code "x"}
               {:key-code "2" :modifiers ["left_shift"]} ;; "
 
-              {:key-code "z" :modifiers {:mandatory ["left_command"]}} ;; TODO: x does not work here?
+              {:key-code "e"}
               {:key-code "2" :modifiers ["left_option"]} ;; @
 
               {:key-code "r"}
