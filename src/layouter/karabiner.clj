@@ -90,9 +90,6 @@
               {:key-code "r"}
               {:key-code "3" :modifiers ["left_shift"]} ;; #
 
-              {:key-code "r" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "backslash"} ;; '
-
               {:key-code "t"}
               {:key-code "4" :modifiers ["left_shift"]} ;; €
 
@@ -119,6 +116,9 @@
 
               {:key-code "p" :modifiers {:mandatory ["left_command"]}}
               {:key-code "equal_sign" :modifiers ["left_shift"]} ;; `
+
+              {:key-code "p" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "backslash"} ;; '
 
               {:key-code "slash"}
               {:key-code "hyphen" :modifiers ["left_shift"]} ;; ?
@@ -156,6 +156,9 @@
               {:key-code "semicolon"}
               {:key-code "0"}
 
+
+              ;; navigation
+
               {:key-code "j" :modifiers {:mandatory ["left_command"]}}
               {:key-code "left_arrow"}
 
@@ -169,18 +172,19 @@
               {:key-code "up_arrow"}
 
               {:key-code "v"}
-              {:key-code "down_arrow"  :modifiers ["left_command"]}
+              {:key-code "down_arrow"  :modifiers ["left_option"]} ;; page down
 
               {:key-code "v" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "up_arrow"  :modifiers ["left_command"]}
-
-
-
-              {:key-code "g" :modifiers {:mandatory ["right_command"]}}
-              {:shell-command "open '/Applications/Google Chrome.app'"}
+              {:key-code "up_arrow"  :modifiers ["left_option"]} ;; page up
 
               {:key-code "g"}
               {:key-code "escape"}
+
+
+              ;; applications
+
+              {:key-code "g" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open '/Applications/Google Chrome.app'"}
 
               {:key-code "t" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open '/System/Applications/Utilities/Terminal.app'"}
@@ -191,6 +195,8 @@
               {:key-code "e" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open -n /Applications/Emacs.app"}
 
+
+              ;; workspaces
 
               {:key-code "u" :modifiers {:mandatory ["right_command"]}}
               {:key-code "1" :modifiers ["left_control"]}
@@ -219,7 +225,7 @@
               {:key-code "period" :modifiers {:mandatory ["right_command"]}}
               {:key-code "9" :modifiers ["left_control"]}
 
-              {:key-code "slash" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "semicolon" :modifiers {:mandatory ["right_command"]}}
               {:key-code "0" :modifiers ["left_control"]}
 
               {:key-code "u" :modifiers {:mandatory ["left_command"]}}
@@ -238,9 +244,7 @@
               {:key-code "5" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "period" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "6" :modifiers ["left_control" "left_shift"]}
-
-              )])
+              {:key-code "6" :modifiers ["left_control" "left_shift"]})])
 
 (defn update-config-file []
   (spit config-file-path
