@@ -120,6 +120,9 @@
               {:key-code "p" :modifiers {:mandatory ["right_command"]}}
               {:key-code "backslash"} ;; '
 
+              {:key-code "open_bracket"}
+              {:key-code "backslash" :modifiers ["left_shift"]} ;; *
+
               {:key-code "slash"}
               {:key-code "hyphen" :modifiers ["left_shift"]} ;; ?
 
