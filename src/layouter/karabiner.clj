@@ -34,11 +34,11 @@
                                       from
                                       to)))})
 
-(def rules [{:description "control-j to enter",
+(def rules [{:description "control-m to enter",
              :manipulators
              [{:type "basic",
                :from
-               {:key-code "j",
+               {:key-code "m",
                 :modifiers {:mandatory ["left_control"], :optional ["any"]}},
                :to [{:key-code "return_or_enter"}]}]}
 
@@ -126,16 +126,16 @@
               {:key-code "slash"}
               {:key-code "hyphen" :modifiers ["left_shift"]} ;; ?
 
-              {:key-code "slash" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "slash" :modifiers {:mandatory ["left_command"] :optional ["any"]}}
               {:key-code "hyphen"} ;; +
 
-              {:key-code "u"}
+              {:key-code "m"}
               {:key-code "1"}
 
-              {:key-code "i"}
+              {:key-code "comma"}
               {:key-code "2"}
 
-              {:key-code "o"}
+              {:key-code "period"}
               {:key-code "3"}
 
               {:key-code "j"}
@@ -147,14 +147,15 @@
               {:key-code "l"}
               {:key-code "6"}
 
-              {:key-code "m"}
+              {:key-code "u"}
               {:key-code "7"}
 
-              {:key-code "comma"}
+              {:key-code "i"}
               {:key-code "8"}
 
-              {:key-code "period"}
+              {:key-code "o"}
               {:key-code "9"}
+
 
               {:key-code "semicolon"}
               {:key-code "0"}
@@ -202,13 +203,13 @@
               ;; workspaces
 
               {:key-code "u" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "1" :modifiers ["left_control"]}
+              {:key-code "7" :modifiers ["left_control"]}
 
               {:key-code "i" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "2" :modifiers ["left_control"]}
+              {:key-code "8" :modifiers ["left_control"]}
 
               {:key-code "o" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "3" :modifiers ["left_control"]}
+              {:key-code "9" :modifiers ["left_control"]}
 
               {:key-code "j" :modifiers {:mandatory ["right_command"]}}
               {:key-code "4" :modifiers ["left_control"]}
@@ -220,34 +221,34 @@
               {:key-code "6" :modifiers ["left_control"]}
 
               {:key-code "m" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "7" :modifiers ["left_control"]}
+              {:key-code "1" :modifiers ["left_control"]}
 
               {:key-code "comma" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "8" :modifiers ["left_control"]}
+              {:key-code "2" :modifiers ["left_control"]}
 
               {:key-code "period" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "9" :modifiers ["left_control"]}
+              {:key-code "3" :modifiers ["left_control"]}
 
               {:key-code "semicolon" :modifiers {:mandatory ["right_command"]}}
               {:key-code "0" :modifiers ["left_control"]}
 
               {:key-code "u" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "1" :modifiers ["left_control" "left_shift"]}
+              {:key-code "7" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "i" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "2" :modifiers ["left_control" "left_shift"]}
+              {:key-code "8" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "o" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "3" :modifiers ["left_control" "left_shift"]}
+              {:key-code "9" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "m" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "4" :modifiers ["left_control" "left_shift"]}
+              {:key-code "1" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "comma" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "5" :modifiers ["left_control" "left_shift"]}
+              {:key-code "2" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "period" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "6" :modifiers ["left_control" "left_shift"]})])
+              {:key-code "3" :modifiers ["left_control" "left_shift"]})])
 
 (defn update-config-file []
   (spit config-file-path
@@ -261,6 +262,7 @@
             (write-json-string))))
 
 (comment
+
   (update-config-file)
 
   (read-json-string (slurp "temp/rule.json")))
