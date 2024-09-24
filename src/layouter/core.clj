@@ -2589,7 +2589,7 @@
                           (layouts/with-margins 50 0 0 50 [layout-rating-comparison-view statistics named-layouts])
                           (layouts/flow (layouts/with-margin 40
                                           (layouts/vertically-2 {:margin 10}
-                                                                (layout-comparison-text "")
+                                                                (layout-comparison-text "editor")
                                                                 [layout-editor
                                                                  (:layout-atom (first named-layout-atoms))
                                                                  {}
@@ -2604,7 +2604,7 @@
 
                                         (layouts/with-margin 40
                                           (layouts/vertically-2 {:margin 0}
-                                                                (layout-comparison-text "")
+                                                                (layout-comparison-text "heatmap")
                                                                 [key-heat-map-view
                                                                  (first cocoa-key-code-to-characters)
                                                                  (first character-to-cocoa-key-codes)
@@ -2615,31 +2615,7 @@
                                                                  (second character-to-cocoa-key-codes)
                                                                  (:character-distribution statistics)]))
 
-                                        (for [n-gram #_'(("u" "n")
-                                                         ("m" "e")
-                                                         ("e" "m")
-                                                         ("d" "o")
-                                                         ("n" "u")
-                                                         ("o" "d")
-                                                         ("n" "y")
-                                                         ("b" "l")
-                                                         ("f" "r")
-                                                         ("r" "m")
-                                                         ("g" "o")
-                                                         ("f" "e")
-                                                         ("t" "k")
-                                                         ("e" "x")
-                                                         ("y" "n"))
-                                              #_'(("d" "o")
-                                                  ("o" "d")
-                                                  ("b" "l")
-                                                  ("f" "r")
-                                                  ("e" "y")
-                                                  ("r" "m")
-                                                  ("g" "o")
-                                                  ("t" "k")
-                                                  ("u" "e"))
-                                              (map first (take 82 (reverse (sort-by second (:digram-distribution statistics)))))]
+                                        (for [n-gram (map first (take 82 (reverse (sort-by second (:digram-distribution statistics)))))]
                                           (layouts/with-margin 40
                                             (layouts/vertically-2 {:margin 10}
                                                                   (ngram-view (first cocoa-key-code-to-characters)
@@ -2647,11 +2623,7 @@
                                                                               n-gram)
                                                                   (ngram-view (second cocoa-key-code-to-characters)
                                                                               (second character-to-cocoa-key-codes)
-                                                                              n-gram))))
-                                        )
-
-                          ;;                          [n-gram-flow statistics cocoa-key-code-to-characters character-to-cocoa-key-codes]
-                          )))
+                                                                              n-gram))))))))
 
 (def test-events '({:y 516, :shift false, :key :udefied, :alt false, :time 1715012242345, :type :mouse-moved, :source :mouse, :cotrol false, :x 604} {:y 518, :shift false, :key :udefied, :alt false, :time 1715012242352, :type :mouse-moved, :source :mouse, :cotrol false, :x 608} {:y 518, :shift false, :key :udefied, :alt false, :time 1715012242353, :type :mouse-moved, :source :mouse, :cotrol false, :x 608} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242360, :type :mouse-moved, :source :mouse, :cotrol false, :x 614} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242361, :type :mouse-moved, :source :mouse, :cotrol false, :x 614} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242369, :type :mouse-moved, :source :mouse, :cotrol false, :x 618} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242369, :type :mouse-moved, :source :mouse, :cotrol false, :x 618} {:y 522, :shift false, :key :udefied, :alt false, :time 1715012242377, :type :mouse-moved, :source :mouse, :cotrol false, :x 624} {:y 522, :shift false, :key :udefied, :alt false, :time 1715012242377, :type :mouse-moved, :source :mouse, :cotrol false, :x 624} {:y 524, :shift false, :key :udefied, :alt false, :time 1715012242385, :type :mouse-moved, :source :mouse, :cotrol false, :x 628} {:y 524, :shift false, :key :udefied, :alt false, :time 1715012242385, :type :mouse-moved, :source :mouse, :cotrol false, :x 628} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242393, :type :mouse-moved, :source :mouse, :cotrol false, :x 634} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242394, :type :mouse-moved, :source :mouse, :cotrol false, :x 634} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242401, :type :mouse-moved, :source :mouse, :cotrol false, :x 638} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242402, :type :mouse-moved, :source :mouse, :cotrol false, :x 638} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242409, :type :mouse-moved, :source :mouse, :cotrol false, :x 646} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242410, :type :mouse-moved, :source :mouse, :cotrol false, :x 646} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242417, :type :mouse-moved, :source :mouse, :cotrol false, :x 650} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242418, :type :mouse-moved, :source :mouse, :cotrol false, :x 650} {:y 530, :shift false, :key :udefied, :alt false, :time 1715012242425, :type :mouse-moved, :source :mouse, :cotrol false, :x 654}))
 
