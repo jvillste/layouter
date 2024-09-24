@@ -15,7 +15,10 @@
    [fungl.layouts :as layouts]
    [medley.core :as medley]
    [medley.core :as meldey]
-   [clojure.pprint :as pprint])
+   [clojure.pprint :as pprint]
+   [flow-gl.gui.window :as window]
+   [logga.core :as logga]
+   [clj-async-profiler.core :as clj-async-profiler])
   (:import
    (java.util Random)
    java.util.Locale))
@@ -343,7 +346,7 @@
        normalize-distribution))
 
 (defn normalized-character-distribution [text characters]
-  (->> (filter-target-text text characters)
+  (->> (filter-target-text-without-space text characters)
        character-distribution
        normalize-distribution))
 
@@ -1741,8 +1744,8 @@
        (medley/map-keys str)))
 
 (deftest test-normalized-character-distribution
-  (is (= {"h" 0.2, "e" 0.2, "l" 0.4, "o" 0.2}
-         (normalized-character-distribution "hello" ["h" "e" "l" "o"]))))
+  (is (= {"h" 0.125, "e" 0.125, "l" 0.25, "o" 0.5}
+         (normalized-character-distribution "hello ooo" ["h" "e" "l" "o"]))))
 
 
 (defn compare-distributions [distributions]
@@ -1904,6 +1907,11 @@
           (application/start-application view
                                          :on-exit #(reset! event-channel-atom nil))))
 
+(defn refresh-view! []
+  (when @event-channel-atom
+    (async/>!! @event-channel-atom
+               {:type :redraw})))
+
 (defn character-view [character-to-cocoa-key-code on-mouse-over-character [character next-character]]
   (let [character-key (cocoa-key-code-to-key (character-to-cocoa-key-code character))
         next-character-key (cocoa-key-code-to-key (character-to-cocoa-key-code next-character))]
@@ -2011,16 +2019,16 @@
                                      (get both-hands-finger-colors
                                           (:finger keyboard-key))])))
 
-(def key-size 50)
+(def key-size 30)
 
 (defn row-view [cocoa-key-codes cocoa-key-code-to-character key-color on-event]
   (layouts/horizontally-2 {:margin 1}
                           (for [cocoa-key-code cocoa-key-codes]
                             (let [character (cocoa-key-code-to-character cocoa-key-code)]
-                              {:node (layouts/with-minimum-size key-size key-size (box (text character)
-                                                                                       {:fill-color (or (key-color cocoa-key-code)
-                                                                                                        [0 0 0 0])
-                                                                                        :padding 5}))
+                              {:node (box (layouts/with-minimum-size key-size key-size (text character))
+                                          {:fill-color (or (key-color cocoa-key-code)
+                                                           [0 0 0 0])
+                                           :padding 5})
                                :mouse-event-handler (fn [node event]
                                                       (when (= :nodes-under-mouse-changed (:type event))
                                                         (if (contains? (set (map :id (:nodes-under-mouse event)))
@@ -2077,6 +2085,18 @@
                                           [(:cocoa-key-code keyboard-key)
                                            (str (:column keyboard-key))]))
                  (constantly [128 128 128 255])]))
+
+  (start-view (fn []
+                (layouts/with-minimum-size 100 100 (box (text "x")
+                                                        {:fill-color [200 0 0 255]
+                                                         :padding 5}))))
+
+  (start-view (fn []
+                (layouts/superimpose
+                 (layouts/with-minimum-size 100 100
+                   (visuals/rectangle-2 :fill-color [200 0 0 255])))))
+
+
   ) ;; TODO: remove me
 
 
@@ -2097,9 +2117,9 @@
 
 
 
-(defn layout-editor [_layout-atom _statistics]
+(defn layout-editor [_layout-atom _key-colors _statistics]
   (let [state-atom (dependable-atom/atom {})]
-    (fn [layout-atom statistics]
+    (fn [layout-atom key-colors statistics]
       (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character @layout-atom)
             character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code @layout-atom)
             state @state-atom
@@ -2146,7 +2166,7 @@
                  maximum-effort (apply max all-efforts)
                  minimum-effort (apply min all-efforts)]
              (layouts/vertically-2 {}
-                                   [keyboard-view
+                                   (keyboard-view
                                     cocoa-key-code-to-character
                                     (merge key-colors-for-fingers
                                            (medley/map-vals (fn [effort]
@@ -2163,7 +2183,7 @@
                                                                                              (- maximum-effort current-effort)))))]))
                                                             cocoa-key-code-to-effort)
                                            {(character-to-cocoa-key-code selected-character) [120 120 200 255]})
-                                    {:on-key-event on-key-event}]
+                                    {:on-key-event on-key-event})
                                    (layout-comparison-text (string/join " "
                                                                         [ ;; "effort: "
                                                                          (format-in-us-locale "%.3f" current-effort)
@@ -2185,7 +2205,8 @@
            (layouts/vertically-2 {}
                                  [keyboard-view
                                   cocoa-key-code-to-character
-                                  key-colors-for-fingers
+                                  (merge key-colors-for-fingers
+                                         key-colors)
                                   {:on-key-event on-key-event}]
                                  (layout-comparison-text (str "effort: " (format-in-us-locale "%.3f" current-effort)))))
 
@@ -2357,35 +2378,48 @@
                      [1 2 3 4]
                      [1 1 1 1]))))
 
-(defn key-heat-map-view [cocoa-key-code-to-character character-to-cocoa-key-code  character-distribution]
-  (layouts/vertically-2 {:margin 10}
-                        [keyboard-view
-                         cocoa-key-code-to-character
-                         (let [largest-character-propability (apply max (vals character-distribution))]
-                           (into {}
-                                 (map (fn [[character propability]]
-                                        [(character-to-cocoa-key-code character)
-                                         [255 255 255 (* 255
-                                                         (/ propability
-                                                            largest-character-propability
-                                                            2))]])
-                                      character-distribution))
-                           #_(medley/map-kv-vals (fn [cocoa-key-code color]
-                                                   (vec (concat (take 3 color)
-                                                                [(* 255
-                                                                    (/ (or (get character-distribution
-                                                                                (cocoa-key-code-to-character cocoa-key-code))
-                                                                           0)
-                                                                       largest-character-propability))])))
-                                                 key-colors-for-fingers)
-                           #_(merge-with (fn [finger-color character-propability]
-                                           (mix-colors (/ character-propability
-                                                          largest-character-propability)
-                                                       (multiply-color 0.0 finger-color)
-                                                       [200 100 100 255]))
-                                         key-colors-for-fingers
-                                         (medley/map-keys character-to-cocoa-key-code
-                                                          character-distribution)))]))
+(defn key-heat-map-view [_cocoa-key-code-to-character _character-to-cocoa-key-code _character-distribution]
+  (let [state-atom (dependable-atom/atom {})]
+    (fn [cocoa-key-code-to-character character-to-cocoa-key-code character-distribution]
+      (layouts/vertically-2 {:margin 10}
+                            (keyboard-view
+                             cocoa-key-code-to-character
+                             (let [largest-character-propability (apply max (vals character-distribution))]
+                               (into {}
+                                     (map (fn [[character propability]]
+                                            [(character-to-cocoa-key-code character)
+                                             [255 255 255 (* 255
+                                                             (/ propability
+                                                                largest-character-propability
+                                                                2))]])
+                                          character-distribution))
+                               #_(medley/map-kv-vals (fn [cocoa-key-code color]
+                                                       (vec (concat (take 3 color)
+                                                                    [(* 255
+                                                                        (/ (or (get character-distribution
+                                                                                    (cocoa-key-code-to-character cocoa-key-code))
+                                                                               0)
+                                                                           largest-character-propability))])))
+                                                     key-colors-for-fingers)
+                               #_(merge-with (fn [finger-color character-propability]
+                                               (mix-colors (/ character-propability
+                                                              largest-character-propability)
+                                                           (multiply-color 0.0 finger-color)
+                                                           [200 100 100 255]))
+                                             key-colors-for-fingers
+                                             (medley/map-keys character-to-cocoa-key-code
+                                                              character-distribution)))
+                             {:on-key-event (fn [event]
+                                              (case (:type event)
+                                                :mouse-entered-character
+                                                (swap! state-atom assoc :character-under-mouse (:character event))
+                                                :mouse-left-character
+                                                (swap! state-atom dissoc :character-under-mouse (:character event))
+                                                nil))})
+                            (layout-comparison-text (if-let [character-under-mouse (:character-under-mouse @state-atom)]
+                                                      (format-in-us-locale "%.3f" (get character-distribution
+                                                                                       character-under-mouse))
+                                                      ""))))))
 
 (comment
   (start-view (fn []
@@ -2426,7 +2460,7 @@
     (fn [named-layout n-gram-distribution]
       (layouts/vertically-2 {:margin 10}
                             (layout-comparison-text (pr-str (:multipliers named-layout)))
-                            (layouts/flow (for [n-gram (map first (take 20 (reverse (sort-by second n-gram-distribution))))]
+                            (layouts/flow (for [n-gram (map first (take 50 (reverse (sort-by second n-gram-distribution))))]
                                             (layouts/with-margin 20 (ngram-view cocoa-key-code-to-character
                                                                                 character-to-cocoa-key-code
                                                                                 n-gram))))))))
@@ -2534,7 +2568,7 @@
       (dissoc :layout)))
 
 (defn n-gram-flow [statistics cocoa-key-code-to-characters character-to-cocoa-key-codes]
-  (layouts/flow (for [n-gram (map first (take 8 (reverse (sort-by second (:digram-distribution statistics)))))]
+  (layouts/flow (for [n-gram (map first (take 3 (reverse (sort-by second (:digram-distribution statistics)))))]
                   (layouts/with-margin 40
                     (layouts/vertically-2 {:margin 10}
                                           (ngram-view (first cocoa-key-code-to-characters)
@@ -2552,58 +2586,309 @@
         cocoa-key-code-to-characters (map layout-to-cocoa-key-code-to-character (map :layout named-layouts))
         character-to-cocoa-key-codes (map layout-to-character-to-cocoa-key-code (map :layout named-layouts))]
     (layouts/vertically-2 {:margin 10}
-                          [layout-rating-comparison-view statistics named-layouts]
+                          (layouts/with-margins 50 0 0 50 [layout-rating-comparison-view statistics named-layouts])
                           (layouts/flow (layouts/with-margin 40
                                           (layouts/vertically-2 {:margin 10}
                                                                 (layout-comparison-text "")
                                                                 [layout-editor
                                                                  (:layout-atom (first named-layout-atoms))
+                                                                 {}
                                                                  statistics]
-                                                                (layout-comparison-text "")
                                                                 [layout-editor
                                                                  (:layout-atom (second named-layout-atoms))
+                                                                 (into {}
+                                                                       (for [differing-cocoa-keycode (map first (set/difference (set (second cocoa-key-code-to-characters))
+                                                                                                                                (set (first cocoa-key-code-to-characters))))]
+                                                                         [differing-cocoa-keycode [100 150 100 255]]))
                                                                  statistics]))
-                                        (layouts/with-margin 40
-                                          (layouts/vertically-2 {:margin 10}
-                                                                (layout-comparison-text "")
-                                                                [keyboard-view
-                                                                 (first cocoa-key-code-to-characters)
-                                                                 key-colors-for-fingers]
-                                                                (layout-comparison-text "")
-                                                                [keyboard-view
-                                                                 (second cocoa-key-code-to-characters)
-                                                                 (merge key-colors-for-fingers
-                                                                        (into {}
-                                                                              (for [differing-cocoa-keycode (map first (set/difference (set (second cocoa-key-code-to-characters))
-                                                                                                                                       (set (first cocoa-key-code-to-characters))))]
-                                                                                [differing-cocoa-keycode [100 150 100 255]])))]))
 
                                         (layouts/with-margin 40
-                                          (layouts/vertically-2 {:margin 10}
+                                          (layouts/vertically-2 {:margin 0}
                                                                 (layout-comparison-text "")
                                                                 [key-heat-map-view
                                                                  (first cocoa-key-code-to-characters)
                                                                  (first character-to-cocoa-key-codes)
                                                                  (:character-distribution statistics)]
-                                                                (layout-comparison-text "")
+                                                                ;; (layout-comparison-text "")
                                                                 [key-heat-map-view
                                                                  (second cocoa-key-code-to-characters)
                                                                  (second character-to-cocoa-key-codes)
-                                                                 (:character-distribution statistics)])))
+                                                                 (:character-distribution statistics)]))
 
-                          [n-gram-flow statistics cocoa-key-code-to-characters character-to-cocoa-key-codes])))
+                                        (for [n-gram #_'(("u" "n")
+                                                         ("m" "e")
+                                                         ("e" "m")
+                                                         ("d" "o")
+                                                         ("n" "u")
+                                                         ("o" "d")
+                                                         ("n" "y")
+                                                         ("b" "l")
+                                                         ("f" "r")
+                                                         ("r" "m")
+                                                         ("g" "o")
+                                                         ("f" "e")
+                                                         ("t" "k")
+                                                         ("e" "x")
+                                                         ("y" "n"))
+                                              #_'(("d" "o")
+                                                  ("o" "d")
+                                                  ("b" "l")
+                                                  ("f" "r")
+                                                  ("e" "y")
+                                                  ("r" "m")
+                                                  ("g" "o")
+                                                  ("t" "k")
+                                                  ("u" "e"))
+                                              (map first (take 82 (reverse (sort-by second (:digram-distribution statistics)))))]
+                                          (layouts/with-margin 40
+                                            (layouts/vertically-2 {:margin 10}
+                                                                  (ngram-view (first cocoa-key-code-to-characters)
+                                                                              (first character-to-cocoa-key-codes)
+                                                                              n-gram)
+                                                                  (ngram-view (second cocoa-key-code-to-characters)
+                                                                              (second character-to-cocoa-key-codes)
+                                                                              n-gram))))
+                                        )
+
+                          ;;                          [n-gram-flow statistics cocoa-key-code-to-characters character-to-cocoa-key-codes]
+                          )))
+
+(def test-events '({:y 516, :shift false, :key :udefied, :alt false, :time 1715012242345, :type :mouse-moved, :source :mouse, :cotrol false, :x 604} {:y 518, :shift false, :key :udefied, :alt false, :time 1715012242352, :type :mouse-moved, :source :mouse, :cotrol false, :x 608} {:y 518, :shift false, :key :udefied, :alt false, :time 1715012242353, :type :mouse-moved, :source :mouse, :cotrol false, :x 608} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242360, :type :mouse-moved, :source :mouse, :cotrol false, :x 614} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242361, :type :mouse-moved, :source :mouse, :cotrol false, :x 614} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242369, :type :mouse-moved, :source :mouse, :cotrol false, :x 618} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242369, :type :mouse-moved, :source :mouse, :cotrol false, :x 618} {:y 522, :shift false, :key :udefied, :alt false, :time 1715012242377, :type :mouse-moved, :source :mouse, :cotrol false, :x 624} {:y 522, :shift false, :key :udefied, :alt false, :time 1715012242377, :type :mouse-moved, :source :mouse, :cotrol false, :x 624} {:y 524, :shift false, :key :udefied, :alt false, :time 1715012242385, :type :mouse-moved, :source :mouse, :cotrol false, :x 628} {:y 524, :shift false, :key :udefied, :alt false, :time 1715012242385, :type :mouse-moved, :source :mouse, :cotrol false, :x 628} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242393, :type :mouse-moved, :source :mouse, :cotrol false, :x 634} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242394, :type :mouse-moved, :source :mouse, :cotrol false, :x 634} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242401, :type :mouse-moved, :source :mouse, :cotrol false, :x 638} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242402, :type :mouse-moved, :source :mouse, :cotrol false, :x 638} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242409, :type :mouse-moved, :source :mouse, :cotrol false, :x 646} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242410, :type :mouse-moved, :source :mouse, :cotrol false, :x 646} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242417, :type :mouse-moved, :source :mouse, :cotrol false, :x 650} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242418, :type :mouse-moved, :source :mouse, :cotrol false, :x 650} {:y 530, :shift false, :key :udefied, :alt false, :time 1715012242425, :type :mouse-moved, :source :mouse, :cotrol false, :x 654}))
+
+(defn random-mouse-move-event []
+  {:y (rand-int 1000), :shift false, :key :udefied, :alt false, :time (System/currentTimeMillis), :type :mouse-moved, :source :mouse, :cotrol false, :x (rand-int 1000)})
+
+(defn interval [framerate]
+  (let [millisecond 1000000]
+    (/ (* 1000 millisecond)
+       framerate)))
+
+
+
+(def stack "java/lang/Thread.run;java/lang/Thread.runWith;clojure/lang/AFn.run;nrepl/middleware/session$session_exec$main_loop__20298.invoke;nrepl/middleware/session$session_exec$main_loop__20298$fn__20302.invoke;clojure/lang/AFn.run;nrepl/middleware/interruptible_eval$interruptible_eval$fn__20228$fn__20232.invoke;nrepl/middleware/interruptible_eval$evaluate.invoke;nrepl/middleware/interruptible_eval$evaluate.invokeStatic;clojure/lang/RestFn.invoke;clojure/main$repl.doInvoke;clojure/main$repl.invokeStatic;clojure/main$repl$fn__9215.invoke;clojure/main$repl$read_eval_print__9206.invoke;clojure/main$repl$read_eval_print__9206$fn__9209.invoke;nrepl/middleware/interruptible_eval$evaluate$fn__20195.invoke;clojure/lang/RestFn.invoke;clojure/core$with_bindings_STAR_.doInvoke;clojure/core$with_bindings_STAR_.invokeStatic;clojure/core$apply.invokeStatic;clojure/lang/AFn.applyTo;clojure/lang/AFn.applyToHelper;nrepl/middleware/interruptible_eval$evaluate$fn__20195$fn__20196.invoke;clojure/core$eval.invoke;clojure/core$eval.invokeStatic;clojure/lang/Compiler.eval;clojure/lang/Compiler.eval;layouter/core$eval57607.invoke;layouter/core$eval57607.invokeStatic;clojure/lang/RestFn.invoke;clojure/core$with_bindings_STAR_.doInvoke;clojure/core$with_bindings_STAR_.invokeStatic;clojure/core$apply.invokeStatic;clojure/lang/AFn.applyTo;clojure/lang/AFn.applyToHelper;layouter/core$eval57607$fn__57610.invoke;layouter/core$eval57607$fn__57610$fn__57615.invoke;fungl/application$application_loop_render_BANG_.invoke;fungl/application$application_loop_render_BANG_.invokeStatic;flow_gl/swing/window/SwingWindow.run_with_gl;fungl/application$application_loop_render_BANG_$fn__50302.invoke;fungl/application$render.invoke;fungl/application$render.invokeStatic;fungl/node_image_cache$render_recurring_nodes_to_images.invoke;fungl/node_image_cache$render_recurring_nodes_to_images.invokeStatic;flow_gl/gui/scene_graph$enumerate_nodes.invoke;flow_gl/gui/scene_graph$enumerate_nodes.invokeStatic;clojure/core$first__5449.invoke;clojure/core$first__5449.invokeStatic;clojure/lang/RT.first;clojure/lang/LazySeq.first;clojure/lang/LazySeq.seq;clojure/lang/LazySeq.sval;clojure/core$concat$fn__5558.invoke;clojure/core$seq__5467.invokeStatic;clojure/lang/RT.seq;clojure/lang/LazySeq.seq;clojure/lang/LazySeq.sval;clojure/core$concat$fn__5558.invoke;clojure/core$seq__5467.invokeStatic;clojure/lang/RT.seq;clojure/lang/LazySeq.seq;clojure/lang/LazySeq.sval;clojure/core$concat$fn__5558.invoke;clojure/core$seq__5467.invokeStatic;clojure/lang/RT.seq;clojure/lang/LazySeq.seq;clojure/lang/LazySeq.sval;clojure/core$concat$fn__5558.invoke;clojure/core$seq__5467.invokeStatic;clojure/lang/RT.seq;clojure/lang/LazySeq.seq;clojure/lang/LazySeq.sval;clojure/core$concat$fn__5558.invoke;clojure/core$seq__5467.invokeStatic;")
+
+(defn optimized-layout-comparizon-view []
+  [#'layout-comparison-view
+   [(named-layout-to-named-layout-atom (first @optimized-layouts-atom))
+    (named-layout-to-named-layout-atom (first @optimized-layouts-atom))]
+   hybrid-statistics])
+
+(defn toggle-pad-mouse-event-handler [state-atom _node event]
+  (when (= :mouse-pressed (:type event))
+    (swap! state-atom not))
+  event)
+
+(defn toggle-pad []
+  (let [state-atom (dependable-atom/atom false)]
+    (fn []
+      (assoc (visuals/rectangle-2 {:fill-color (if @state-atom
+                                                 [255 255 255 255]
+                                                 [155 155 155 255])})
+             :width 100
+             :height 100
+             :mouse-event-handler (fn [_node event]
+                                    (when (= :mouse-pressed (:type event))
+                                      (swap! state-atom not))
+                                    event) #_[toggle-pad-mouse-event-handler state-atom]))))
+
+(defn cache-test-view []
+  (layouts/horizontally-2 {:margin 10}
+                          (layouts/horizontally-2 {:margin 10}
+                                                  (layouts/vertically-2 {:margin 10}
+                                                                        [toggle-pad]
+                                                                        [toggle-pad])
+                                                  (layouts/vertically-2 {:margin 10}
+                                                                        [toggle-pad]
+                                                                        [toggle-pad]))
+                          (layouts/horizontally-2 {:margin 10}
+                                                  (layouts/vertically-2 {:margin 10}
+                                                                        [toggle-pad]
+                                                                        [toggle-pad])
+                                                  (layouts/vertically-2 {:margin 10}
+                                                                        [toggle-pad]
+                                                                        [toggle-pad]))))
+
+(defn cache-test-view-2 []
+  (let [state-atom (dependable-atom/atom {:1 0
+                                          :2 0})]
+    (fn []
+      (layouts/vertically-2 {:margin 10}
+                            {:node [text "1"]
+                             :mouse-event-handler (fn [_node event]
+                                                    (when (= :mouse-pressed (:type event))
+                                                      (swap! state-atom update :1 inc))
+                                                    event)}
+                            {:node [text "2"]
+                             :mouse-event-handler (fn [_node event]
+                                                    (when (= :mouse-pressed (:type event))
+                                                      (swap! state-atom update :2 inc))
+                                                    event)}
+                            [text (:1 @state-atom)]
+                            [text (:2 @state-atom)]))))
+
+
+(def pad-1-toggle-event {:y 56, :shift false, :local-x 50, :key :unknown, :alt false, :time 1715350496806, :local-y 56, :type :mouse-pressed, :source :mouse, :control false, :x 50, :handling-phase :on-target})
+(def pad-2-toggle-event {:y 180, :shift false, :local-x 50, :key :unknown, :alt false, :time 1715350498487, :local-y 70, :type :mouse-pressed, :source :mouse, :control false, :x 50, :handling-phase :on-target})
+(def mouse-move-event {:y 61, :shift false, :cotrol false, :key :udefied, :alt false, :time 1715350606209, :type :mouse-moved, :source :mouse, :x 496})
+
+;; here
+
+(deftest test-scene-graph
+  (with-bindings (application/create-bindings (fn []
+                                                (box )))
+
+    (let [scene-graph (:scene-graph @application/application-loop-state-atom)]
+      (application/handle-events! [mouse-move-event])
+      (is (identical? scene-graph
+                      (:scene-graph @application/application-loop-state-atom)))
+
+      (println "---------- togling pad 1")
+      (application/handle-events! [pad-1-toggle-event])
+
+      (is (not (identical? scene-graph (:scene-graph @application/application-loop-state-atom))))
+
+      (is (= (-> scene-graph :children second)
+             (-> @application/application-loop-state-atom :scene-graph :children second)))
+
+      (prn (-> scene-graph :children second :id)
+           (System/identityHashCode (-> scene-graph :children second))
+           (System/identityHashCode (-> @application/application-loop-state-atom :scene-graph :children second))) ;; TODO: remove me
+
+      (is (identical? (-> scene-graph :children second)
+                      (-> @application/application-loop-state-atom :scene-graph :children second))))
+
+    (application/close-window! (:window @application/application-loop-state-atom))))
+
+(deftest test-cache
+  (println "\n\n------------ start test") ;; TODO: remove me
+
+  (with-bindings (application/create-bindings #'cache-test-view)
+
+    (let [scene-graph (:scene-graph @application/application-loop-state-atom)]
+      (application/handle-events! [mouse-move-event])
+      (is (identical? scene-graph
+                      (:scene-graph @application/application-loop-state-atom)))
+
+      (println "---------- togling pad 1")
+      (application/handle-events! [pad-1-toggle-event])
+
+      (is (not (identical? scene-graph (:scene-graph @application/application-loop-state-atom))))
+
+      (is (= (-> scene-graph :children second)
+             (-> @application/application-loop-state-atom :scene-graph :children second)))
+
+      (prn (-> scene-graph :children second :id)
+           (System/identityHashCode (-> scene-graph :children second))
+           (System/identityHashCode (-> @application/application-loop-state-atom :scene-graph :children second))) ;; TODO: remove me
+
+      (is (identical? (-> scene-graph :children second)
+                      (-> @application/application-loop-state-atom :scene-graph :children second))))
+
+    (application/close-window! (:window @application/application-loop-state-atom))))
+
 
 (comment
+  ;; here
   (start-view (fn []
-                [#'layout-comparison-view
-                 [(named-layout-to-named-layout-atom (first @optimized-layouts-atom))
-                  (named-layout-to-named-layout-atom (first @optimized-layouts-atom))]
-                 hybrid-statistics]))
+                [#'cache-test-view-2]))
+
+  (test-cache)
 
   )
 
 
+(comment
 
+
+  (string/split stack #";")
+
+
+  (let [event-channel (application/start-application (fn []
+                                                       [#'layout-comparison-view
+                                                        [(named-layout-to-named-layout-atom (first @optimized-layouts-atom))
+                                                         (named-layout-to-named-layout-atom (first @optimized-layouts-atom))]
+                                                        hybrid-statistics]))]
+    (doseq [event (take 1 @application/events-atom)]
+      (async/>!! event-channel
+                 event))
+
+    (prn 'start-profiling) ;; TODO: remove me
+
+    ;; (clj-async-profiler/profile {:interval 1000000}
+    ;;               (doseq [event (take 1 @application/events-atom)]
+    ;;                 (async/>!! event-channel
+    ;;                            event)))
+
+    (prn 'end-profiling) ;; TODO: remove me
+
+    (doseq [event (take 1 @application/events-atom)]
+      (async/>!! event-channel
+                 event))
+
+    (async/>!! event-channel
+               {:type :close-requested}))
+
+  (let [event-channel (application/start-application (fn []
+                                                       [#'layout-comparison-view
+                                                        [(named-layout-to-named-layout-atom (first @optimized-layouts-atom))
+                                                         (named-layout-to-named-layout-atom (first @optimized-layouts-atom))]
+                                                        hybrid-statistics]))]
+
+    (doseq [event (take 10 @application/events-atom)]
+      (logga/write 'sending-event event) ;; TODO: remove me
+
+      (async/>!! event-channel
+                 event))
+    ;;    (Thread/sleep 1000)
+
+    (async/>!! event-channel
+               {:type :close-requested}))
+
+  (clj-async-profiler/serve-ui 9898)
+
+  (count test-events)
+  (with-bindings (application/create-bindings (fn []
+                                                [#'layout-comparison-view
+                                                 [(named-layout-to-named-layout-atom (first @optimized-layouts-atom))
+                                                  (named-layout-to-named-layout-atom (first @optimized-layouts-atom))]
+                                                 hybrid-statistics]))
+
+    (application/handle-events! #_[{:type :resize-requested, :width 3780.0, :height 3278.0}]
+                                (application/read-events (window/event-channel (:window @application/application-loop-state-atom))
+                                                         60)
+                                ;;(take 1 @application/events-atom)
+                                )
+
+    ;; (application/application-loop-render!)
+
+    (doseq [event (repeatedly 1 random-mouse-move-event) #_(take 100 test-events)]
+      (application/handle-events! [event])
+      (application/application-loop-render!))
+
+    (logga/write "start profiling")
+    (clj-async-profiler/profile {:event :cpu #_:alloc
+                                 :interval (interval 1000)}
+                                (doseq [event (repeatedly 50 random-mouse-move-event) #_(take 2 test-events)]
+                                  (application/handle-events! [event])
+                                  (application/application-loop-render!))
+
+                                ;; (application/handle-events! (take 10 @application/events-atom))
+                                ;; (application/application-loop-render!)
+                                )
+    (logga/write "end profiling")
+
+    ;; (application/handle-events! (take 100 @application/events-atom))
+    ;; (application/application-loop-render!)
+    (application/close-window! (:window @application/application-loop-state-atom))
+    )
+  )
+
+(defn add-optimized-layout [multipliers statistics]
+  (swap! optimized-layouts-atom
+         conj
+         (optimize-named-layout-with-multipliers multipliers
+                                                 statistics))
+  (refresh-view!))
 
 (def common-multipliers
   {:digram-roll 1, :trigram-roll 1, :key-rating 1, :finger-type 1, :horizontal-movement 1, :vertical-movement 1, :hand-balance 1}
@@ -2611,18 +2896,70 @@
 
 (comment
 
+  ;; here
+
   (reset! optimized-layouts-atom [])
+  (add-optimized-layout {:digram-roll 0.8, :trigram-roll 0, :key-rating 1, :finger-type 0.1, :horizontal-movement 0, :vertical-movement 0, :hand-balance 0.1}
+                        hybrid-statistics)
 
-  (do (reset! optimized-layouts-atom [(optimize-named-layout-with-multipliers {:digram-roll 0, :trigram-roll 0, :key-rating 1, :finger-type 0.1, :horizontal-movement 0, :vertical-movement 0, :hand-balance 0}
-                                                                              hybrid-statistics)])
-      (refresh-view!))
+  (do (def named-layout-atom-1 (named-layout-to-named-layout-atom (first @optimized-layouts-atom)))
+      (def named-layout-atom-2 (named-layout-to-named-layout-atom (first @optimized-layouts-atom)))
+      (start-view (fn []
+                    [#'layout-comparison-view
+                     [named-layout-atom-1
+                      named-layout-atom-2]
+                     hybrid-statistics])))
+
+  (clojure.data/diff @(:layout-atom named-layout-atom-1)
+                     @(:layout-atom named-layout-atom-2))
+
+  (->> (describe-layout-rating hybrid-statistics
+                               @(:layout-atom named-layout-atom-2))
+       :distributions
+       :digrams
+       (filter (fn [digram]
+                 (= :same-finger-one-row-leap
+                    (:label (meldey/find-first (fn [rating]
+                                                 (= :vertical-movement
+                                                    (:rating rating)))
+                                               (-> digram :ratings))))))
+       (map (fn [digram]
+              (-> digram :propability first))))
 
 
-  (do (swap! optimized-layouts-atom
-             conj
-             (optimize-named-layout-with-multipliers {:digram-roll 0.8, :trigram-roll 0, :key-rating 1, :finger-type 0.1, :horizontal-movement 0, :vertical-movement 0, :hand-balance 0.1}
-                                                     hybrid-statistics))
-      (refresh-view!))
+  (->> (describe-layout-rating hybrid-statistics
+                               @(:layout-atom named-layout-atom-1))
+       :distributions
+       :digrams
+       (sort-by (fn [digram]
+                  (-> digram :propability second))
+                #(compare %2 %1)))
+
+  (->> (describe-layout-rating hybrid-statistics
+                               @(:layout-atom named-layout-atom-1))
+       :distributions
+       :digrams
+       (map (fn [digram]
+              (meldey/find-first (fn [rating]
+                                   (= :vertical-movement
+                                      (:rating rating)))
+                                 (-> digram :ratings))))
+
+       (map :label)
+       (frequencies))
+
+  ;; => {:different-hand 125,
+  ;;     :same-row 66,
+  ;;     :different-finger-one-row-leap 61,
+  ;;     :same-finger-one-row-leap 15,
+  ;;     :different-finger-two-row-leap 6}
+
+  ;; => {:different-hand 125,
+  ;;     :same-row 66,
+  ;;     :different-finger-one-row-leap 67,
+  ;;     :same-finger-one-row-leap 9,
+  ;;     :different-finger-two-row-leap 6}
+
   )
 
 (defn layout-comparison-views []
@@ -2675,9 +3012,6 @@
 (comment
   (start-layout-comparison-view)
   )
-
-
-
 
 
 (comment
@@ -3116,10 +3450,7 @@
   ;;                                        :on-exit #(reset! event-channel-atom nil)))
   )
 
-(defn refresh-view! []
-  (when @event-channel-atom
-    (async/>!! @event-channel-atom
-               {:type :redraw})))
+
 
 (refresh-view!)
 
