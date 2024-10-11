@@ -73,10 +73,10 @@
               {:key-code "9" :modifiers ["left_shift"]} ;; )
 
               {:key-code "c"}
-              {:key-code "grave_accent_and_tilde"} ;; <
+              {:key-code "non_us_backslash"} ;; <
 
               {:key-code "c" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "grave_accent_and_tilde" :modifiers ["left_shift"]} ;; >
+              {:key-code "non_us_backslash" :modifiers ["left_shift"]} ;; >
 
               {:key-code "z"}
               {:key-code "1" :modifiers ["left_shift"]} ;; !
