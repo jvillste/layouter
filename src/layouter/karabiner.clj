@@ -34,6 +34,15 @@
                                       from
                                       to)))})
 
+(defn shell-command [modifiers key-code shell-command]
+  {:description shell-command,
+   :manipulators
+   [{:type "basic",
+     :from
+     {:key-code key-code,
+      :modifiers {:mandatory modifiers, :optional []}},
+     :to [{:shell-command shell-command}]}]})
+
 (def rules [{:description "control-m to enter",
              :manipulators
              [{:type "basic",
@@ -54,10 +63,10 @@
               {:key-code "grave_accent_and_tilde"
                :modifiers {:mandatory [], :optional ["any"]}}
 
-              {:key-code "s"}
+              {:key-code "g"}
               {:key-code "8" :modifiers ["left_shift" "left_option"]} ;; {
 
-              {:key-code "s" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "g" :modifiers {:mandatory ["left_command"]}}
               {:key-code "9" :modifiers ["left_shift" "left_option"]} ;; }
 
               {:key-code "d"}
@@ -248,7 +257,38 @@
               {:key-code "2" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "period" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "3" :modifiers ["left_control" "left_shift"]})])
+              {:key-code "3" :modifiers ["left_control" "left_shift"]})
+
+            (shell-command ["right_command"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils convert-clipboard-to-plain-text\"")
+            (shell-command ["right_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils clean-up-jira-issue-title-in-clipboard\"")
+
+            (shell-command ["right_command"] "a" "/opt/homebrew/bin/yabai -m space --layout bsp")
+            (shell-command ["right_command"] "s" "/opt/homebrew/bin/yabai -m space --layout stack")
+            (shell-command ["right_command"] "q" "/opt/homebrew/bin/yabai -m space --layout float")
+
+            (shell-command ["right_command"] "d" "/opt/homebrew/bin/yabai -m window --toggle split")
+            (shell-command ["right_command"] "r" "/opt/homebrew/bin/yabai -m window --toggle float")
+            (shell-command ["right_command"] "u" "/opt/homebrew/bin/yabai -m space --rotate 90")
+            (shell-command ["right_command"] "y" "/opt/homebrew/bin/yabai -m space --mirror x-axis")
+            (shell-command ["right_command"] "h" "/opt/homebrew/bin/yabai -m space --mirror y-axis")
+            (shell-command ["right_command"] "l" "/opt/homebrew/bin/yabai -m space --balance")
+            (shell-command ["right_command"] "j" "/opt/homebrew/bin/yabai -m window --focus next || yabai -m window --focus first")
+            (shell-command ["right_command"] "k" "/opt/homebrew/bin/yabai -m window --focus prev || yabai -m window --focus last")
+            (shell-command ["right_command"] "n" "/opt/homebrew/bin/yabai -m window --swap next || yabai -m window --swap first")
+            (shell-command ["right_command"] "m" "/opt/homebrew/bin/yabai -m window --swap prev || yabai -m window --swap last")
+            (shell-command ["right_command"] "o" "/opt/homebrew/bin/yabai -m window --insert north")
+            (shell-command ["right_command"] "z" "/opt/homebrew/bin/displayplacer \"id:1C794DBC-DA89-41CD-B7DB-71583EBC644E degree:0\"")
+            (shell-command ["right_command"] "x" "/opt/homebrew/bin/displayplacer \"id:1C794DBC-DA89-41CD-B7DB-71583EBC644E degree:90\"")
+            (shell-command ["right_command" "left_shift"] "k" "/opt/homebrew/bin/yabai -m window --focus stack.next || yabai -m window --focus stack.first")
+            (shell-command ["right_command" "left_shift"] "j" "/opt/homebrew/bin/yabai -m window --focus stack.prev || yabai -m window --focus stack.last")
+
+            (shell-command ["right_command" "left_shift"] "p" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard p\"")
+            (shell-command ["right_command" "left_shift"] "i" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard d\"")
+            (shell-command ["right_command" "left_shift"] "o" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard di\"")
+            (shell-command ["right_command" "left_shift"] "d" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard de\"")
+
+
+            ])
 
 (defn update-config-file []
   (spit config-file-path
