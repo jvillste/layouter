@@ -211,23 +211,6 @@
 
               ;; workspaces
 
-              {:key-code "u" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "7" :modifiers ["left_control"]}
-
-              {:key-code "i" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "8" :modifiers ["left_control"]}
-
-              {:key-code "o" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "9" :modifiers ["left_control"]}
-
-              {:key-code "j" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "4" :modifiers ["left_control"]}
-
-              {:key-code "k" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "5" :modifiers ["left_control"]}
-
-              {:key-code "l" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "6" :modifiers ["left_control"]}
 
               {:key-code "m" :modifiers {:mandatory ["right_command"]}}
               {:key-code "1" :modifiers ["left_control"]}
@@ -238,17 +221,30 @@
               {:key-code "period" :modifiers {:mandatory ["right_command"]}}
               {:key-code "3" :modifiers ["left_control"]}
 
+
+              {:key-code "j" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "4" :modifiers ["left_control"]}
+
+              {:key-code "k" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "5" :modifiers ["left_control"]}
+
+              {:key-code "l" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "6" :modifiers ["left_control"]}
+
+
+              {:key-code "u" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "7" :modifiers ["left_control"]}
+
+              {:key-code "i" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "8" :modifiers ["left_control"]}
+
+              {:key-code "o" :modifiers {:mandatory ["right_command"]}}
+              {:key-code "9" :modifiers ["left_control"]}
+
+
               {:key-code "semicolon" :modifiers {:mandatory ["right_command"]}}
               {:key-code "0" :modifiers ["left_control"]}
 
-              {:key-code "u" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "7" :modifiers ["left_control" "left_shift"]}
-
-              {:key-code "i" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "8" :modifiers ["left_control" "left_shift"]}
-
-              {:key-code "o" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "9" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "m" :modifiers {:mandatory ["left_command"]}}
               {:key-code "1" :modifiers ["left_control" "left_shift"]}
@@ -257,7 +253,19 @@
               {:key-code "2" :modifiers ["left_control" "left_shift"]}
 
               {:key-code "period" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "3" :modifiers ["left_control" "left_shift"]})
+              {:key-code "3" :modifiers ["left_control" "left_shift"]}
+
+
+              {:key-code "u" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "4" :modifiers ["left_control" "left_shift"]}
+
+              {:key-code "i" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "5" :modifiers ["left_control" "left_shift"]}
+
+              {:key-code "o" :modifiers {:mandatory ["left_command"]}}
+              {:key-code "6" :modifiers ["left_control" "left_shift"]}
+
+              )
 
             (shell-command ["right_command"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils convert-clipboard-to-plain-text\"")
             (shell-command ["right_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils clean-up-jira-issue-title-in-clipboard\"")
