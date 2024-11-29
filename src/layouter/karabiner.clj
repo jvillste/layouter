@@ -76,7 +76,7 @@
     ["left_control"]
     ["left_shift" "left_control"]))
 
-(defn workspace [workspace-number key modifier]
+(defn workspace [workspace-number modifier key]
   [{:key-code key :modifiers {:mandatory [modifier]}}
    {:key-code (workspace-key-code workspace-number) :modifiers (workspace-modifiers workspace-number)}
    {:key-code key :modifiers {:mandatory ["left_shift" modifier]}}
@@ -249,22 +249,22 @@
 
               ;; workspaces
 
-              (workspace 1 "m" "right_command")
-              (workspace 2 "comma" "right_command")
-              (workspace 3 "period" "right_command")
-              (workspace 4 "j" "right_command")
-              (workspace 5 "k" "right_command")
-              (workspace 6 "l" "right_command")
-              (workspace 7 "u" "right_command")
-              (workspace 8 "i" "right_command")
-              (workspace 9 "o" "right_command")
-              (workspace 10 "semicolon" "right_command")
-              (workspace 11 "m" "left_command")
-              (workspace 12 "comma" "left_command")
-              (workspace 13 "period" "left_command")
-              (workspace 14 "u" "left_command")
-              (workspace 15 "i" "left_command")
-              (workspace 16 "o" "left_command"))
+              (workspace 1 "right_command" "m")
+              (workspace 2 "right_command" "comma")
+              (workspace 3 "right_command" "period")
+              (workspace 4 "right_command" "j")
+              (workspace 5 "right_command" "k")
+              (workspace 6 "right_command" "l")
+              (workspace 7 "right_command" "u")
+              (workspace 8 "right_command" "i")
+              (workspace 9 "right_command" "o")
+              (workspace 10 "right_command" "semicolon")
+              (workspace 11 "left_command" "m")
+              (workspace 12 "left_command" "comma")
+              (workspace 13 "left_command" "period")
+              (workspace 14 "left_command" "u")
+              (workspace 15 "left_command" "i")
+              (workspace 16 "left_command" "o"))
 
             (shell-command ["right_command"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils convert-clipboard-to-plain-text\"")
             (shell-command ["right_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils clean-up-jira-issue-title-in-clipboard\"")
