@@ -1,7 +1,8 @@
 (ns layouter.karabiner
   (:require [jsonista.core :as jsonista]
             [clojure.java.io :as io]
-            [camel-snake-kebab.core :as camel-snake-kebab]))
+            [camel-snake-kebab.core :as camel-snake-kebab]
+            [clojure.test :refer [deftest is]]))
 
 (defn read-json-string [string]
   (jsonista/read-value (io/input-stream (.getBytes string
@@ -23,13 +24,30 @@
    :from from,
    :to [to]})
 
+(defn expand-vectors [values]
+  (loop [expanded-values []
+         remaining-values values]
+    (if-let [value (first remaining-values)]
+      (if (vector? value)
+        (recur (concat expanded-values
+                       value)
+               (rest remaining-values))
+        (recur (concat expanded-values
+                       [value])
+               (rest remaining-values)))
+      expanded-values)))
+
+(deftest test-expand-vectors
+  (is (= '(1 2 3 4)
+         (expand-vectors [1 [2 3] 4]))))
+
 (defn define-layer [layer-name from & mappings]
   {:description layer-name,
    :manipulators (concat [{:type "basic",
                            :from from,
                            :to-after-key-up [{:set-variable {:name layer-name, :value 0}}],
                            :to [{:set-variable {:name layer-name, :value 1}}]}]
-                         (for [[from to] (partition 2 mappings)]
+                         (for [[from to] (partition 2 (expand-vectors mappings))]
                            (layer-key layer-name
                                       from
                                       to)))})
@@ -42,6 +60,27 @@
      {:key-code key-code,
       :modifiers {:mandatory modifiers, :optional []}},
      :to [{:shell-command shell-command}]}]})
+
+(defn workspace-key-code [workspace-number]
+  (str (mod workspace-number 10)))
+
+(deftest test-workspace-key-code
+  (is (= "1"
+         (workspace-key-code 1)))
+
+  (is (= "0"
+         (workspace-key-code 10))))
+
+(defn workspace-modifiers [workspace-number]
+  (if (>= 10 workspace-number)
+    ["left_control"]
+    ["left_shift" "left_control"]))
+
+(defn workspace [workspace-number key modifier]
+  [{:key-code key :modifiers {:mandatory [modifier]}}
+   {:key-code (workspace-key-code workspace-number) :modifiers (workspace-modifiers workspace-number)}
+   {:key-code key :modifiers {:mandatory ["left_shift" modifier]}}
+   {:shell-command (str "/opt/homebrew/bin/yabai -m window --space " workspace-number)}])
 
 (def rules [{:description "control-m to enter",
              :manipulators
@@ -60,8 +99,7 @@
                :to [{:key-code "delete_or_backspace"}]}]}
 
             (define-layer "layer 1"
-              {:key-code "grave_accent_and_tilde"
-               :modifiers {:mandatory [], :optional ["any"]}}
+              {:key-code "grave_accent_and_tilde" :modifiers {:mandatory [], :optional ["any"]}}
 
               {:key-code "g"}
               {:key-code "8" :modifiers ["left_shift" "left_option"]} ;; {
@@ -211,61 +249,22 @@
 
               ;; workspaces
 
-
-              {:key-code "m" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "1" :modifiers ["left_control"]}
-
-              {:key-code "comma" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "2" :modifiers ["left_control"]}
-
-              {:key-code "period" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "3" :modifiers ["left_control"]}
-
-
-              {:key-code "j" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "4" :modifiers ["left_control"]}
-
-              {:key-code "k" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "5" :modifiers ["left_control"]}
-
-              {:key-code "l" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "6" :modifiers ["left_control"]}
-
-
-              {:key-code "u" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "7" :modifiers ["left_control"]}
-
-              {:key-code "i" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "8" :modifiers ["left_control"]}
-
-              {:key-code "o" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "9" :modifiers ["left_control"]}
-
-
-              {:key-code "semicolon" :modifiers {:mandatory ["right_command"]}}
-              {:key-code "0" :modifiers ["left_control"]}
-
-
-              {:key-code "m" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "1" :modifiers ["left_control" "left_shift"]}
-
-              {:key-code "comma" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "2" :modifiers ["left_control" "left_shift"]}
-
-              {:key-code "period" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "3" :modifiers ["left_control" "left_shift"]}
-
-
-              {:key-code "u" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "4" :modifiers ["left_control" "left_shift"]}
-
-              {:key-code "i" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "5" :modifiers ["left_control" "left_shift"]}
-
-              {:key-code "o" :modifiers {:mandatory ["left_command"]}}
-              {:key-code "6" :modifiers ["left_control" "left_shift"]}
-
-              )
+              (workspace 1 "m" "right_command")
+              (workspace 2 "comma" "right_command")
+              (workspace 3 "period" "right_command")
+              (workspace 4 "j" "right_command")
+              (workspace 5 "k" "right_command")
+              (workspace 6 "l" "right_command")
+              (workspace 7 "u" "right_command")
+              (workspace 8 "i" "right_command")
+              (workspace 9 "o" "right_command")
+              (workspace 10 "semicolon" "right_command")
+              (workspace 11 "m" "left_command")
+              (workspace 12 "comma" "left_command")
+              (workspace 13 "period" "left_command")
+              (workspace 14 "u" "left_command")
+              (workspace 15 "i" "left_command")
+              (workspace 16 "o" "left_command"))
 
             (shell-command ["right_command"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils convert-clipboard-to-plain-text\"")
             (shell-command ["right_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils clean-up-jira-issue-title-in-clipboard\"")
@@ -294,7 +293,6 @@
             (shell-command ["right_command" "left_shift"] "i" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard d\"")
             (shell-command ["right_command" "left_shift"] "o" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard di\"")
             (shell-command ["right_command" "left_shift"] "d" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard de\"")
-
 
             ])
 
