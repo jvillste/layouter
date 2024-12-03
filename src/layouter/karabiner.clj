@@ -268,6 +268,7 @@
 
             (shell-command ["right_command"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils convert-clipboard-to-plain-text\"")
             (shell-command ["right_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils clean-up-jira-issue-title-in-clipboard\"")
+            (shell-command ["left_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils jira-issue-title-to-branch-name-in-clipboard\"")
 
             (shell-command ["right_command"] "a" "/opt/homebrew/bin/yabai -m space --layout bsp")
             (shell-command ["right_command"] "s" "/opt/homebrew/bin/yabai -m space --layout stack")
