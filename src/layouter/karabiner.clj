@@ -98,6 +98,22 @@
                 :modifiers {:mandatory ["left_control"], :optional ["any"]}},
                :to [{:key-code "delete_or_backspace"}]}]}
 
+            {:description "caps lock to control",
+             :manipulators
+             [{:type "basic",
+               :from
+               {:key-code "caps_lock",
+                :modifiers {:optional ["any"]}},
+               :to [{:key-code "left_control"}]}]}
+
+            {:description "left command e to caps lock",
+             :manipulators
+             [{:type "basic",
+               :from
+               {:key-code "e",
+                :modifiers {:mandatory ["left_command"] :optional ["caps_lock"]}},
+               :to [{:key-code "caps_lock"}]}]}
+
             (define-layer "layer 1"
               {:key-code "grave_accent_and_tilde" :modifiers {:mandatory [], :optional ["any"]}}
 
@@ -246,7 +262,6 @@
               {:key-code "e" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open -n /Applications/Emacs.app"}
 
-
               ;; workspaces
 
               (workspace 1 "right_command" "m")
@@ -309,7 +324,7 @@
             (write-json-string))))
 
 (comment
-
   (update-config-file)
+
 
   (read-json-string (slurp "temp/rule.json")))
