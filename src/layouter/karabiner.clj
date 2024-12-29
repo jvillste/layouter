@@ -22,7 +22,9 @@
                  :name layer
                  :value 1}]
    :from from,
-   :to [to]})
+   :to (if (list? to)
+         (vec to)
+         [to])})
 
 (defn expand-vectors [values]
   (loop [expanded-values []
@@ -185,6 +187,10 @@
 
               {:key-code "open_bracket"}
               {:key-code "backslash" :modifiers ["left_shift"]} ;; *
+
+              {:key-code "open_bracket" :modifiers {:mandatory ["left_command"]}}
+              (list {:key-code "close_bracket" :modifiers ["left_option"]} ;; ~
+                    {:key-code "spacebar"})
 
               {:key-code "slash"}
               {:key-code "hyphen" :modifiers ["left_shift"]} ;; ?
