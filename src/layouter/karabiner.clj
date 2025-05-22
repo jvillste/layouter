@@ -260,13 +260,13 @@
               {:shell-command "open '/Applications/Google Chrome.app'"}
 
               {:key-code "t" :modifiers {:mandatory ["right_command"]}}
-              {:shell-command "open '/System/Applications/Utilities/Terminal.app'"}
+              {:shell-command "open -n '/System/Applications/Utilities/Terminal.app'"}
 
               {:key-code "f" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open '/System/Library/CoreServices/Finder.app'"}
 
               {:key-code "e" :modifiers {:mandatory ["right_command"]}}
-              {:shell-command "open -n /Applications/Emacs.app"}
+              {:shell-command "open -n /opt/homebrew/Cellar/emacs-mac/emacs-29.1-mac-10.0/Emacs.app"}
 
               ;; workspaces
 
@@ -288,8 +288,8 @@
               (workspace 16 "left_command" "o"))
 
             (shell-command ["right_command"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils convert-clipboard-to-plain-text\"")
-            (shell-command ["right_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils clean-up-jira-issue-title-in-clipboard\"")
-            (shell-command ["left_command" "left_shift"] "c" "zsh --login -c \"jenv exec /Users/jukka/bin/utils jira-issue-title-to-branch-name-in-clipboard\"")
+            (shell-command ["right_command"] "d" "zsh --login -c \"jenv exec /Users/jukka/bin/utils clean-up-jira-issue-title-in-clipboard\"")
+            (shell-command ["right_command"] "w" "zsh --login -c \"jenv exec /Users/jukka/bin/utils jira-issue-title-to-branch-name-in-clipboard\"")
 
             (shell-command ["right_command"] "a" "/opt/homebrew/bin/yabai -m space --layout bsp")
             (shell-command ["right_command"] "s" "/opt/homebrew/bin/yabai -m space --layout stack")
@@ -311,6 +311,7 @@
             (shell-command ["right_command" "left_shift"] "k" "/opt/homebrew/bin/yabai -m window --focus stack.next || /opt/homebrew/bin/yabai -m window --focus stack.first")
             (shell-command ["right_command" "left_shift"] "j" "/opt/homebrew/bin/yabai -m window --focus stack.prev || /opt/homebrew/bin/yabai -m window --focus stack.last")
 
+            (shell-command ["right_command" "left_shift"] "a" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard a\"")
             (shell-command ["right_command" "left_shift"] "p" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard p\"")
             (shell-command ["right_command" "left_shift"] "i" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard d\"")
             (shell-command ["right_command" "left_shift"] "o" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard di\"")
