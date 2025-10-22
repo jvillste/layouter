@@ -1,3 +1,4 @@
+
 (ns layouter.karabiner
   (:require [jsonista.core :as jsonista]
             [clojure.java.io :as io]
@@ -265,8 +266,17 @@
               {:key-code "f" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open '/System/Library/CoreServices/Finder.app'"}
 
+              {:key-code "s" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open '/Applications/Slack.app'"}
+
+              {:key-code "h" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open '/Applications/HourTrack.app'"}
+
+              {:key-code "r" :modifiers {:mandatory ["right_command"]}}
+              {:shell-command "open '/Applications/Microsoft Outlook.app'"}
+
               {:key-code "e" :modifiers {:mandatory ["right_command"]}}
-              {:shell-command "open -n /opt/homebrew/Cellar/emacs-mac/emacs-29.1-mac-10.0/Emacs.app"}
+              {:shell-command "open -n /Applications/Emacs.app"}
 
               ;; workspaces
 
@@ -332,6 +342,5 @@
 
 (comment
   (update-config-file)
-
 
   (read-json-string (slurp "temp/rule.json")))
