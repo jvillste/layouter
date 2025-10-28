@@ -2950,12 +2950,13 @@
   #_{:digram-roll 0.5, :trigram-roll 0.0, :key-rating 1, :finger-type 0.2, :horizontal-movement 0.1, :vertical-movement 0.1, :hand-balance 0.1})
 
 
-(def chosen-layout qwerty)
+(defonce chosen-layout {:layout qwerty})
 
 (defn layout-excercise-view []
-  (let [statistics hybrid-statistics
-        cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character chosen-layout)
-        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code chosen-layout)
+  (let [layout (:layout chosen-layout)
+        statistics hybrid-statistics
+        cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
+        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
         state-atom (dependable-atom/atom {:character-count 4
                                           :typed-text ""
                                           :target-word (excercise/excericse-word 4 statistics)})]
@@ -2979,7 +2980,7 @@
                                                                             (string/join (drop-last typed-text)))))
 
                                    (when (and (= :up (:key event))
-                                              (> (count chosen-layout)
+                                              (> (count layout)
                                                  (:character-count @state-atom)))
                                      (swap! state-atom (fn [state]
                                                          (-> state
