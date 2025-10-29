@@ -1,6 +1,7 @@
 (ns layouter.excercise
   (:require
    [clojure.java.io :as io]
+   [clojure.string :as string]
    [clojure.test :refer [deftest is]])
   (:import
    [java.util.zip ZipInputStream]))
@@ -46,13 +47,15 @@
   (let [allowed-characters-set (set (map first allowed-characters))]
     (->> word-list
          (filter (fn [word]
-                   (every? allowed-characters-set (seq word)))))))
+                   (and (string/includes? word (last allowed-characters))
+                        (every? allowed-characters-set (seq word))))))))
 
 (deftest test-filter-words-by-characters
   (is (= '("ab")
          (filter-words-by-characters ["a" "b"]
                                      ["abc"
-                                      "ab"]))))
+                                      "ab"
+                                      "aa"]))))
 
 (defn excericse-word [number-of-characters statistics]
   (first (filter-words-by-characters (take-most-common-characters number-of-characters
