@@ -54,14 +54,14 @@
                     {:cocoa-key-code 17 :java-key-code 84       :finger 3 :class :regular    :row 0 :column 3  :qwerty-character "t" :disabled? false}
                     {:cocoa-key-code 31 :java-key-code 79       :finger 6 :class :regular    :row 0 :column 8  :qwerty-character "o" :disabled? false}
                     {:cocoa-key-code 32 :java-key-code 85       :finger 4 :class :regular    :row 0 :column 6  :qwerty-character "u" :disabled? false}
-                    {:cocoa-key-code 33 :java-key-code 16777445 :finger 7 :class :regular    :row 0 :column 10 :qwerty-character "å" :disabled? false}
+                    {:cocoa-key-code 33 :java-key-code 91       :finger 7 :class :regular    :row 0 :column 10 :qwerty-character "å" :disabled? false}
                     {:cocoa-key-code 34 :java-key-code 73       :finger 5 :class :regular    :row 0 :column 7  :qwerty-character "i" :disabled? false}
                     {:cocoa-key-code 35 :java-key-code 80       :finger 7 :class :regular    :row 0 :column 9  :qwerty-character "p" :disabled? false}
                     {:cocoa-key-code 37 :java-key-code 76       :finger 6 :class :home       :row 1 :column 8  :qwerty-character "l" :disabled? false}
                     {:cocoa-key-code 38 :java-key-code 74       :finger 4 :class :home       :row 1 :column 6  :qwerty-character "j" :disabled? false}
-                    {:cocoa-key-code 39 :java-key-code 16777444 :finger 7 :class :regular    :row 1 :column 10 :qwerty-character "ä" :disabled? false}
+                    {:cocoa-key-code 39 :java-key-code 222      :finger 7 :class :regular    :row 1 :column 10 :qwerty-character "ä" :disabled? false}
                     {:cocoa-key-code 40 :java-key-code 75       :finger 5 :class :home       :row 1 :column 7  :qwerty-character "k" :disabled? false}
-                    {:cocoa-key-code 41 :java-key-code 16777462 :finger 7 :class :home       :row 1 :column 9  :qwerty-character "ö" :disabled? false}
+                    {:cocoa-key-code 41 :java-key-code 59       :finger 7 :class :home       :row 1 :column 9  :qwerty-character "ö" :disabled? false}
                     {:cocoa-key-code 43 :java-key-code 44       :finger 5 :class :regular    :row 2 :column 7  :qwerty-character "," :disabled? true}
                     {:cocoa-key-code 44 :java-key-code 47       :finger 7 :class :regular    :row 2 :column 9  :qwerty-character "-" :disabled? true}
                     {:cocoa-key-code 45 :java-key-code 78       :finger 3 :class :sideways   :row 2 :column 5  :qwerty-character "n" :disabled? false}
@@ -203,7 +203,6 @@
                                 ["ä" "å" "ö"]))
 
 (def disabled-layout-characters #{"," "." "-" "<" "ö" "ä" "å"})
-(def qwerty-characters-for-disabled-keys #{"w" "y" "b"})
 
 (def layout-characters (set/difference (into #{} (map :character qwerty))
                                        disabled-layout-characters))
@@ -1202,23 +1201,6 @@
                             {:character "c" :cocoa-key-code 2}
                             {:character "d" :cocoa-key-code 3}})))
 
-
-(comment
-  (set/difference (set (remove :disabled? qwerty))
-                  (set (remove (fn [key]
-                                 (contains? qwerty-characters-for-disabled-keys
-                                            (:character key)))
-                               qwerty)))
-
-
-  (set/difference (set (->> qwerty
-                            (map :cocoa-key-code)
-                            (set)))
-                  (set (map :cocoa-key-code keyboard-keys)))
-
-
-
-  ) ;; TODO: remove me
 
 (defn random-layout [characters]
   (loop [remaining-cocoa-key-codes (sort (map :cocoa-key-code (remove :disabled? keyboard-keys)))
@@ -2952,8 +2934,17 @@
 
 (defonce chosen-layout {:layout qwerty})
 
-(defn- layout-excercise-view-body [state-atom statistics cocoa-key-code-to-character character-to-cocoa-key-code layout]
-  (let [characters (excercise/take-most-common-characters (:character-count @state-atom)
+(defn layout-excercise-view []
+  (let [layout (:layout chosen-layout)
+        statistics hybrid-statistics
+        cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
+        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
+        state-atom (dependable-atom/atom {:character-count 4
+                                          :typed-text ""
+                                          :cocoa-key-code-down nil
+                                          :target-word (excercise/excericse-word 4 statistics)})]
+    (fn []
+      (let [characters (excercise/take-most-common-characters (:character-count @state-atom)
                                                               (:character-distribution statistics))]
         {:node (black-background (layouts/center (layouts/vertically-2 {:margin 10 :centered? true}
                                                                        (text (:target-word @state-atom))
@@ -2965,14 +2956,23 @@
                                                                                                          [(character-to-cocoa-key-code character)
                                                                                                           [0 0 0 255]]))
                                                                                                  (assoc (character-to-cocoa-key-code (last characters))
-                                                                                                        [0.5 0 0 255]))))
+                                                                                                        [0.5 0 0 255])
+                                                                                                 (assoc (:cocoa-key-code-down @state-atom)
+                                                                                                        [0 0.8 0 255]))))
                                                                        (text (str (:character-count @state-atom)
                                                                                   " / "
                                                                                   (last characters))))))
          :can-gain-focus? true
          :keyboard-event-handler (fn [_subtree event]
+                                   (when (= :key-released
+                                            (:type event))
+                                     (swap! state-atom dissoc :cocoa-key-code-down))
+
                                    (when (= :key-pressed
                                             (:type event))
+
+                                     (swap! state-atom assoc :cocoa-key-code-down (java-key-code-to-cocoa-key-code (:key-code event) ))
+
                                      (when (= :back-space (:key event))
                                        (swap! state-atom update :typed-text (fn [typed-text]
                                                                               (string/join (drop-last typed-text)))))
@@ -2987,7 +2987,7 @@
                                                                       :target-word (excercise/excericse-word (inc (:character-count @state-atom))
                                                                                                              statistics))))))
                                      (when (and (= :down (:key event))
-                                                (< 3 (:character-count @state-atom)))
+                                                (< 2 (:character-count @state-atom)))
                                        (swap! state-atom (fn [state]
                                                            (-> state
                                                                (update :character-count dec)
@@ -3004,26 +3004,13 @@
                                                            (assoc state
                                                                   :typed-text ""
                                                                   :target-word (excercise/excericse-word (:character-count @state-atom)
-                                                                                                         statistics)))))))}))
-
-
-(defn layout-excercise-view []
-  (let [layout (:layout chosen-layout)
-        statistics hybrid-statistics
-        cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
-        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
-        state-atom (dependable-atom/atom {:character-count 4
-                                          :typed-text ""
-                                          :target-word (excercise/excericse-word 4 statistics)})]
-    (fn []
-      (layout-excercise-view-body state-atom statistics cocoa-key-code-to-character character-to-cocoa-key-code layout))))
+                                                                                                         statistics)))))))}))))
 
 
 (comment
   (start-view #'layout-excercise-view)
   ;; hot-right-now TODO: remove me
 
-  ;; hot-right-now TODO: remove me
   (reset! optimized-layouts-atom [])
 
 
