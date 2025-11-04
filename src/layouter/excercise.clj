@@ -16,6 +16,13 @@
           (recur (.getNextEntry zip))
           (slurp (io/reader zip)))))))
 
+(defn create-zip-from-string
+  "Creates a ZIP file containing a single text file with the given string content."
+  [output-zip-path file-name-in-zip content]
+  (with-open [zip (java.util.zip.ZipOutputStream. (io/output-stream output-zip-path))]
+    (.putNextEntry zip (java.util.zip.ZipEntry. file-name-in-zip))
+    (.write zip (.getBytes content "UTF-8"))
+    (.closeEntry zip)))
 
 (defonce english-words (->> (io/resource "english-words.txt.zip")
                             (read-zipped-text-file)
@@ -23,11 +30,11 @@
                             (io/reader)
                             (line-seq)))
 
-(defonce nykysuomensanalista (-> (io/resource "nykysuomensanalista.txt.zip")
-                                 (read-zipped-text-file)
-                                 (.getBytes)
-                                 (io/reader)
-                                 (line-seq)))
+(defonce finnish-words (-> (io/resource "nykysuomensanalista.txt.zip")
+                           (read-zipped-text-file)
+                           (.getBytes)
+                           (io/reader)
+                           (line-seq)))
 
 (defn take-most-common-characters [number-of-used-characters character-distribution]
   (->> character-distribution
@@ -61,4 +68,4 @@
   (first (filter-words-by-characters (take-most-common-characters number-of-characters
                                                                   (:character-distribution statistics))
                                      (shuffle (concat english-words
-                                                      nykysuomensanalista)))))
+                                                      finnish-words)))))
