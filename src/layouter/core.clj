@@ -1269,8 +1269,12 @@
   ([seed] (let [random (if (some? seed)
                          (Random. seed)
                          (Random.))]
-            (fn []
-              (.nextDouble random)))))
+            (fn ([minimum maximum]
+                 (+ minimum
+                    (* (.nextDouble random)
+                       (- maximum minimum))))
+              ([]
+               (.nextDouble random))))))
 
 (def ^:dynamic random-double (create-random-double-function))
 
@@ -1606,24 +1610,51 @@
        (max minimum
             (+ base (* slope x)))))
 
+(defn random-metaparameters []
+  {:population-size 500
+
+   :elite-proportion-slope (random-double 0.005 0.05)
+   :minimum-elite-proportion (random-double 0.01 0.10)
+   :maximum-elite-proportion (random-double 0.10 0.20)
+
+   :minimum-parent-selection-temperature (random-double 0.80 1.20)
+   :maximum-parent-selection-temperature (random-double 2.0 10.0)
+   :parent-selection-temperature-slope (random-double 0.005 0.05)
+
+   :mutation-propability-slope (random-double 0.005 0.05)
+   :minimum-mutation-propability (random-double 0.01 0.05)
+   :maximum-mutation-propability (random-double 0.1 0.5)
+
+   :random-layout-proportion-slope (random-double 0.005 0.05)
+   :minimum-random-layout-proportion (random-double 0.01 0.1)
+   :maximum-random-layout-proportion (random-double 0.2 0.7)})
+
 (defn next-generation-parameters [generations-since-last-improvement & [{:keys [population-size
                                                                                 elite-proportion-slope
                                                                                 minimum-elite-proportion
                                                                                 maximum-elite-proportion
+                                                                                minimum-parent-selection-temperature
+                                                                                maximum-parent-selection-temperature
                                                                                 parent-selection-temperature-slope
                                                                                 mutation-propability-slope
                                                                                 minimum-mutation-propability
+                                                                                maximum-mutation-propability
                                                                                 random-layout-proportion-slope
-                                                                                minimum-random-layout-proportion]
+                                                                                minimum-random-layout-proportion
+                                                                                maximum-random-layout-proportion]
                                                                          :or {population-size 500
                                                                               elite-proportion-slope 0.01
                                                                               minimum-elite-proportion 0.05
                                                                               maximum-elite-proportion 0.15
+                                                                              minimum-parent-selection-temperature 1.0
+                                                                              maximum-parent-selection-temperature 10.0
                                                                               parent-selection-temperature-slope 0.01
                                                                               mutation-propability-slope 0.01
                                                                               minimum-mutation-propability 0.05
+                                                                              maximum-mutation-propability 0.5
                                                                               random-layout-proportion-slope 0.01
-                                                                              minimum-random-layout-proportion 0.05}}]]
+                                                                              minimum-random-layout-proportion 0.05
+                                                                              maximum-random-layout-proportion 0.5}}]]
   {:population-size population-size
    ;; hot-right-now TODO: remove me
    :elite-proportion (linear-mapping maximum-elite-proportion
@@ -1632,28 +1663,27 @@
                                      (- elite-proportion-slope)
                                      generations-since-last-improvement)
 
-   :parent-selection-temperature (linear-mapping 1.0
-                                                 1.0
-                                                 10.0
+   :parent-selection-temperature (linear-mapping minimum-parent-selection-temperature
+                                                 minimum-parent-selection-temperature
+                                                 maximum-parent-selection-temperature
                                                  parent-selection-temperature-slope
                                                  generations-since-last-improvement)
    :mutation-propability (linear-mapping minimum-mutation-propability
                                          minimum-mutation-propability
-                                         0.5
+                                         maximum-mutation-propability
                                          mutation-propability-slope
                                          generations-since-last-improvement)
 
    :random-layout-proportion (linear-mapping minimum-random-layout-proportion
                                              minimum-random-layout-proportion
-                                             0.5
+                                             maximum-random-layout-proportion
                                              random-layout-proportion-slope
                                              generations-since-last-improvement)})
 
 (defonce optimization-history-atom (atom []))
 (defonce stop-requested?-atom (atom false))
-(defonce ratings-atom (atom []))
 
-(defn optimize-layout [text-statistics & {:keys [initial-ratings]}]
+(defn optimize-layout [text-statistics & {:keys [initial-ratings metaparameters maximum-generations]}]
   (reset! optimization-history-atom [])
   (reset! stop-requested?-atom false)
 
@@ -1663,28 +1693,30 @@
                              (->> (repeatedly 2 random-layout)
                                   (layouts-to-ratings text-statistics)))}]
 
-    (reset! ratings-atom (:ratings state))
+    (swap! optimization-history-atom
+           conj
+           state)
 
-    (let [history-item (-> state
-                           (dissoc :ratings)
-                           (assoc :best-rating (best-rating (:ratings state))))]
-      (swap! optimization-history-atom conj
-             history-item)
-
-      (when (= 0 (mod (:generation-number state)
-                      50))
-        (refresh-view!)
-        (prn (merge history-item
-                    (next-generation-parameters (- (:generation-number state)
-                                                   (:last-improved-generation-number state)))))))
+    (when (= 0 (mod (:generation-number state)
+                    20))
+      (refresh-view!)
+      (prn (merge (-> state
+                      (dissoc :ratings)
+                      (assoc :best-rating (best-rating (:ratings state))))
+                  (next-generation-parameters (- (:generation-number state)
+                                                 (:last-improved-generation-number state))))))
 
     (let [next-generation-ratings (next-generation-ratings (:ratings state)
                                                            text-statistics
                                                            (next-generation-parameters (- (:generation-number state)
-                                                                                          (:last-improved-generation-number state))))]
+                                                                                          (:last-improved-generation-number state))
+                                                                                       metaparameters))]
 
-      (if @stop-requested?-atom
-        (println "stopped")
+      (if (or (= maximum-generations
+                 (:generation-number state))
+              @stop-requested?-atom)
+        (do (println "stopped")
+            state)
         (recur {:generation-number (inc (:generation-number state))
                 :last-improved-generation-number (if (< (best-rating next-generation-ratings)
                                                         (best-rating (:ratings state)))
@@ -1776,16 +1808,17 @@
    (layouts/with-margin 10
      (if (empty? @optimization-history-atom)
        (black-background (text "no history"))
-       (let [latest-history-item (last @optimization-history-atom)
-             enrich-history-item (fn [history-item]
-                                   (-> history-item
-                                       (merge (next-generation-parameters (- (:generation-number history-item)
-                                                                             (:last-improved-generation-number history-item))))
-                                       (assoc :generations-since-last-improvement
-                                              (- (:generation-number history-item)
-                                                 (:last-improved-generation-number history-item)))))
-             enriched-history-items (->> @optimization-history-atom
-                                         (map enrich-history-item))
+       (let [enrich-state (fn [state]
+                            (-> state
+                                (assoc :best-rating (best-rating (:ratings state)))
+                                (dissoc :ratings)
+                                (merge (next-generation-parameters (- (:generation-number state)
+                                                                      (:last-improved-generation-number state))))
+                                (assoc :generations-since-last-improvement
+                                       (- (:generation-number state)
+                                          (:last-improved-generation-number state)))))
+             enriched-states (->> @optimization-history-atom
+                                  (map enrich-state))
 
              displayed-keys [:generation-number
                              :best-rating
@@ -1811,10 +1844,10 @@
                          (layouts/with-margin 50
                            (path/path (index-to-color index)
                                       5
-                                      (->> enriched-history-items
-                                           (map (fn [history-item]
-                                                  {:x (:generation-number history-item)
-                                                   :y (key history-item)}))
+                                      (->> enriched-states
+                                           (map (fn [state]
+                                                  {:x (:generation-number state)
+                                                   :y (key state)}))
                                            (scale-to-view graph-height graph-height)
                                            (map (partial scale-point {:x 1 :y -1}))
                                            (move-to-origin))))))
@@ -1822,12 +1855,12 @@
                 (for [[index key] (map vector
                                        (range)
                                        displayed-keys)]
-                  (text (str key " " (key (enrich-history-item latest-history-item))
-                             " min: " (apply min (map key enriched-history-items))
-                             " max: " (apply max (map key enriched-history-items)))
+                  (text (str key " " (key (enrich-state (last @optimization-history-atom)))
+                             " min: " (apply min (map key enriched-states))
+                             " max: " (apply max (map key enriched-states)))
                         {:color (index-to-color index)}))))))))
 
-;; hot-right-now TODO: remove me
+
 (comment
   (start-view #'optimization-progress-view)
 
@@ -1839,6 +1872,12 @@
   (.start (doto (Thread. (fn [] (optimize-layout hybrid-statistics
                                                  {:initial-ratings @ratings-atom})))
             (.setName "optimizing")))
+
+  ;; hot-right-now TODO: remove me
+  (best-rating (:ratings (optimize-layout hybrid-statistics
+                                          {:metaparameters (random-metaparameters)
+                                           :maximum-generations 30})))
+
   (reset! stop-requested?-atom true)
 
   (def saved-optimization-state @optimization-state-atom)
