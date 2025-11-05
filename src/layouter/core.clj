@@ -1530,9 +1530,9 @@
 (defn normalize-distribution [distribution]
   (let [total (reduce + (map second distribution))]
     (map (fn [[value propability]]
-           [value (/ propability
-                     total)])
-         distribution)))
+            [value (/ propability
+                      total)])
+          distribution)))
 
 (deftest test-normalize-distribution
   (is (= '([:a 1/3] [:b 2/3])
@@ -1577,15 +1577,16 @@
                        elite-count
                        random-layout-count)
         distribution (ratings-to-distribution current-generation-ratings)
-        children (repeatedly child-count
-                             (fn []
-                               (let [child (crossbreed-layouts (weighted-random distribution parent-selection-temperature)
-                                                               (weighted-random distribution parent-selection-temperature))
-                                     child (if (< (rand)
-                                                  mutation-propability)
-                                             (mutate-layout child)
-                                             child)]
-                                 child)))]
+        children (apply pcalls
+                        (repeat child-count
+                                (fn []
+                                  (let [child (crossbreed-layouts (weighted-random distribution parent-selection-temperature)
+                                                                  (weighted-random distribution parent-selection-temperature))
+                                        child (if (< (rand)
+                                                     mutation-propability)
+                                                (mutate-layout child)
+                                                child)]
+                                    child))))]
     (concat (take elite-count
                   (distinct (sort-by second
                                      current-generation-ratings)))
@@ -1656,7 +1657,7 @@
                                                                               minimum-random-layout-proportion 0.05
                                                                               maximum-random-layout-proportion 0.5}}]]
   {:population-size population-size
-   ;; hot-right-now TODO: remove me
+
    :elite-proportion (linear-mapping maximum-elite-proportion
                                      minimum-elite-proportion
                                      maximum-elite-proportion
@@ -1883,9 +1884,9 @@
             (.setName "optimizing")))
 
   ;; hot-right-now TODO: remove me
-  (best-rating (:ratings (optimize-layout hybrid-statistics
-                                          {:metaparameters (random-metaparameters)
-                                           :maximum-generations 30})))
+  (time (best-rating (:ratings (optimize-layout hybrid-statistics
+                                                {:metaparameters (random-metaparameters)
+                                                 :maximum-generations 30}))))
 
   (reset! stop-requested?-atom true)
 
