@@ -1536,9 +1536,12 @@
                                   [:b 10]]))))
 
 (defn ratings-to-distribution [ratings]
-  (->> ratings
-       (invert-distribution)
-       (normalize-distribution)))
+  (try (->> ratings
+            (invert-distribution)
+            (normalize-distribution))
+       (catch Throwable throwable
+         (def ratings ratings) ;; TODO: remove me
+         )))
 
 (deftest test-ratings-to-distribution
   (is (= '([:a 0.6666666666444444]
@@ -1580,8 +1583,8 @@
                                              child)]
                                  child)))]
     (concat (take elite-count
-                  (sort-by second
-                           current-generation-ratings))
+                  (distinct (sort-by second
+                                     current-generation-ratings)))
             (->> (repeatedly random-layout-count
                              random-layout)
                  (layouts-to-ratings text-statistics))
@@ -1616,7 +1619,7 @@
                                                                               elite-proportion-slope 0.01
                                                                               minimum-elite-proportion 0.05
                                                                               maximum-elite-proportion 0.15
-                                                                              parent-selection-temperature-slope 0.1
+                                                                              parent-selection-temperature-slope 0.01
                                                                               mutation-propability-slope 0.01
                                                                               minimum-mutation-propability 0.05
                                                                               random-layout-proportion-slope 0.01
@@ -1636,7 +1639,7 @@
                                                  generations-since-last-improvement)
    :mutation-propability (linear-mapping minimum-mutation-propability
                                          minimum-mutation-propability
-                                         0.2
+                                         0.5
                                          mutation-propability-slope
                                          generations-since-last-improvement)
 
@@ -1648,15 +1651,19 @@
 
 (defonce optimization-history-atom (atom []))
 (defonce stop-requested?-atom (atom false))
+(defonce ratings-atom (atom []))
 
-(defn optimize-layout [text-statistics]
+(defn optimize-layout [text-statistics & {:keys [initial-ratings]}]
   (reset! optimization-history-atom [])
   (reset! stop-requested?-atom false)
 
   (loop [state {:generation-number 0
                 :last-improved-generation-number 0
-                :ratings (->> (repeatedly 2 random-layout)
-                              (layouts-to-ratings text-statistics))}]
+                :ratings (or initial-ratings
+                             (->> (repeatedly 2 random-layout)
+                                  (layouts-to-ratings text-statistics)))}]
+
+    (reset! ratings-atom (:ratings state))
 
     (let [history-item (-> state
                            (dissoc :ratings)
@@ -1664,10 +1671,9 @@
       (swap! optimization-history-atom conj
              history-item)
 
-      (refresh-view!)
-
       (when (= 0 (mod (:generation-number state)
-                      10))
+                      50))
+        (refresh-view!)
         (prn (merge history-item
                     (next-generation-parameters (- (:generation-number state)
                                                    (:last-improved-generation-number state)))))))
@@ -1828,7 +1834,11 @@
   (reset! optimization-history-atom [])
   @optimization-history-atom
 
-  (.start (Thread. (fn [] (optimize-layout hybrid-statistics))))
+  @ratings-atom
+
+  (.start (doto (Thread. (fn [] (optimize-layout hybrid-statistics
+                                                 {:initial-ratings @ratings-atom})))
+            (.setName "optimizing")))
   (reset! stop-requested?-atom true)
 
   (def saved-optimization-state @optimization-state-atom)
@@ -1846,6 +1856,8 @@
 
   ;; 1.0585756223599754 breeding with 0-2 mutations
   ;; 1.0586912307882292 only mutations, no breeding
+  ;; 1.0451653252876312
+  ;; {:generation-number 2020, :last-improved-generation-number 1478, :best-rating 1.0234699909057077, :population-size 500, :elite-proportion 0.05, :parent-selection-temperature 10.0, :mutation-propability 0.2, :random-layout-proportion 0.5}
 
   (rate-layout hybrid-statistics
                (:layout @latest-optimized-layout-atom))
@@ -2910,7 +2922,9 @@
                                                                                 (:layout layout))]
                           (-> layout
                               (assoc :layout-rating-description layout-rating-description
-                                     :summary (merge-summary (summarize-rating-description layout-rating-description))))))
+                                     :summary (-> (summarize-rating-description layout-rating-description)
+                                                  (merge-summary)
+                                                  (assoc :rating (rate-layout statistics (:layout layout))))))))
               columns (for [column (into #{} (apply concat (map keys (map :summary layouts))))]
                         {:key column
                          :minimum (apply min (map column (map :summary layouts)))
@@ -2991,40 +3005,70 @@
                                                (layouts/flow (layouts/with-margin 40
                                                                (layouts/vertically-2 {:margin 10}
                                                                                      (layout-comparison-text "editor")
-                                                                                     [layout-editor
-                                                                                      (:layout-atom (first named-layout-atoms))
-                                                                                      {}
-                                                                                      statistics]
-                                                                                     [layout-editor
-                                                                                      (:layout-atom (second named-layout-atoms))
-                                                                                      (into {}
-                                                                                            (for [differing-cocoa-keycode (map first (set/difference (set (second cocoa-key-code-to-characters))
-                                                                                                                                                     (set (first cocoa-key-code-to-characters))))]
-                                                                                              [differing-cocoa-keycode [100 150 100 255]]))
-                                                                                      statistics]))
+                                                                                     (for [[named-layout-atom-1 named-layout-atom-2] (partition-all 2 1 named-layout-atoms)]
+                                                                                       [layout-editor
+                                                                                        (:layout-atom named-layout-atom-1)
+                                                                                        (if (nil? named-layout-atom-2)
+                                                                                          {}
+                                                                                          (into {}
+                                                                                                (for [differing-cocoa-keycode (map first
+                                                                                                                                   (set/difference
+                                                                                                                                    (set (-> named-layout-atom-1
+                                                                                                                                             named-layout-atom-to-named-layout
+                                                                                                                                             :layout
+                                                                                                                                             layout-to-cocoa-key-code-to-character))
+                                                                                                                                    (set (-> named-layout-atom-2
+                                                                                                                                             named-layout-atom-to-named-layout
+                                                                                                                                             :layout
+                                                                                                                                             layout-to-cocoa-key-code-to-character))))]
+                                                                                                  [differing-cocoa-keycode [100 150 100 255]])))
+                                                                                        ;; hot-right-now TODO: remove me
+                                                                                        statistics])
+
+                                                                                     #_[layout-editor
+                                                                                        (:layout-atom (second named-layout-atoms))
+                                                                                        (into {}
+                                                                                              (for [differing-cocoa-keycode (map first (set/difference (set (second cocoa-key-code-to-characters))
+                                                                                                                                                       (set (first cocoa-key-code-to-characters))))]
+                                                                                                [differing-cocoa-keycode [100 150 100 255]]))
+                                                                                        statistics]))
 
                                                              (layouts/with-margin 40
                                                                (layouts/vertically-2 {:margin 0}
                                                                                      (layout-comparison-text "heatmap")
-                                                                                     [key-heat-map-view
-                                                                                      (first cocoa-key-code-to-characters)
-                                                                                      (first character-to-cocoa-key-codes)
-                                                                                      (:character-distribution statistics)]
-                                                                                     ;; (layout-comparison-text "")
-                                                                                     [key-heat-map-view
-                                                                                      (second cocoa-key-code-to-characters)
-                                                                                      (second character-to-cocoa-key-codes)
-                                                                                      (:character-distribution statistics)]))
 
-                                                             (for [n-gram (map first (take 82 (reverse (sort-by second (:digram-distribution statistics)))))]
-                                                               (layouts/with-margin 40
-                                                                 (layouts/vertically-2 {:margin 10}
-                                                                                       (ngram-view (first cocoa-key-code-to-characters)
-                                                                                                   (first character-to-cocoa-key-codes)
-                                                                                                   n-gram)
-                                                                                       (ngram-view (second cocoa-key-code-to-characters)
-                                                                                                   (second character-to-cocoa-key-codes)
-                                                                                                   n-gram)))))))))
+                                                                                     (for [named-layout-atom named-layout-atoms]
+                                                                                       [key-heat-map-view
+                                                                                        (-> named-layout-atom
+                                                                                            named-layout-atom-to-named-layout
+                                                                                            :layout
+                                                                                            layout-to-cocoa-key-code-to-character)
+                                                                                        (-> named-layout-atom
+                                                                                            named-layout-atom-to-named-layout
+                                                                                            :layout
+                                                                                            layout-to-character-to-cocoa-key-code)
+
+                                                                                        (:character-distribution statistics)]
+                                                                                       )
+                                                                                     #_[key-heat-map-view
+                                                                                        (first cocoa-key-code-to-characters)
+                                                                                        (first character-to-cocoa-key-codes)
+                                                                                        (:character-distribution statistics)]
+                                                                                     ;; (layout-comparison-text "")
+                                                                                     #_[key-heat-map-view
+                                                                                        (second cocoa-key-code-to-characters)
+                                                                                        (second character-to-cocoa-key-codes)
+                                                                                        (:character-distribution statistics)]))
+
+                                                             #_(for [n-gram (map first (take 82 (reverse (sort-by second (:digram-distribution statistics)))))]
+                                                                 (layouts/with-margin 40
+                                                                   (layouts/vertically-2 {:margin 10}
+                                                                                         (ngram-view (first cocoa-key-code-to-characters)
+                                                                                                     (first character-to-cocoa-key-codes)
+                                                                                                     n-gram)
+                                                                                         (ngram-view (second cocoa-key-code-to-characters)
+                                                                                                     (second character-to-cocoa-key-codes)
+                                                                                                     n-gram)))))))))
 
 (def test-events '({:y 516, :shift false, :key :udefied, :alt false, :time 1715012242345, :type :mouse-moved, :source :mouse, :cotrol false, :x 604} {:y 518, :shift false, :key :udefied, :alt false, :time 1715012242352, :type :mouse-moved, :source :mouse, :cotrol false, :x 608} {:y 518, :shift false, :key :udefied, :alt false, :time 1715012242353, :type :mouse-moved, :source :mouse, :cotrol false, :x 608} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242360, :type :mouse-moved, :source :mouse, :cotrol false, :x 614} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242361, :type :mouse-moved, :source :mouse, :cotrol false, :x 614} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242369, :type :mouse-moved, :source :mouse, :cotrol false, :x 618} {:y 520, :shift false, :key :udefied, :alt false, :time 1715012242369, :type :mouse-moved, :source :mouse, :cotrol false, :x 618} {:y 522, :shift false, :key :udefied, :alt false, :time 1715012242377, :type :mouse-moved, :source :mouse, :cotrol false, :x 624} {:y 522, :shift false, :key :udefied, :alt false, :time 1715012242377, :type :mouse-moved, :source :mouse, :cotrol false, :x 624} {:y 524, :shift false, :key :udefied, :alt false, :time 1715012242385, :type :mouse-moved, :source :mouse, :cotrol false, :x 628} {:y 524, :shift false, :key :udefied, :alt false, :time 1715012242385, :type :mouse-moved, :source :mouse, :cotrol false, :x 628} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242393, :type :mouse-moved, :source :mouse, :cotrol false, :x 634} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242394, :type :mouse-moved, :source :mouse, :cotrol false, :x 634} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242401, :type :mouse-moved, :source :mouse, :cotrol false, :x 638} {:y 526, :shift false, :key :udefied, :alt false, :time 1715012242402, :type :mouse-moved, :source :mouse, :cotrol false, :x 638} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242409, :type :mouse-moved, :source :mouse, :cotrol false, :x 646} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242410, :type :mouse-moved, :source :mouse, :cotrol false, :x 646} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242417, :type :mouse-moved, :source :mouse, :cotrol false, :x 650} {:y 528, :shift false, :key :udefied, :alt false, :time 1715012242418, :type :mouse-moved, :source :mouse, :cotrol false, :x 650} {:y 530, :shift false, :key :udefied, :alt false, :time 1715012242425, :type :mouse-moved, :source :mouse, :cotrol false, :x 654}))
 
@@ -3369,20 +3413,51 @@
   (optimize-named-layout-with-multipliers multipliers
                                           english-statistics)
 
+  (start-view (fn []
+                [#'layout-comparison-view
+                 (->> @ratings-atom
+                      (sort-by second)
+                      (map (fn [[layout _rating]]
+                             {:layout layout
+                              :name "optimized"}))
+                      (map named-layout-to-named-layout-atom)
+                      (take 20))
+                 hybrid-statistics]))
 
+  ;; hot-right-now TODO: remove me
+  (do (def named-layout-atom-1 (named-layout-to-named-layout-atom {:layout (->> @ratings-atom
+                                                                                (sort-by second)
+                                                                                (first)
+                                                                                (first))
+                                                                   :name "optimized 0"})
 
-  (do (def named-layout-atom-1 (assoc (named-layout-to-named-layout-atom {:layout colemak-dh})
-                                      :name "coleman-dh")
+        #_(assoc (named-layout-to-named-layout-atom {:layout colemak-dh})
+                 :name "coleman-dh")
         #_(assoc (named-layout-to-named-layout-atom {:layout qwerty})
                  :name "qwerty")
-        (named-layout-to-named-layout-atom (first @optimized-layouts-atom)))
-      (def named-layout-atom-2 (named-layout-to-named-layout-atom (first @optimized-layouts-atom)))
+        #_(named-layout-to-named-layout-atom (first @optimized-layouts-atom)))
+      (def named-layout-atom-2 (->> @ratings-atom
+                                    (sort-by second)
+                                    (second)
+                                    (map (fn [[layout rating]]
+                                           {:layout layout
+                                            :name "optimized"}))
+                                    (map named-layout-to-named-layout-atom))
+
+        #_(named-layout-to-named-layout-atom (first @optimized-layouts-atom)))
       (start-view (fn []
                     [#'layout-comparison-view
-                     [named-layout-atom-1
-                      named-layout-atom-2]
+                     #_[named-layout-atom-1
+                        named-layout-atom-2]
                      #_hybrid-statistics
                      #_finnish-statistics
+                     (->> @ratings-atom
+                          (sort-by second)
+                          (map (fn [[layout _rating]]
+                                 {:layout layout
+                                  :name "optimized"}))
+                          (map named-layout-to-named-layout-atom)
+                          (take 5))
                      english-statistics])))
 
   (clojure.data/diff @(:layout-atom named-layout-atom-1)
@@ -3471,7 +3546,14 @@
                                          @optimized-layouts-atom
                                          common-named-layouts
                                          optimized-layouts-with-multipliers
-                                         )]
+                                         (->> @ratings-atom
+                                              (sort-by second)
+                                              (map first)
+                                              (take 3)
+                                              (map-indexed (fn [index layout]
+                                                             {:name (str "optimized-" index)
+                                                              :layout layout})))
+                                         [])]
                              (assoc layout
                                     :layout-rating-description (describe-layout-rating statistics
                                                                                        ;;finnish-statistics
@@ -3490,7 +3572,7 @@
                 [#'layout-comparison-views])))
 
 (comment
-
+  ;; hot-right-now TODO: remove me
   (start-layout-comparison-view)
   )
 
