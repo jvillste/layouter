@@ -1213,11 +1213,29 @@
 
 ;; GENETIC ALGORITHM
 
+(defn create-random-double-function
+  ([] (create-random-double-function nil))
+  ([seed] (let [random (if (some? seed)
+                         (Random. seed)
+                         (Random.))]
+            (fn ([minimum maximum]
+                 (+ minimum
+                    (* (.nextDouble random)
+                       (- maximum minimum))))
+              ([]
+               (.nextDouble random))))))
+
+(def ^:dynamic random-double (create-random-double-function))
+
+(defn pick-random [coll]
+  (nth coll (* (random-double)
+               (count coll))))
+
 (defn mutate-layout [layout]
   (let [layout-vector (vec layout)
-        mapping-1 (rand-nth layout-vector)
-        mapping-2 (rand-nth (remove #{mapping-1}
-                                    layout-vector))]
+        mapping-1 (pick-random layout-vector)
+        mapping-2 (pick-random (remove #{mapping-1}
+                                       layout-vector))]
     (-> layout
         (disj mapping-1)
         (disj mapping-2)
@@ -1253,7 +1271,7 @@
                           {:character ""
                            :cocoa-key-code cocoa-key-code})))
        (let [character (first remaining-characters)
-             cocoa-key-code (rand-nth remaining-cocoa-key-codes)]
+             cocoa-key-code (pick-random remaining-cocoa-key-codes)]
          (recur (remove #{cocoa-key-code} remaining-cocoa-key-codes)
                 (rest remaining-characters)
                 (conj layout {:character character
@@ -1263,20 +1281,6 @@
   (set/difference (set (map :character (random-layout (keys (:character-distribution hybrid-statistics)))))
                   (set (keys (:character-distribution hybrid-statistics))))
   )
-
-(defn create-random-double-function
-  ([] (create-random-double-function nil))
-  ([seed] (let [random (if (some? seed)
-                         (Random. seed)
-                         (Random.))]
-            (fn ([minimum maximum]
-                 (+ minimum
-                    (* (.nextDouble random)
-                       (- maximum minimum))))
-              ([]
-               (.nextDouble random))))))
-
-(def ^:dynamic random-double (create-random-double-function))
 
 (defmacro with-fixed-random-seed [& body]
   `(binding [random-double (create-random-double-function 1)]
@@ -1530,9 +1534,9 @@
 (defn normalize-distribution [distribution]
   (let [total (reduce + (map second distribution))]
     (map (fn [[value propability]]
-            [value (/ propability
-                      total)])
-          distribution)))
+           [value (/ propability
+                     total)])
+         distribution)))
 
 (deftest test-normalize-distribution
   (is (= '([:a 1/3] [:b 2/3])
@@ -1565,7 +1569,8 @@
         layouts))
 
 (defn next-generation-ratings [current-generation-ratings
-                               text-statistics
+                               rate-solutions
+                               random-solution
                                {:keys [population-size
                                        elite-proportion
                                        parent-selection-temperature
@@ -1573,38 +1578,40 @@
                                        random-layout-proportion]}]
   (let [elite-count (max 1 (int (Math/ceil (* population-size elite-proportion))))
         random-layout-count (max 1 (int (Math/ceil (* population-size random-layout-proportion))))
-        child-count (- population-size
-                       elite-count
-                       random-layout-count)
-        distribution (ratings-to-distribution current-generation-ratings)
-        children (apply pcalls
-                        (repeat child-count
-                                (fn []
-                                  (let [child (crossbreed-layouts (weighted-random distribution parent-selection-temperature)
-                                                                  (weighted-random distribution parent-selection-temperature))
-                                        child (if (< (rand)
-                                                     mutation-propability)
-                                                (mutate-layout child)
-                                                child)]
-                                    child))))]
+        distribution (ratings-to-distribution current-generation-ratings)]
     (concat (take elite-count
                   (distinct (sort-by second
                                      current-generation-ratings)))
             (->> (repeatedly random-layout-count
-                             random-layout)
-                 (layouts-to-ratings text-statistics))
-            (layouts-to-ratings text-statistics children))))
+                             random-solution)
+                 (rate-solutions))
+            (->> (fn []
+                   (let [child (crossbreed-layouts (weighted-random distribution parent-selection-temperature)
+                                                   (weighted-random distribution parent-selection-temperature))]
+                     (if (< (rand)
+                            mutation-propability)
+                       (mutate-layout child)
+                       child)))
+                 (repeat (- population-size
+                            elite-count
+                            random-layout-count))
+                 (apply pcalls)
+                 (rate-solutions)))))
 
 (deftest test-next-generation-ratings
-  (is (= 5 (count (with-fixed-random-seed
-                    (next-generation-ratings (->> (repeatedly 2 random-layout)
-                                                  (layouts-to-ratings hybrid-statistics))
-                                             hybrid-statistics
-                                             {:population-size 5
-                                              :elite-proportion 0.2
-                                              :parent-selection-temperature 1
-                                              :mutation-propability 0.5
-                                              :random-layout-proportion 0.1}))))))
+  (is (= 5 (count
+            (with-fixed-random-seed
+              (sort-by second
+                       (next-generation-ratings (->> (repeatedly 5 random-layout)
+                                                     (layouts-to-ratings hybrid-statistics)
+                                                     (doall))
+                                                (partial layouts-to-ratings hybrid-statistics)
+                                                random-layout
+                                                {:population-size 5
+                                                 :elite-proportion 0.2
+                                                 :parent-selection-temperature 1
+                                                 :mutation-propability 0.5
+                                                 :random-layout-proportion 0.1})))))))
 
 (defn linear-mapping [base minimum maximum slope x]
   (min maximum
@@ -1685,7 +1692,7 @@
 (defonce optimization-history-atom (atom []))
 (defonce stop-requested?-atom (atom false))
 
-(defn optimize-layout [text-statistics & {:keys [initial-ratings metaparameters maximum-generations]}]
+(defn optimize-layout [random-solution rate-solutions & {:keys [initial-ratings metaparameters maximum-generations]}]
   (reset! optimization-history-atom [])
   (reset! stop-requested?-atom false)
 
@@ -1693,8 +1700,10 @@
                 :generation-number 0
                 :last-improved-generation-number 0
                 :ratings (or initial-ratings
-                             (->> (repeatedly 2 random-layout)
-                                  (layouts-to-ratings text-statistics)))}]
+                             (->> (repeatedly (or (:population-size metaparameters)
+                                                  500)
+                                              random-solution)
+                                  (rate-solutions)))}]
 
     (swap! optimization-history-atom
            conj
@@ -1710,7 +1719,8 @@
                                                  (:last-improved-generation-number state))))))
 
     (let [next-generation-ratings (next-generation-ratings (:ratings state)
-                                                           text-statistics
+                                                           rate-solutions
+                                                           random-solution
                                                            (next-generation-parameters (- (:generation-number state)
                                                                                           (:last-improved-generation-number state))
                                                                                        metaparameters))]
@@ -1879,12 +1889,14 @@
 
   @ratings-atom
 
-  (.start (doto (Thread. (fn [] (optimize-layout hybrid-statistics
+  (.start (doto (Thread. (fn [] (optimize-layout random-layout
+                                                 (partial layouts-to-ratings hybrid-statistics)
                                                  {:initial-ratings @ratings-atom})))
             (.setName "optimizing")))
 
   ;; hot-right-now TODO: remove me
-  (time (best-rating (:ratings (optimize-layout hybrid-statistics
+  (time (best-rating (:ratings (optimize-layout  random-layout
+                                                 (partial layouts-to-ratings hybrid-statistics)
                                                 {:metaparameters (random-metaparameters)
                                                  :maximum-generations 30}))))
 
@@ -1901,7 +1913,7 @@
 
 
   (prn (rate-layout hybrid-statistics
-                    (optimize-layout hybrid-statistics)))
+                    (optimize-layout (partial layouts-to-ratings hybrid-statistics))))
 
   ;; 1.0585756223599754 breeding with 0-2 mutations
   ;; 1.0586912307882292 only mutations, no breeding
