@@ -1575,14 +1575,14 @@
                                        elite-proportion
                                        parent-selection-temperature
                                        mutation-propability
-                                       random-layout-proportion]}]
+                                       random-solution-roportion]}]
   (let [elite-count (max 1 (int (Math/ceil (* population-size elite-proportion))))
-        random-layout-count (max 1 (int (Math/ceil (* population-size random-layout-proportion))))
+        random-solution-count (max 1 (int (Math/ceil (* population-size random-solution-roportion))))
         distribution (ratings-to-distribution current-generation-ratings)]
     (concat (take elite-count
                   (distinct (sort-by second
                                      current-generation-ratings)))
-            (->> (repeatedly random-layout-count
+            (->> (repeatedly random-solution-count
                              random-solution)
                  (rate-solutions))
             (->> (fn []
@@ -1594,7 +1594,7 @@
                        child)))
                  (repeat (- population-size
                             elite-count
-                            random-layout-count))
+                            random-solution-count))
                  (apply pcalls)
                  (rate-solutions)))))
 
@@ -1611,7 +1611,7 @@
                                                  :elite-proportion 0.2
                                                  :parent-selection-temperature 1
                                                  :mutation-propability 0.5
-                                                 :random-layout-proportion 0.1})))))))
+                                                 :random-solution-roportion 0.1})))))))
 
 (defn linear-mapping [base minimum maximum slope x]
   (min maximum
@@ -1633,9 +1633,9 @@
    :minimum-mutation-propability (random-double 0.01 0.05)
    :maximum-mutation-propability (random-double 0.1 0.5)
 
-   :random-layout-proportion-slope (random-double 0.005 0.05)
-   :minimum-random-layout-proportion (random-double 0.01 0.1)
-   :maximum-random-layout-proportion (random-double 0.2 0.7)})
+   :random-solution-roportion-slope (random-double 0.005 0.05)
+   :minimum-random-solution-roportion (random-double 0.01 0.1)
+   :maximum-random-solution-roportion (random-double 0.2 0.7)})
 
 (defn next-generation-parameters [generations-since-last-improvement & [{:keys [population-size
                                                                                 elite-proportion-slope
@@ -1647,9 +1647,9 @@
                                                                                 mutation-propability-slope
                                                                                 minimum-mutation-propability
                                                                                 maximum-mutation-propability
-                                                                                random-layout-proportion-slope
-                                                                                minimum-random-layout-proportion
-                                                                                maximum-random-layout-proportion]
+                                                                                random-solution-roportion-slope
+                                                                                minimum-random-solution-roportion
+                                                                                maximum-random-solution-roportion]
                                                                          :or {population-size 500
                                                                               elite-proportion-slope 0.01
                                                                               minimum-elite-proportion 0.05
@@ -1660,9 +1660,9 @@
                                                                               mutation-propability-slope 0.01
                                                                               minimum-mutation-propability 0.05
                                                                               maximum-mutation-propability 0.5
-                                                                              random-layout-proportion-slope 0.01
-                                                                              minimum-random-layout-proportion 0.05
-                                                                              maximum-random-layout-proportion 0.5}}]]
+                                                                              random-solution-roportion-slope 0.01
+                                                                              minimum-random-solution-roportion 0.05
+                                                                              maximum-random-solution-roportion 0.5}}]]
   {:population-size population-size
 
    :elite-proportion (linear-mapping maximum-elite-proportion
@@ -1683,10 +1683,10 @@
                                          mutation-propability-slope
                                          generations-since-last-improvement)
 
-   :random-layout-proportion (linear-mapping minimum-random-layout-proportion
-                                             minimum-random-layout-proportion
-                                             maximum-random-layout-proportion
-                                             random-layout-proportion-slope
+   :random-solution-roportion (linear-mapping minimum-random-solution-roportion
+                                             minimum-random-solution-roportion
+                                             maximum-random-solution-roportion
+                                             random-solution-roportion-slope
                                              generations-since-last-improvement)})
 
 (defonce optimization-history-atom (atom []))
@@ -1840,7 +1840,7 @@
                              :parent-selection-temperature
 
                              :mutation-propability
-                             :random-layout-proportion
+                             :random-solution-roportion
                              :generations-since-last-improvement]
              index-to-color (fn [index]
                               (concat (color/hsl-to-rgb (* 360
@@ -1918,7 +1918,7 @@
   ;; 1.0585756223599754 breeding with 0-2 mutations
   ;; 1.0586912307882292 only mutations, no breeding
   ;; 1.0451653252876312
-  ;; {:generation-number 2020, :last-improved-generation-number 1478, :best-rating 1.0234699909057077, :population-size 500, :elite-proportion 0.05, :parent-selection-temperature 10.0, :mutation-propability 0.2, :random-layout-proportion 0.5}
+  ;; {:generation-number 2020, :last-improved-generation-number 1478, :best-rating 1.0234699909057077, :population-size 500, :elite-proportion 0.05, :parent-selection-temperature 10.0, :mutation-propability 0.2, :random-solution-roportion 0.5}
 
   (rate-layout hybrid-statistics
                (:layout @latest-optimized-layout-atom))
