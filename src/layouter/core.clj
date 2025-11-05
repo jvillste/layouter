@@ -1668,6 +1668,7 @@
                                                  maximum-parent-selection-temperature
                                                  parent-selection-temperature-slope
                                                  generations-since-last-improvement)
+
    :mutation-propability (linear-mapping minimum-mutation-propability
                                          minimum-mutation-propability
                                          maximum-mutation-propability
@@ -1687,7 +1688,8 @@
   (reset! optimization-history-atom [])
   (reset! stop-requested?-atom false)
 
-  (loop [state {:generation-number 0
+  (loop [state {:metaparameters metaparameters
+                :generation-number 0
                 :last-improved-generation-number 0
                 :ratings (or initial-ratings
                              (->> (repeatedly 2 random-layout)
@@ -1717,12 +1719,13 @@
               @stop-requested?-atom)
         (do (println "stopped")
             state)
-        (recur {:generation-number (inc (:generation-number state))
-                :last-improved-generation-number (if (< (best-rating next-generation-ratings)
-                                                        (best-rating (:ratings state)))
-                                                   (:generation-number state)
-                                                   (:last-improved-generation-number state))
-                :ratings next-generation-ratings})))))
+        (recur (assoc state
+                      :generation-number (inc (:generation-number state))
+                      :last-improved-generation-number (if (< (best-rating next-generation-ratings)
+                                                              (best-rating (:ratings state)))
+                                                         (:generation-number state)
+                                                         (:last-improved-generation-number state))
+                      :ratings next-generation-ratings))))))
 
 
 
@@ -1808,17 +1811,17 @@
    (layouts/with-margin 10
      (if (empty? @optimization-history-atom)
        (black-background (text "no history"))
-       (let [enrich-state (fn [state]
-                            (-> state
-                                (assoc :best-rating (best-rating (:ratings state)))
-                                (dissoc :ratings)
-                                (merge (next-generation-parameters (- (:generation-number state)
-                                                                      (:last-improved-generation-number state))))
-                                (assoc :generations-since-last-improvement
-                                       (- (:generation-number state)
-                                          (:last-improved-generation-number state)))))
-             enriched-states (->> @optimization-history-atom
-                                  (map enrich-state))
+       (let [enriched-states (->> @optimization-history-atom
+                                  (map (fn [state]
+                                         (-> state
+                                             (assoc :best-rating (best-rating (:ratings state)))
+                                             (dissoc :ratings)
+                                             (merge (next-generation-parameters (- (:generation-number state)
+                                                                                   (:last-improved-generation-number state))
+                                                                                (:metaparameters state)))
+                                             (assoc :generations-since-last-improvement
+                                                    (- (:generation-number state)
+                                                       (:last-improved-generation-number state)))))))
 
              displayed-keys [:generation-number
                              :best-rating
@@ -1829,8 +1832,9 @@
                              :random-layout-proportion
                              :generations-since-last-improvement]
              index-to-color (fn [index]
-                              (concat (color/hsl-to-rgb (* 360 (/ index
-                                                                  (count displayed-keys)))
+                              (concat (color/hsl-to-rgb (* 360
+                                                           (/ index
+                                                              (count displayed-keys)))
                                                         0.5
                                                         0.5)
                                       [1.0]))
@@ -1855,13 +1859,18 @@
                 (for [[index key] (map vector
                                        (range)
                                        displayed-keys)]
-                  (text (str key " " (key (enrich-state (last @optimization-history-atom)))
+                  (text (str key " " (key (last enriched-states))
                              " min: " (apply min (map key enriched-states))
                              " max: " (apply max (map key enriched-states)))
-                        {:color (index-to-color index)}))))))))
+                        {:color (index-to-color index)}))
+
+                (let [metaparameters (:metaparameters (last enriched-states))]
+                  (for [key (sort-by name (keys metaparameters))]
+                    (text (str key ": " (key metaparameters)))))))))))
 
 
 (comment
+
   (start-view #'optimization-progress-view)
 
   (reset! optimization-history-atom [])
