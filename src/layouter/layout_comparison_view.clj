@@ -922,10 +922,41 @@
                                                                                                      (second character-to-cocoa-key-codes)
                                                                                                      n-gram)))))))))
 
+(def the-best #{{:cocoa-key-code 40, :character "e"}
+                {:cocoa-key-code 34, :character "a"}
+                {:cocoa-key-code 38, :character "t"}
+                {:cocoa-key-code 6, :character "ä"}
+                {:cocoa-key-code 46, :character "d"}
+                {:cocoa-key-code 31, :character "v"}
+                {:cocoa-key-code 7, :character "u"}
+                {:cocoa-key-code 4, :character "r"}
+                {:cocoa-key-code 1, :character "o"}
+                {:cocoa-key-code 13, :character "z"}
+                {:cocoa-key-code 0, :character "k"}
+                {:cocoa-key-code 14, :character "g"}
+                {:cocoa-key-code 35, :character "å"}
+                {:cocoa-key-code 41, :character "p"}
+                {:cocoa-key-code 45, :character "m"}
+                {:cocoa-key-code 39, :character "x"}
+                {:cocoa-key-code 3, :character "n"}
+                {:cocoa-key-code 17, :character "f"}
+                {:cocoa-key-code 37, :character "h"}
+                {:cocoa-key-code 33, :character "q"}
+                {:cocoa-key-code 2, :character "i"}
+                {:cocoa-key-code 5, :character "s"}
+                {:cocoa-key-code 12, :character "ö"}
+                {:cocoa-key-code 9, :character "w"}
+                {:cocoa-key-code 11, :character "b"}
+                {:cocoa-key-code 15, :character "y"}
+                {:cocoa-key-code 8, :character "c"}
+                {:cocoa-key-code 16, :character "j"}
+                {:cocoa-key-code 32, :character "l"}})
+
 (comment
   (view/start-view (fn []
                      [#'layout-comparison-view
                       [(named-layout-to-named-layout-atom {:layout layout/qwerty})
-                       (named-layout-to-named-layout-atom {:layout layout/colemak-dh})]
+                       (named-layout-to-named-layout-atom {:layout layout/colemak-dh})
+                       (named-layout-to-named-layout-atom {:layout the-best})]
                       text/hybrid-statistics]))
   )
