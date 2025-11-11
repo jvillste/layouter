@@ -3,6 +3,7 @@
    [clojure.set :as set]
    [clojure.string :as string]
    [clojure.test :refer [deftest is]]
+   [layouter.keyboard :as keyboard]
    [medley.core :as medley])
   (:import
    java.util.Locale))
@@ -182,3 +183,178 @@
        (homerow-string (layout-to-cocoa-key-code-to-character (:layout layout)))
        "-"
        (:statistics-name layout)))
+
+(defn layout-distance [layout-a layout-b]
+  (/ (count (set/difference layout-a layout-b))
+     (count layout-a)))
+
+(deftest test-layout-distance
+  (is (= 0
+         (layout-distance #{{:character "a", :cocoa-key-code 0}
+                            {:character "s", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}}
+
+                          #{{:character "a", :cocoa-key-code 0}
+                            {:character "s", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}})))
+
+  (is (= 1/2
+         (layout-distance #{{:character "a", :cocoa-key-code 0}
+                            {:character "s", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}}
+
+                          #{{:character "s", :cocoa-key-code 0}
+                            {:character "a", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}})))
+
+  (is (= 1
+         (layout-distance #{{:character "a", :cocoa-key-code 0}
+                            {:character "s", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}}
+
+                          #{{:character "f", :cocoa-key-code 0}
+                            {:character "d", :cocoa-key-code 1}
+                            {:character "s", :cocoa-key-code 2}
+                            {:character "a", :cocoa-key-code 3}}))))
+
+(defn layout-diversity [layouts]
+  (let [pairs (for [a layouts
+                    b layouts
+                    :when (not= a b)]
+                (layout-distance a b))]
+    (if (empty? pairs)
+      0
+      (/ (reduce + pairs)
+         (count pairs)))))
+
+(deftest test-layout-diversity
+  (is (= 0
+         (layout-diversity [#{{:character "a", :cocoa-key-code 0}
+                              {:character "s", :cocoa-key-code 1}
+                              {:character "d", :cocoa-key-code 2}
+                              {:character "f", :cocoa-key-code 3}}
+
+                            #{{:character "a", :cocoa-key-code 0}
+                              {:character "s", :cocoa-key-code 1}
+                              {:character "d", :cocoa-key-code 2}
+                              {:character "f", :cocoa-key-code 3}}])))
+
+  (is (= 1/2
+         (layout-diversity [#{{:character "a", :cocoa-key-code 0}
+                              {:character "s", :cocoa-key-code 1}
+                              {:character "d", :cocoa-key-code 2}
+                              {:character "f", :cocoa-key-code 3}}
+
+                            #{{:character "a", :cocoa-key-code 0}
+                              {:character "d", :cocoa-key-code 1}
+                              {:character "s", :cocoa-key-code 2}
+                              {:character "f", :cocoa-key-code 3}}])))
+
+  (is (= 1
+         (layout-diversity [#{{:character "a", :cocoa-key-code 0}
+                              {:character "s", :cocoa-key-code 1}
+                              {:character "d", :cocoa-key-code 2}
+                              {:character "f", :cocoa-key-code 3}}
+
+                            #{{:character "f", :cocoa-key-code 0}
+                              {:character "d", :cocoa-key-code 1}
+                              {:character "s", :cocoa-key-code 2}
+                              {:character "a", :cocoa-key-code 3}}]))))
+
+(defn layout-to-sequence [layout]
+  (let [cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)]
+    (->> keyboard/keyboard-keys
+         (sort-by :cocoa-key-code)
+         (map :cocoa-key-code)
+         (map cocoa-key-code-to-character))))
+
+(deftest test-layout-to-sequence
+  (is (= '("a" "s" "d" "f" nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil)
+         (layout-to-sequence #{{:character "a", :cocoa-key-code 0}
+                               {:character "s", :cocoa-key-code 1}
+                               {:character "d", :cocoa-key-code 2}
+                               {:character "f", :cocoa-key-code 3}}))))
+
+(defn layout-entropy [layouts]
+  (let [number-of-layouts (count layouts)
+        position-entropies (map (fn [characters-in-position]
+                                  (let [frequencies (vals (frequencies characters-in-position))
+                                        propabilities (map #(/ % number-of-layouts)
+                                                           frequencies)]
+                                    (- (reduce + (map #(* % (Math/log %))
+                                                      propabilities)))))
+                                (apply map vector
+                                       (map layout-to-sequence layouts)))]
+    (/ (apply + position-entropies)
+       (count position-entropies))))
+
+(deftest test-layout-entropy
+  (is (= -0.0
+         (layout-entropy [#{{:character "a", :cocoa-key-code 0}
+                            {:character "s", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}}
+
+                          #{{:character "a", :cocoa-key-code 0}
+                            {:character "s", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}}])))
+
+  (is (= 0.08401784006787216
+         (layout-entropy [#{{:character "a", :cocoa-key-code 0}
+                            {:character "s", :cocoa-key-code 1}
+                            {:character "d", :cocoa-key-code 2}
+                            {:character "f", :cocoa-key-code 3}}
+
+                          #{{:character "f", :cocoa-key-code 0}
+                            {:character "d", :cocoa-key-code 1}
+                            {:character "s", :cocoa-key-code 2}
+                            {:character "a", :cocoa-key-code 3}}]))))
+
+(defn variance [numbers]
+  (let [mean (/ (reduce + numbers)
+                (count numbers))]
+    (/ (reduce + (map #(Math/pow (- % mean)
+                                 2)
+                      numbers))
+       (count numbers))))
+
+(deftest test-variance
+  (is (= 0.0
+         (variance [1 1 1])))
+
+  (is (= 0.22222222222222224
+         (variance [50 50 51])))
+
+  (is (= 0.22222222222222224
+         (variance [0 0 1])))
+
+  (is (= 16.0
+         (variance [0 0 0 0 100]))))
+
+(defn number-diversity [numbers]
+  (Math/sqrt (variance numbers)))
+
+(deftest test-number-diversity
+  (is (= 0.0
+         (number-diversity [1 1 1])))
+
+  (is (= 0.4714045207910317
+         (number-diversity [1 1 2])))
+
+  (is (= 0.4714045207910317
+         (number-diversity [30 30 31])))
+
+  (is (= 0.816496580927726
+         (number-diversity [1 2 3])))
+
+  (is (= 13.4412301024373
+         (number-diversity [1 2 30])))
+
+  (is (= 40.0
+         (number-diversity [0 0 0 0 100]))))
