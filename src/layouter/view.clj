@@ -14,7 +14,7 @@
   (reset! event-channel-atom nil)
   )
 
-(defn start-view [view & {:keys [join?]}]
+(defn start-view [view & [{:keys [join?]}]]
   (reset! event-channel-atom
           (application/start-application view
                                          :on-exit #(reset! event-channel-atom nil)
