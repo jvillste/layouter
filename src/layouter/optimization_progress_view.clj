@@ -1,12 +1,13 @@
 (ns layouter.optimization-progress-view
   (:require
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
    [clojure.test :refer [deftest is]]
    [flow-gl.gui.path :as path]
    [fungl.color :as color]
    [fungl.layouts :as layouts]
    [layouter.gui :as gui]
    [layouter.optimize :as optimize]
-   [layouter.rating :as rating]
    [layouter.text :as text]
    [layouter.view :as view]))
 
@@ -41,15 +42,17 @@
   (merge-with + point-1 point-2))
 
 (defn scale-to-view [width height points]
-  (map (partial scale-point {:x (double (/ width
-                                           (max 1e-9
-                                                (- (apply max (map :x points))
-                                                   (apply min (map :x points))))))
-                             :y (double (/ height
-                                           (max 1e-9
-                                                (- (apply max (map :y points))
-                                                   (apply min (map :y points))))))})
-       points))
+  (if (empty? points)
+    points
+    (map (partial scale-point {:x (double (/ width
+                                             (max 1e-9
+                                                  (- (apply max (map :x points))
+                                                     (apply min (map :x points))))))
+                               :y (double (/ height
+                                             (max 1e-9
+                                                  (- (apply max (map :y points))
+                                                     (apply min (map :y points))))))})
+         points)))
 
 (deftest test-scale-to-view
   (is (= '({:x 0, :y 0}
@@ -67,10 +70,12 @@
                                 :y 5}]))))
 
 (defn move-to-origin [points]
-  (map (partial add-points
-                {:x (- (apply min (map :x points)))
-                 :y (- (apply min (map :y points)))})
-       points))
+  (if (empty? points)
+    points
+    (map (partial add-points
+                  {:x (- (apply min (map :x points)))
+                   :y (- (apply min (map :y points)))})
+         points)))
 
 (deftest test-move-to-origin
   (is (= '({:x 0.0, :y 0.0}
@@ -111,9 +116,13 @@
 
             displayed-keys [:generation-number
                             :best-rating
-                            :elite-proportion
-                            :parent-selection-temperature
-                            :mutation-propability
+                            :rating-diversity
+                            :layout-diversity
+                            :layout-entropy
+
+                            ;; :elite-proportion
+                            ;; :parent-selection-temperature
+                            ;; :mutation-propability
                             :random-solution-proportion
                             :generations-since-last-improvement]
             key-to-color (into {} (for [[index key] (map vector (range) displayed-keys)]
@@ -131,21 +140,28 @@
                       (for [key (->> displayed-keys
                                      (remove #{:generation-number
                                                :generations-since-last-improvement}))]
-                        (layouts/with-margin 50
-                          (path/path (key-to-color key)
-                                     5
-                                     (->> enriched-states
-                                          (map (fn [state]
-                                                 {:x (:generation-number state)
-                                                  :y (key state)}))
-                                          (scale-to-view graph-height graph-height)
-                                          (map (partial scale-point {:x 1 :y -1}))
-                                          (move-to-origin))))))
+                        (let [states (->> enriched-states
+                                          (remove (comp nil? key)))]
+                          (when (not (empty? states))
+                           (layouts/with-margin 50
+                             (path/path (key-to-color key)
+                                        5
+                                        (->> states
+                                             (map (fn [state]
+                                                    {:x (:generation-number state)
+                                                     :y (key state)}))
+                                             (scale-to-view graph-height graph-height)
+                                             (map (partial scale-point {:x 1 :y -1}))
+                                             (move-to-origin))))))))
 
                (for [key displayed-keys]
-                 (gui/text (str key " " (key (last enriched-states))
-                                " min: " (apply min (map key enriched-states))
-                                " max: " (apply max (map key enriched-states)))
+                 (gui/text (let [values (remove nil? (map key enriched-states))]
+                             (str key " " (key (last enriched-states))
+                                  (let [])
+                                  (when (not (empty? values))
+                                    (str " min: " (apply min values)))
+                                  (when (not (empty? values))
+                                    (str " max: " (apply max values)))))
                            {:color (key-to-color key)}))
 
                (let [metaparameters (:metaparameters (last enriched-states))]
@@ -279,20 +295,23 @@
 
   (view/start-view #'metaoptimization-progress-view)
 
-  (view/start-view (fn [] [optimization-progress-view optimize/optimization-history-atom]))
+  (view/start-view (fn [] (gui/black-background [optimization-progress-view optimize/optimization-history-atom]))
+                   ;;{:join? true}
+                   )
+
+  ;; hot-right-now TODO: remove me
 
   (do (reset! optimize/stop-requested?-atom false)
       (optimize-metaparameters metaparameter-optimization-log-file-path))
 
   (do (reset! optimize/stop-requested?-atom false)
-      (optimize-layout (first (first (rated-metaparameters metaparameter-optimization-log-file-path)))))
+      #_(optimize-layout (first (first (rated-metaparameters metaparameter-optimization-log-file-path))))
+      )
 
   (count (rated-metaparameters metaparameter-optimization-log-file-path))
   (first (rated-metaparameters metaparameter-optimization-log-file-path))
 
   (view/refresh-view!)
-
-  ;; hot-right-now TODO: remove me
 
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
@@ -303,12 +322,28 @@
   (doto (Thread. (fn []
                    (println "started")
                    (reset! optimize/stop-requested?-atom false)
-                   (time (optimize/best-rating (:ratings (optimize-layout))))))
+                   (optimize-layout {:population-size 200
+
+                                     :elite-proportion-slope 0.0
+                                     :minimum-elite-proportion 0.10
+                                     :maximum-elite-proportion 0.10
+
+                                     :minimum-parent-selection-temperature 1.0
+                                     :maximum-parent-selection-temperature 1.0
+                                     :parent-selection-temperature-slope 0.0
+
+                                     :mutation-propability-slope 0.0
+                                     :minimum-mutation-propability 0.2
+                                     :maximum-mutation-propability 0.2
+
+                                     :random-solution-proportion-slope 0.0
+                                     :minimum-random-solution-proportion 0.0  ;; hot-right-now TODO: remove me
+                                     :maximum-random-solution-proportion 0.0})
+                   ))
     (.setName "layout optimization")
     (.start))
 
   (reset! optimize/stop-requested?-atom true)
-
 
   (->> (tail 10 metaparameter-optimization-log-file-path)
        (map edn/read-string)
@@ -579,3 +614,5 @@
                                  {:cocoa-key-code 16, :character "j"}
                                  {:cocoa-key-code 32, :character "l"}}
                                1.0113692924863358])})
+
+(view/refresh-view!)
