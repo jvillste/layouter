@@ -4,36 +4,16 @@
    [clojure.test :refer [deftest is]]
    [layouter.keyboard :as keyboard]
    [layouter.layout :as layout]
+   [layouter.random :as random]
    [layouter.rating :as rating]
    [layouter.text :as text]
    [layouter.view :as view]
-   [medley.core :as medley])
-  (:import
-   (java.util Random)))
-
-(defn create-random-double-function
-  ([] (create-random-double-function nil))
-  ([seed] (let [random (if (some? seed)
-                         (Random. seed)
-                         (Random.))]
-            (fn ([minimum maximum]
-                 (+ minimum
-                    (* (.nextDouble random)
-                       (- maximum minimum))))
-              ([]
-               (.nextDouble random))))))
-
-(def ^:dynamic random-double (create-random-double-function))
-
-(defn pick-random [collection]
-  (nth collection
-       (* (random-double)
-          (count collection))))
+   [medley.core :as medley]))
 
 (defn mutate-layout [layout]
   (let [layout-vector (vec layout)
-        mapping-1 (pick-random layout-vector)
-        mapping-2 (pick-random (remove #{mapping-1}
+        mapping-1 (random/pick-random layout-vector)
+        mapping-2 (random/pick-random (remove #{mapping-1}
                                        layout-vector))]
     (-> layout
         (disj mapping-1)
@@ -70,16 +50,11 @@
                           {:character ""
                            :cocoa-key-code cocoa-key-code})))
        (let [character (first remaining-characters)
-             cocoa-key-code (pick-random remaining-cocoa-key-codes)]
+             cocoa-key-code (random/pick-random remaining-cocoa-key-codes)]
          (recur (remove #{cocoa-key-code} remaining-cocoa-key-codes)
                 (rest remaining-characters)
                 (conj layout {:character character
                               :cocoa-key-code cocoa-key-code})))))))
-
-(defmacro with-fixed-random-seed [& body]
-  `(binding [random-double (create-random-double-function 1)]
-     ~@body))
-
 
 
 (defn crossbreed-layouts [layout-1 layout-2]
@@ -90,7 +65,7 @@
     (if (empty? cocoa-key-codes)
       new-layout
       (let [cocoa-key-code (first cocoa-key-codes)
-            character (if (< 0.5 (random-double))
+            character (if (< 0.5 (random/random-double))
                         (or (cocoa-key-code-to-character-1 cocoa-key-code)
                             (cocoa-key-code-to-character-2 cocoa-key-code)
                             (first (vals cocoa-key-code-to-character-1)))
@@ -109,7 +84,7 @@
 (deftest test-crossbreed-layouts
   (is (= #{{:cocoa-key-code 0, :character "a"}
            {:cocoa-key-code 1, :character "b"}}
-         (with-fixed-random-seed
+         (random/with-fixed-random-seed
            (crossbreed-layouts #{{:character "a" :cocoa-key-code 0}
                                  {:character "b" :cocoa-key-code 1}}
                                #{{:character "a" :cocoa-key-code 1}
@@ -118,7 +93,7 @@
   (is (= #{{:cocoa-key-code 3, :character "c"}
            {:cocoa-key-code 0, :character "a"}
            {:cocoa-key-code 1, :character "b"}}
-         (with-fixed-random-seed
+         (random/with-fixed-random-seed
            (crossbreed-layouts #{{:character "a" :cocoa-key-code 0}
                                  {:character "b" :cocoa-key-code 1}
                                  {:character "c" :cocoa-key-code 3}}
@@ -222,7 +197,7 @@
                                                distribution)
         total (reduce + (map second temperature-adjusted-distribution))
         propability-limit (* total
-                             (random-double))]
+                             (random/random-double))]
     (loop [sum 0
            [[value propability] & rest] temperature-adjusted-distribution]
       (if (<= (+ sum propability)
@@ -232,13 +207,13 @@
 
 (deftest test-weighted-random
   (is (= :a
-         (binding [random-double (create-random-double-function 1)]
+         (random/with-fixed-random-seed
            (weighted-random [[:a 0.7]
                              [:b 0.3]]
                             0.1))))
 
   (is (= :b
-         (binding [random-double (create-random-double-function 1)]
+         (random/with-fixed-random-seed
            (weighted-random [[:a 0.7]
                              [:b 0.3]]
                             100)))))
@@ -320,7 +295,7 @@
             (->> (fn []
                    (let [child (crossbreed (weighted-random distribution parent-selection-temperature)
                                            (weighted-random distribution parent-selection-temperature))]
-                     (if (< (random-double)
+                     (if (< (random/random-double)
                             mutation-propability)
                        (mutate-solution child)
                        child)))
@@ -332,7 +307,7 @@
 
 (deftest test-next-generation-ratings
   (is (= 5 (count
-            (with-fixed-random-seed
+            (random/with-fixed-random-seed
               (sort-by second
                        (next-generation-ratings (->> (repeatedly 5 random-layout)
                                                      (layouts-to-ratings text/hybrid-statistics)
@@ -347,42 +322,69 @@
                                                  :mutation-propability 0.5
                                                  :random-solution-proportion 0.1})))))))
 
-(defn linear-mapping [base minimum maximum slope x]
-  (min maximum
-       (max minimum
-            (+ base (* slope x)))))
-
-(defn linear-mapping-saturation [base minimum maximum slope]
-  (assert (or (and (< 0 slope)
-                   (< base maximum))
+(defn linear-mapping [base limit slope x]
+  (assert (or (and (<= 0 slope)
+                   (<= base limit))
               (and (> 0 slope)
-                   (> base minimum))))
+                   (> base limit))))
 
-  (int (Math/ceil (Math/abs (/ (- (if (< 0 slope)
-                                    maximum
-                                    minimum)
-                                  base)
-                               slope)))))
+  ((if (< 0 slope)
+     min
+     max)
+   limit
+   (+ base (* slope x))))
 
-(defn run-linear-mapping-saturation-test [base minimum maximum slope]
-  (is (= (if (< 0 slope)
-           maximum
-           minimum)
-         (int (linear-mapping base minimum maximum slope
-                              (linear-mapping-saturation base minimum maximum slope))))))
+(deftest test-linear-mapping
+  (is (= 1.0
+         (linear-mapping 1 2 0.1 0)))
+
+  (is (= 1.0
+         (linear-mapping 1 1 0.1 0)))
+
+  (is (= 1.1
+         (linear-mapping 1 2 0.1 1)))
+  (is (= 2
+         (linear-mapping 1 2 0.1 100)))
+
+  (is (= -2
+         (linear-mapping 1 -2 -0.1 100)))
+
+  (is (= 0.9
+         (linear-mapping 1 0 -0.1 1)))
+
+  (is (= 0
+         (linear-mapping 1 0 -0.1 100)))
+
+  (is (thrown? AssertionError (linear-mapping 1 2 -0.1 1))))
+
+(defn linear-mapping-saturation [base limit slope]
+  (assert (or (and (<= 0 slope)
+                   (<= base limit))
+              (and (> 0 slope)
+                   (> base limit))))
+  (if (= 0 slope)
+    0
+    (int (Math/ceil (Math/abs (/ (- limit
+                                    base)
+                                 slope))))))
+
+(defn run-linear-mapping-saturation-test [base limit slope]
+  (is (= limit
+         (int (linear-mapping base limit slope
+                              (linear-mapping-saturation base limit slope))))))
 
 (deftest test-linear-mapping-saturation
-  (run-linear-mapping-saturation-test 1 2 2 0.1)
-  (run-linear-mapping-saturation-test 1 4 2 0.1)
-  (run-linear-mapping-saturation-test 1 4 4 0.1)
-  (run-linear-mapping-saturation-test 1 -4 4 -0.1)
+  (run-linear-mapping-saturation-test 1 2 0.1)
+  (run-linear-mapping-saturation-test 1 4 0.1)
+  (run-linear-mapping-saturation-test 1 -4 -0.1)
+  (run-linear-mapping-saturation-test 1 1 0)
+  (linear-mapping-saturation 1 1 0.1)
 
-  (is (thrown? AssertionError (linear-mapping-saturation 1 1 1 0.1)))
-  (is (thrown? AssertionError (linear-mapping-saturation 1 2 2 -0.1)))
-  (is (thrown? AssertionError (linear-mapping-saturation 1 2 0 0.1))))
+  (is (thrown? AssertionError (linear-mapping-saturation 1 2 -0.1)))
+  (is (thrown? AssertionError (linear-mapping-saturation 1 0 0.1))))
 
 (def default-metaparameters {:population-size 500
-                             :elite-proportion-slope 0.01
+                             :elite-proportion-slope -0.01
                              :minimum-elite-proportion 0.05
                              :maximum-elite-proportion 0.15
                              :minimum-parent-selection-temperature 1.0
@@ -398,31 +400,21 @@
 (defn random-metaparameters []
   {:population-size 500
 
-   :elite-proportion-slope (random-double 0.005 0.05)
-   :minimum-elite-proportion (random-double 0.01 0.10)
-   :maximum-elite-proportion (random-double 0.10 0.20)
+   :elite-proportion-slope (- (random/random-double 0.005 0.05))
+   :minimum-elite-proportion (random/random-double 0.01 0.10)
+   :maximum-elite-proportion (random/random-double 0.10 0.20)
 
-   :minimum-parent-selection-temperature (random-double 0.80 1.20)
-   :maximum-parent-selection-temperature (random-double 2.0 10.0)
-   :parent-selection-temperature-slope (random-double 0.005 0.05)
+   :minimum-parent-selection-temperature (random/random-double 0.80 1.20)
+   :maximum-parent-selection-temperature (random/random-double 2.0 10.0)
+   :parent-selection-temperature-slope (random/random-double 0.005 0.05)
 
-   :mutation-propability-slope (random-double 0.005 0.05)
-   :minimum-mutation-propability (random-double 0.01 0.05)
-   :maximum-mutation-propability (random-double 0.1 0.5)
+   :mutation-propability-slope (random/random-double 0.005 0.05)
+   :minimum-mutation-propability (random/random-double 0.01 0.05)
+   :maximum-mutation-propability (random/random-double 0.1 0.5)
 
-   :random-solution-proportion-slope (random-double 0.005 0.05)
-   :minimum-random-solution-proportion (random-double 0.01 0.1)
-   :maximum-random-solution-proportion (random-double 0.2 0.7)})
-
-(defn metaparameter-saturation-interval [metaparameters]
-  (max (/ 1 (:elite-proportion-slope metaparameters))
-       (/ 1 (:parent-selection-temperature-slope metaparameters))
-       (/ 1 (:mutation-propability-slope metaparameters))
-       (/ 1 (:random-solution-proportion-slope metaparameters))))
-
-(deftest test-metaparameter-saturation-interval
-  (is (=
-         (metaparameter-saturation-interval ))))
+   :random-solution-proportion-slope (random/random-double 0.005 0.05)
+   :minimum-random-solution-proportion (random/random-double 0.01 0.1)
+   :maximum-random-solution-proportion (random/random-double 0.2 0.7)})
 
 (defn arithmetic-mean [value-1 value-2]
   (/ (+ value-1 value-2)
@@ -441,13 +433,13 @@
                      (+ value
                         (* value
                            0.2
-                           (pick-random [-1 1])
-                           (random-double))))
+                           (random/pick-random [-1 1])
+                           (random/random-double))))
                    metaparameters))
 
 (deftest test-mutate-metaparameters
   (is (= {:a 0.5410080811492202, :b 466.7282944040489}
-         (with-fixed-random-seed
+         (random/with-fixed-random-seed
            (mutate-metaparameters {:a 0.5
                                    :b 500})))))
 
@@ -471,24 +463,20 @@
 
      :elite-proportion (linear-mapping maximum-elite-proportion
                                        minimum-elite-proportion
-                                       maximum-elite-proportion
-                                       (- elite-proportion-slope)
+                                       elite-proportion-slope
                                        generations-since-last-improvement)
 
      :parent-selection-temperature (linear-mapping minimum-parent-selection-temperature
-                                                   minimum-parent-selection-temperature
                                                    maximum-parent-selection-temperature
                                                    parent-selection-temperature-slope
                                                    generations-since-last-improvement)
 
      :mutation-propability (linear-mapping minimum-mutation-propability
-                                           minimum-mutation-propability
                                            maximum-mutation-propability
                                            mutation-propability-slope
                                            generations-since-last-improvement)
 
      :random-solution-proportion (linear-mapping minimum-random-solution-proportion
-                                                 minimum-random-solution-proportion
                                                  maximum-random-solution-proportion
                                                  random-solution-proportion-slope
                                                  generations-since-last-improvement)}))
@@ -499,14 +487,15 @@
           :parent-selection-temperature 1.01,
           :mutation-propability 0.060000000000000005,
           :random-solution-proportion 0.060000000000000005}
-         (next-generation-parameters 1)))
+         (next-generation-parameters 1 default-metaparameters)))
 
   (is (= {:population-size 2,
           :elite-proportion 0.13999999999999999,
           :parent-selection-temperature 1.01,
           :mutation-propability 0.060000000000000005,
           :random-solution-proportion 0.060000000000000005}
-         (next-generation-parameters 1 {:population-size 2}))))
+         (next-generation-parameters 1 (merge default-metaparameters
+                                              {:population-size 2})))))
 
 (defonce metaoptimization-history-atom (atom []))
 (defonce optimization-history-atom (atom []))
@@ -549,6 +538,9 @@
                  (concat (drop-last states)
                          [(-> (last states)
                               (assoc :best-rating (best-rating (:ratings state)))
+                              (assoc :rating-diversity (layout/number-diversity (map second (:ratings state))))
+                              (assoc :layout-diversity (layout/layout-diversity (map first (:ratings state))))
+                              (assoc :layout-entropy (layout/layout-entropy (map first (:ratings state))))
                               (dissoc :ratings))
                           state]))))
 
@@ -571,21 +563,13 @@
 
       (let [generations-since-latest-improvement (- (:generation-number state)
                                                     (:last-improved-generation-number state))
-            reset-needed? (= 1000 generations-since-latest-improvement)
             next-generation-ratings (next-generation-ratings (:ratings state)
                                                              rate-solutions
                                                              random-solution
                                                              crossbreed
                                                              mutate-solution
-                                                             (if reset-needed?
-                                                               (do (println "resetting population due to stagnation")
-                                                                   {:population-size (:population-size metaparameters)
-                                                                    :elite-proportion 0.1
-                                                                    :parent-selection-temperature 1.0
-                                                                    :mutation-propability 0
-                                                                    :random-solution-proportion 0.9})
-                                                               (next-generation-parameters generations-since-latest-improvement
-                                                                                           metaparameters)))]
+                                                             (next-generation-parameters generations-since-latest-improvement
+                                                                                         metaparameters))]
 
         (if (or (and (some? number-of-generations)
                      (= (dec number-of-generations)
@@ -595,9 +579,8 @@
               state)
           (recur (assoc state
                         :generation-number (inc (:generation-number state))
-                        :last-improved-generation-number (if (or reset-needed?
-                                                                 (< (best-rating next-generation-ratings)
-                                                                    (best-rating (:ratings state))))
+                        :last-improved-generation-number (if (< (best-rating next-generation-ratings)
+                                                                (best-rating (:ratings state)))
                                                            (:generation-number state)
                                                            (:last-improved-generation-number state))
                         :ratings next-generation-ratings)))))))
