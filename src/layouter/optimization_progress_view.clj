@@ -5,6 +5,7 @@
    [clojure.test :refer [deftest is]]
    [flow-gl.gui.path :as path]
    [fungl.color :as color]
+   [fungl.dependable-atom :as dependable-atom]
    [fungl.layouts :as layouts]
    [layouter.gui :as gui]
    [layouter.optimize :as optimize]
@@ -277,7 +278,7 @@
                                (:ratings))
                         :history-atom optimize/metaoptimization-history-atom})))
 
-(def layout-optimization-log-atom (atom []))
+(defonce layout-optimization-log-atom (dependable-atom/atom []))
 
 (defn optimize-layout [metaparameters multipliers text-statistics log-file-path & [options]]
   (let [state (-> (optimize/optimize optimize/random-layout
@@ -348,7 +349,7 @@
                                (mapcat :ratings)
                                (sort-by second)
                                (map first)
-                               (take 2)
+                               (take 1)
                                (map (fn [layout]
                                       (assoc (select-keys (first states)
                                                           [:text-statistics-name :multipliers])
@@ -427,7 +428,8 @@
 
   ;; hot-right-now TODO: remove me
 
-  (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
+  (do (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
+      nil)
   (best-layouts-per-statistics-and-multipliers (read-log layout-optimization-log-file-path))
   (best-layouts-per-statistics-and-multipliers @layout-optimization-log-atom)
 

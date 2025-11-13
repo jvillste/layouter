@@ -2,6 +2,7 @@
   (:require
    [clojure.set :as set]
    [clojure.test :refer [deftest is]]
+   [fungl.dependable-atom :as dependable-atom]
    [layouter.keyboard :as keyboard]
    [layouter.layout :as layout]
    [layouter.random :as random]
@@ -496,8 +497,8 @@
          (next-generation-parameters 1 (merge default-metaparameters
                                               {:population-size 2})))))
 
-(defonce metaoptimization-history-atom (atom []))
-(defonce optimization-history-atom (atom []))
+(defonce metaoptimization-history-atom (dependable-atom/atom []))
+(defonce optimization-history-atom (dependable-atom/atom []))
 (defonce stop-requested?-atom (atom false))
 
 (defn optimize [random-solution

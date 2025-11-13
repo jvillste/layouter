@@ -8,7 +8,8 @@
 (defn refresh-view! []
   (when @event-channel-atom
     (async/>!! @event-channel-atom
-               {:type :redraw})))
+               #_{:type :redraw}
+               {:type :foo})))
 
 (comment
   (reset! event-channel-atom nil)

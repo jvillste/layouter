@@ -1004,32 +1004,43 @@
                                                 [layout-rating-comparison-view text/finnish-statistics named-layouts]
                                                 [#'layout-comparison-view named-layout-atoms text/hybrid-statistics]))))
 
+(defn- optimization-status []
+  (->> @optimization-progress-view/layout-optimization-log-atom
+       (group-by (juxt :text-statistics-name :multipliers))
+       (medley/map-vals (fn [states]
+                          (let [ratings (->> states
+                                             (mapcat :ratings)
+                                             (map second))]
+                            {:number-of-optimization-runs (count states)
+                             :average-rating (/ (reduce + ratings)
+                                                (count ratings))
+                             :min-rating (apply min ratings)
+                             :min-rating-run-number (->> states
+                                                         (map :ratings)
+                                                         (map optimize/best-rating)
+                                                         (map-indexed vector)
+                                                         (sort-by second)
+                                                         (first)
+                                                         (first))
+                             ;; :max-rating (apply max ratings)
+                             ;; :latest-ratings (->> states
+                             ;;                      (take-last 5)
+                             ;;                      (map :ratings)
+                             ;;                      (map first)
+                             ;;                      (map second))
+                             })))))
+
 
 (defn optimizatin-status-view []
   (layouts/vertically-2 {:margin 10}
                         (layout-comparison-text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
-                        (for [[[text-statistics-name multipliers] status] (->> @optimization-progress-view/layout-optimization-log-atom
-                                                                               (group-by (juxt :text-statistics-name :multipliers))
-                                                                               (medley/map-vals (fn [states]
-                                                                                                  (let [ratings (->> states
-                                                                                                                     (mapcat :ratings)
-                                                                                                                     (map second))]
-                                                                                                    {:number-of-optimization-runs (count states)
-                                                                                                     :average-rating (/ (reduce + ratings)
-                                                                                                                        (count ratings))
-                                                                                                     :min-rating (apply min ratings)
-                                                                                                     :max-rating (apply max ratings)
-                                                                                                     :latest-ratings (->> states
-                                                                                                                          (take-last 5)
-                                                                                                                          (map :ratings)
-                                                                                                                          (map first)
-                                                                                                                          (map second))}))))]
+                        (for [[[text-statistics-name multipliers] status] (optimization-status)]
                           (layouts/vertically-2 {:margin 10}
-                                                (layout-comparison-text (str text-statistics-name "-" (layout/multipliers-to-layout-name multipliers)))
+                                                (layout-comparison-text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
                                                 (for [key (sort-by name (keys status))]
                                                   (layout-comparison-text (str key ": " (pr-str (key status)))))))))
 (comment
-
+  (optimization-status)
   (->> @optimization-progress-view/layout-optimization-log-atom
        (take-last 5)
        (map :ratings)
