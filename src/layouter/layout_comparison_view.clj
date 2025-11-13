@@ -13,6 +13,7 @@
    [layouter.gui :as gui]
    [layouter.keyboard :as keyboard]
    [layouter.layout :as layout]
+   [layouter.optimization-progress-view :as optimization-progress-view]
    [layouter.optimize :as optimize]
    [layouter.rating :as rating]
    [layouter.text :as text]
@@ -854,28 +855,30 @@
         character-to-cocoa-key-codes (map layout/layout-to-character-to-cocoa-key-code (map :layout named-layouts))]
     (layouts/superimpose (visuals/rectangle-2 {:fill-color [0 0 0 255]})
                          (layouts/vertically-2 {:margin 10}
-                                               (layouts/with-margins 50 0 0 50 [layout-rating-comparison-view statistics named-layouts])
+                                               #_(layouts/with-margins 50 0 0 50 [layout-rating-comparison-view statistics named-layouts])
                                                (layouts/flow (layouts/with-margin 40
                                                                (layouts/vertically-2 {:margin 10}
                                                                                      (layout-comparison-text "editor")
                                                                                      (for [[named-layout-atom-1 named-layout-atom-2] (partition-all 2 1 named-layout-atoms)]
-                                                                                       [layout-editor
-                                                                                        (:layout-atom named-layout-atom-1)
-                                                                                        (if (nil? named-layout-atom-2)
-                                                                                          {}
-                                                                                          (into {}
-                                                                                                (for [differing-cocoa-keycode (map first
-                                                                                                                                   (set/difference
-                                                                                                                                    (set (-> named-layout-atom-1
-                                                                                                                                             named-layout-atom-to-named-layout
-                                                                                                                                             :layout
-                                                                                                                                             layout/layout-to-cocoa-key-code-to-character))
-                                                                                                                                    (set (-> named-layout-atom-2
-                                                                                                                                             named-layout-atom-to-named-layout
-                                                                                                                                             :layout
-                                                                                                                                             layout/layout-to-cocoa-key-code-to-character))))]
-                                                                                                  [differing-cocoa-keycode [100 150 100 255]])))
-                                                                                        statistics])
+                                                                                       (layouts/vertically-2 {:margin 10}
+                                                                                                             (layout-comparison-text (:name named-layout-atom-1))
+                                                                                                             [layout-editor
+                                                                                                              (:layout-atom named-layout-atom-1)
+                                                                                                              (if (nil? named-layout-atom-2)
+                                                                                                                {}
+                                                                                                                (into {}
+                                                                                                                      (for [differing-cocoa-keycode (map first
+                                                                                                                                                         (set/difference
+                                                                                                                                                          (set (-> named-layout-atom-1
+                                                                                                                                                                   named-layout-atom-to-named-layout
+                                                                                                                                                                   :layout
+                                                                                                                                                                   layout/layout-to-cocoa-key-code-to-character))
+                                                                                                                                                          (set (-> named-layout-atom-2
+                                                                                                                                                                   named-layout-atom-to-named-layout
+                                                                                                                                                                   :layout
+                                                                                                                                                                   layout/layout-to-cocoa-key-code-to-character))))]
+                                                                                                                        [differing-cocoa-keycode [100 150 100 255]])))
+                                                                                                              statistics]))
 
                                                                                      #_[layout-editor
                                                                                         (:layout-atom (second named-layout-atoms))
@@ -890,17 +893,19 @@
                                                                                      (layout-comparison-text "heatmap")
 
                                                                                      (for [named-layout-atom named-layout-atoms]
-                                                                                       [key-heat-map-view
-                                                                                        (-> named-layout-atom
-                                                                                            named-layout-atom-to-named-layout
-                                                                                            :layout
-                                                                                            layout/layout-to-cocoa-key-code-to-character)
-                                                                                        (-> named-layout-atom
-                                                                                            named-layout-atom-to-named-layout
-                                                                                            :layout
-                                                                                            layout/layout-to-character-to-cocoa-key-code)
+                                                                                       (layouts/vertically-2 {:margin 10}
+                                                                                                             (layout-comparison-text (:name named-layout-atom))
+                                                                                                             [key-heat-map-view
+                                                                                                              (-> named-layout-atom
+                                                                                                                  named-layout-atom-to-named-layout
+                                                                                                                  :layout
+                                                                                                                  layout/layout-to-cocoa-key-code-to-character)
+                                                                                                              (-> named-layout-atom
+                                                                                                                  named-layout-atom-to-named-layout
+                                                                                                                  :layout
+                                                                                                                  layout/layout-to-character-to-cocoa-key-code)
 
-                                                                                        (:character-distribution statistics)]
+                                                                                                              (:character-distribution statistics)])
                                                                                        )
                                                                                      #_[key-heat-map-view
                                                                                         (first cocoa-key-code-to-characters)
@@ -952,11 +957,110 @@
                 {:cocoa-key-code 16, :character "j"}
                 {:cocoa-key-code 32, :character "l"}})
 
+(defn best-layouts-per-statistics-and-multipliers-with-names []
+  (->> (optimization-progress-view/best-layouts-per-statistics-and-multipliers @optimization-progress-view/layout-optimization-log-atom)
+       (map-indexed (fn [index named-layout]
+                      (assoc named-layout :name (str "optimized-" index))))))
+
+(def best-layouts-per-statistics-and-multipliers-with-names-atoms
+  #_(->> @optimize/optimization-history-atom
+         (last)
+         :ratings
+         (sort-by second)
+         (map first)
+         (distinct)
+         #_(count)
+         (take 5)
+         (map-indexed (fn [index layout]
+                        {:layout layout
+                         :name (str "optimized-" index)}))
+         (map named-layout-to-named-layout-atom))
+
+  (->> (best-layouts-per-statistics-and-multipliers-with-names)
+       (map named-layout-to-named-layout-atom)))
+
+(defn optimized-layouts-comparison-view []
+  (let [named-layout-atoms (concat [(named-layout-to-named-layout-atom {:layout layout/qwerty
+                                                                        :name "qwerty"})
+                                    (named-layout-to-named-layout-atom {:layout layout/colemak-dh
+                                                                        :name "colemak"})
+                                    #_(named-layout-to-named-layout-atom {:layout the-best})]
+                                   best-layouts-per-statistics-and-multipliers-with-names-atoms
+                                   #_(->> optimization-progress-view/best-optimization-run
+                                          (:ratings)
+                                          (map first)
+                                          (take 3)
+                                          (map-indexed (fn [index layout]
+                                                         {:layout layout
+                                                          :name (str "optimized-" index)}))
+                                          (map named-layout-to-named-layout-atom)))
+        named-layouts (map named-layout-atom-to-named-layout named-layout-atoms)]
+    (gui/black-background (layouts/vertically-2 {:margin 10}
+                                                (layout-comparison-text "hybrid statistics")
+                                                [layout-rating-comparison-view text/hybrid-statistics named-layouts]
+                                                (layout-comparison-text "english statistics")
+                                                [layout-rating-comparison-view text/english-statistics named-layouts]
+                                                (layout-comparison-text "finnish statistics")
+                                                [layout-rating-comparison-view text/finnish-statistics named-layouts]
+                                                [#'layout-comparison-view named-layout-atoms text/hybrid-statistics]))))
+
+
+(defn optimizatin-status-view []
+  (layouts/vertically-2 {:margin 10}
+                        (layout-comparison-text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
+                        (for [[[text-statistics-name multipliers] status] (->> @optimization-progress-view/layout-optimization-log-atom
+                                                                               (group-by (juxt :text-statistics-name :multipliers))
+                                                                               (medley/map-vals (fn [states]
+                                                                                                  (let [ratings (->> states
+                                                                                                                     (mapcat :ratings)
+                                                                                                                     (map second))]
+                                                                                                    {:number-of-optimization-runs (count states)
+                                                                                                     :average-rating (/ (reduce + ratings)
+                                                                                                                        (count ratings))
+                                                                                                     :min-rating (apply min ratings)
+                                                                                                     :max-rating (apply max ratings)
+                                                                                                     :latest-ratings (->> states
+                                                                                                                          (take-last 5)
+                                                                                                                          (map :ratings)
+                                                                                                                          (map first)
+                                                                                                                          (map second))}))))]
+                          (layouts/vertically-2 {:margin 10}
+                                                (layout-comparison-text (str text-statistics-name "-" (layout/multipliers-to-layout-name multipliers)))
+                                                (for [key (sort-by name (keys status))]
+                                                  (layout-comparison-text (str key ": " (pr-str (key status)))))))))
 (comment
-  (view/start-view (fn []
-                     [#'layout-comparison-view
-                      [(named-layout-to-named-layout-atom {:layout layout/qwerty})
-                       (named-layout-to-named-layout-atom {:layout layout/colemak-dh})
-                       (named-layout-to-named-layout-atom {:layout the-best})]
-                      text/hybrid-statistics]))
+
+  (->> @optimization-progress-view/layout-optimization-log-atom
+       (take-last 5)
+       (map :ratings)
+       (map first)
+       (map second))
+  ) ;; TODO: remove me
+
+(defn optimized-layouts-rating-comparison-view []
+  (let [named-layouts (concat [{:layout layout/qwerty
+                                :name "qwerty"}
+                               {:layout layout/colemak-dh
+                                :name "colemak"}]
+                              (best-layouts-per-statistics-and-multipliers-with-names))]
+    (gui/black-background (layouts/vertically-2 {:margin 10}
+                                                (layout-comparison-text "hybrid statistics")
+                                                [layout-rating-comparison-view text/hybrid-statistics named-layouts]
+                                                (layout-comparison-text "english statistics")
+                                                [layout-rating-comparison-view text/english-statistics named-layouts]
+                                                (layout-comparison-text "finnish statistics")
+                                                [layout-rating-comparison-view text/finnish-statistics named-layouts]
+                                                [optimizatin-status-view]))))
+
+(comment
+  (view/start-view #'optimized-layouts-comparison-view)
+  (view/start-view #'optimized-layouts-rating-comparison-view)
+
+  best-layouts-per-statistics-and-multipliers-with-names-atoms
+  
+
   )
+
+
+
+(view/refresh-view!)

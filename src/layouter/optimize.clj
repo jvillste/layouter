@@ -14,7 +14,7 @@
   (let [layout-vector (vec layout)
         mapping-1 (random/pick-random layout-vector)
         mapping-2 (random/pick-random (remove #{mapping-1}
-                                       layout-vector))]
+                                              layout-vector))]
     (-> layout
         (disj mapping-1)
         (disj mapping-2)
@@ -108,7 +108,7 @@
       (conj (assoc mapping-1 :cocoa-key-code (:cocoa-key-code mapping-2)))
       (conj (assoc mapping-2 :cocoa-key-code (:cocoa-key-code mapping-1)))))
 
-(defn gradient-descent-one [text-statistics layout]
+(defn hill-climb-one [text-statistics layout]
   (assert (not (nil? layout)))
   (let [current-effort (rating/rate-layout text-statistics layout)
         {:keys [effort layout]} (->> (for [mapping-1 layout
@@ -125,18 +125,18 @@
     (when (> current-effort effort)
       layout)))
 
-(defn gradient-descent-all [text-statistics layout]
+(defn hill-climb-all [text-statistics layout]
   (loop [current-layout layout
-         next-layout (gradient-descent-one text-statistics
-                                           layout)]
+         next-layout (hill-climb-one text-statistics
+                                     layout)]
 
     (if (nil? next-layout)
       (set current-layout)
       (recur next-layout
-             (gradient-descent-one text-statistics
-                                   next-layout)))))
+             (hill-climb-one text-statistics
+                             next-layout)))))
 
-(deftest test-gradient-descent-all
+(deftest test-hill-climb-all
   (let [qwerty-key-code (fn [character]
                           ((layout/layout-to-character-to-cocoa-key-code layout/qwerty) character))
         qwerty-character (fn [cocoa-key-code]
@@ -154,13 +154,13 @@
              {:character "x", :qwerty-character "w"}
              {:character "y", :qwerty-character "j"}
              {:character "z", :qwerty-character "k"})
-           (make-readable (gradient-descent-all (text/text-statistics "abc" ["a" "b" "c"])
-                                                #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
-                                                  {:character "b" :cocoa-key-code (qwerty-key-code "w")}
-                                                  {:character "c" :cocoa-key-code (qwerty-key-code "e")}
-                                                  {:character "x" :cocoa-key-code (qwerty-key-code "f")}
-                                                  {:character "y" :cocoa-key-code (qwerty-key-code "j")}
-                                                  {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))
+           (make-readable (hill-climb-all (text/text-statistics "abc" ["a" "b" "c"])
+                                          #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
+                                            {:character "b" :cocoa-key-code (qwerty-key-code "w")}
+                                            {:character "c" :cocoa-key-code (qwerty-key-code "e")}
+                                            {:character "x" :cocoa-key-code (qwerty-key-code "f")}
+                                            {:character "y" :cocoa-key-code (qwerty-key-code "j")}
+                                            {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))
 
     (is (= '({:character "a", :qwerty-character "q"}
              {:character "b", :qwerty-character "f"}
@@ -169,13 +169,13 @@
              {:character "y", :qwerty-character "j"}
              {:character "z", :qwerty-character "k"})
            (make-readable
-            (gradient-descent-one (text/text-statistics "abc" ["a" "b" "c"])
-                                  #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
-                                    {:character "b" :cocoa-key-code (qwerty-key-code "w")}
-                                    {:character "c" :cocoa-key-code (qwerty-key-code "e")}
-                                    {:character "x" :cocoa-key-code (qwerty-key-code "f")}
-                                    {:character "y" :cocoa-key-code (qwerty-key-code "j")}
-                                    {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))))
+            (hill-climb-one (text/text-statistics "abc" ["a" "b" "c"])
+                            #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
+                              {:character "b" :cocoa-key-code (qwerty-key-code "w")}
+                              {:character "c" :cocoa-key-code (qwerty-key-code "e")}
+                              {:character "x" :cocoa-key-code (qwerty-key-code "f")}
+                              {:character "y" :cocoa-key-code (qwerty-key-code "j")}
+                              {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))))
 
 
 
@@ -185,7 +185,6 @@
 
 (def ^:dynamic generation-size 50)
 (def ^:dynamic number-of-genrations 1000)
-(def ^:dynamic maximum-number-of-generations-without-improvement 1000)
 
 (defonce running-atom? (atom true))
 (defonce optimization-state-atom (atom {}))
@@ -509,7 +508,8 @@
                            metaparameters
                            number-of-generations
                            history-atom
-                           logging-frequency]
+                           logging-frequency
+                           maximum-number-of-generations-without-improvement]
                     :or {history-atom optimization-history-atom
                          logging-frequency 1}}]]
   (reset! history-atom [])
@@ -538,8 +538,8 @@
                  (concat (drop-last states)
                          [(-> (last states)
                               (assoc :best-rating (best-rating (:ratings state)))
-                              (assoc :rating-diversity (layout/number-diversity (map second (:ratings state))))
-                              (assoc :layout-diversity (layout/layout-diversity (map first (:ratings state))))
+                              ;; (assoc :rating-diversity (layout/number-diversity (map second (:ratings state))))
+                              ;; (assoc :layout-diversity (layout/layout-diversity (map first (:ratings state))))
                               (assoc :layout-entropy (layout/layout-entropy (map first (:ratings state))))
                               (dissoc :ratings))
                           state]))))
@@ -574,6 +574,10 @@
         (if (or (and (some? number-of-generations)
                      (= (dec number-of-generations)
                         (:generation-number state)))
+                (and maximum-number-of-generations-without-improvement
+                     (< maximum-number-of-generations-without-improvement
+                        (- (:generation-number state)
+                           (:last-improved-generation-number state))))
                 @stop-requested?-atom)
           (do (println "stopped")
               state)

@@ -8,8 +8,10 @@
    [fungl.layouts :as layouts]
    [layouter.gui :as gui]
    [layouter.optimize :as optimize]
+   [layouter.rating :as rating]
    [layouter.text :as text]
-   [layouter.view :as view]))
+   [layouter.view :as view]
+   [medley.core :as medley]))
 
 
 
@@ -132,7 +134,7 @@
                                                                    0.5
                                                                    0.5)
                                                  [1.0])]))
-            graph-height 1000]
+            graph-height 300]
 
         (apply layouts/vertically-2
                {:margin 10}
@@ -143,16 +145,16 @@
                         (let [states (->> enriched-states
                                           (remove (comp nil? key)))]
                           (when (not (empty? states))
-                           (layouts/with-margin 50
-                             (path/path (key-to-color key)
-                                        5
-                                        (->> states
-                                             (map (fn [state]
-                                                    {:x (:generation-number state)
-                                                     :y (key state)}))
-                                             (scale-to-view graph-height graph-height)
-                                             (map (partial scale-point {:x 1 :y -1}))
-                                             (move-to-origin))))))))
+                            (layouts/with-margin 50
+                              (path/path (key-to-color key)
+                                         5
+                                         (->> states
+                                              (map (fn [state]
+                                                     {:x (:generation-number state)
+                                                      :y (key state)}))
+                                              (scale-to-view graph-height graph-height)
+                                              (map (partial scale-point {:x 1 :y -1}))
+                                              (move-to-origin))))))))
 
                (for [key displayed-keys]
                  (gui/text (let [values (remove nil? (map key enriched-states))]
@@ -223,13 +225,18 @@
                      (conj line (char byte))
                      (dec position)))))))
 
+(defn read-log [log-file-path]
+  (if (not (.exists (io/file log-file-path)))
+    []
+    (->> (io/reader log-file-path)
+         (line-seq)
+         (map edn/read-string))))
+
 (defn rated-metaparameters [log-file-path]
   (if (not (.exists (io/file log-file-path)))
     []
     (->> #_(tail 0 log-file-path)
-         (io/reader log-file-path)
-         (line-seq)
-         (map edn/read-string)
+         (read-log log-file-path)
          (map (fn [state]
                 [(:metaparameters state)
                  (optimize/best-rating (:ratings state))]))
@@ -270,20 +277,87 @@
                                (:ratings))
                         :history-atom optimize/metaoptimization-history-atom})))
 
-(defn optimize-layout [metaparameters]
-  (optimize/optimize optimize/random-layout
-                     optimize/crossbreed-layouts
-                     (partial optimize/layouts-to-ratings text/hybrid-statistics)
-                     optimize/mutate-layout
-                     {:metaparameters metaparameters
-                      #_(random-metaparameters)
-                      ;; :number-of-generations 30
-                      ;; :initial-ratings (->> @optimization-state-atom
-                      ;;                       (last))
-                      :logging-frequency 100
-                      :history-atom optimize/optimization-history-atom}))
+(def layout-optimization-log-atom (atom []))
+
+(defn optimize-layout [metaparameters multipliers text-statistics log-file-path & [options]]
+  (let [state (-> (optimize/optimize optimize/random-layout
+                                     optimize/crossbreed-layouts
+                                     (fn [layouts]
+                                       (binding [rating/multipliers multipliers]
+                                         (optimize/layouts-to-ratings text-statistics
+                                                                      layouts)))
+                                     optimize/mutate-layout
+                                     (merge {:metaparameters metaparameters
+                                             #_(random-metaparameters)
+                                             ;; :number-of-generations 30
+                                             ;; :initial-ratings (->> @optimization-state-atom
+                                             ;;                       (last))
+                                             :logging-frequency 100
+                                             :history-atom optimize/optimization-history-atom}
+                                            options))
+                  (assoc :text-statistics-name (:name text-statistics)
+                         :multipliers multipliers)
+                  (update :ratings (fn [ratings]
+                                     (->> ratings
+                                          (sort-by second)
+                                          (take 10)))))]
+    (swap! layout-optimization-log-atom conj state)
+    (spit log-file-path
+          (str (pr-str state)
+               "\n")
+          :append true)
+    state))
 
 (def metaparameter-optimization-log-file-path "temp/metaparameter-optimization-log.edn")
+(def layout-optimization-log-file-path "temp/layout-optimization-log.edn")
+
+(def optimized-layouts-atom (atom []))
+
+(def static-metaparameters {:population-size 200
+
+                            :elite-proportion-slope 0.0
+                            :minimum-elite-proportion 0.3
+                            :maximum-elite-proportion 0.3
+
+                            :minimum-parent-selection-temperature 1.0
+                            :maximum-parent-selection-temperature 1.0
+                            :parent-selection-temperature-slope 0.0
+
+                            :mutation-propability-slope 0.0
+                            :minimum-mutation-propability 0.2
+                            :maximum-mutation-propability 0.2
+
+                            :random-solution-proportion-slope 0.0
+                            :minimum-random-solution-proportion 0.0
+                            :maximum-random-solution-proportion 0.0})
+
+(defn optimize-repeatedly! [optimize-new-layout!]
+  (loop [round 0]
+    (println "repeated optimization round" round)
+    (optimize-new-layout!)
+    (if @optimize/stop-requested?-atom
+      (println "stopped repeated optimization")
+      (recur (inc round)))))
+
+(defn best-layouts-per-statistics-and-multipliers [log]
+  (->> log
+       ;; (take 1)
+       (group-by (juxt :text-statistics-name :multipliers))
+       (medley/map-vals (fn [states]
+                          (->> states
+                               (mapcat :ratings)
+                               (sort-by second)
+                               (map first)
+                               (take 2)
+                               (map (fn [layout]
+                                      (assoc (select-keys (first states)
+                                                          [:text-statistics-name :multipliers])
+                                             :layout layout))))))
+       (vals)
+       (apply concat)
+
+       ;; (count)
+       ))
 
 (comment
   (last @optimize/optimization-history-atom)
@@ -311,7 +385,6 @@
   (count (rated-metaparameters metaparameter-optimization-log-file-path))
   (first (rated-metaparameters metaparameter-optimization-log-file-path))
 
-  (view/refresh-view!)
 
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
@@ -322,26 +395,69 @@
   (doto (Thread. (fn []
                    (println "started")
                    (reset! optimize/stop-requested?-atom false)
-                   (optimize-layout {:population-size 200
 
-                                     :elite-proportion-slope 0.0
-                                     :minimum-elite-proportion 0.10
-                                     :maximum-elite-proportion 0.10
-
-                                     :minimum-parent-selection-temperature 1.0
-                                     :maximum-parent-selection-temperature 1.0
-                                     :parent-selection-temperature-slope 0.0
-
-                                     :mutation-propability-slope 0.0
-                                     :minimum-mutation-propability 0.2
-                                     :maximum-mutation-propability 0.2
-
-                                     :random-solution-proportion-slope 0.0
-                                     :minimum-random-solution-proportion 0.0  ;; hot-right-now TODO: remove me
-                                     :maximum-random-solution-proportion 0.0})
+                   (optimize-layout static-metaparameters
+                                    {:maximum-number-of-generations-without-improvement 200})
                    ))
     (.setName "layout optimization")
     (.start))
+
+
+  (doto (Thread. (fn []
+                   (reset! optimize/stop-requested?-atom false)
+                   (let [text-statistics #_text/finnish-statistics #_text/english-statistics text/hybrid-statistics]
+                     (optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
+                                                                       (optimize/random-layout))
+                                           (fn []
+                                             (optimize-layout static-metaparameters
+                                                              {:digram-roll 1
+                                                               :trigram-roll 0
+                                                               :key-rating 1
+                                                               :finger-type 0.1
+                                                               :horizontal-movement 0.1
+                                                               :vertical-movement 1
+                                                               :hand-balance 0.1}
+                                                              text-statistics
+                                                              layout-optimization-log-file-path
+                                                              {:maximum-number-of-generations-without-improvement 300}))))))
+    (.setName "repeating layout optimization")
+    (.start))
+
+  (reset! optimize/stop-requested?-atom true)
+
+  ;; hot-right-now TODO: remove me
+
+  (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
+  (best-layouts-per-statistics-and-multipliers (read-log layout-optimization-log-file-path))
+  (best-layouts-per-statistics-and-multipliers @layout-optimization-log-atom)
+
+  (count @optimized-layouts-atom)
+  (reset! optimized-layouts-atom [])
+
+  (optimize-layout (assoc static-metaparameters
+                          :population-size 200
+
+                          :elite-proportion-slope 0.0
+                          :minimum-elite-proportion 0.3
+                          :maximum-elite-proportion 0.3
+
+                          :minimum-parent-selection-temperature 5.0
+                          :maximum-parent-selection-temperature 1.0
+                          :parent-selection-temperature-slope -0.05
+
+                          :mutation-propability-slope 0.0
+                          :minimum-mutation-propability 0.2
+                          :maximum-mutation-propability 0.2
+
+                          :random-solution-proportion-slope 0.0
+                          :minimum-random-solution-proportion 0.0
+                          :maximum-random-solution-proportion 0.0)
+
+                   { ;; :maximum-number-of-generations-without-improvement 1000
+                    :initial-ratings (optimize/layouts-to-ratings text/hybrid-statistics
+                                                                  @optimized-layouts-atom)})
+
+  (def hill-climbing-optimized-layouts )
 
   (reset! optimize/stop-requested?-atom true)
 
@@ -368,16 +484,31 @@
   (spit "temp/last-metaoptimzation-state2.edn"
         (pr-str (last @optimize/metaoptimization-history-atom)))
 
-  (spit "temp/last-optimzation-state2.edn"
+  (spit "temp/last-optimzation-state-4.edn"
         (pr-str (last @optimize/optimization-history-atom)))
+
+  (spit "temp/optimized-layouts.edn"
+        (pr-str (last @optimized-layouts-atom)))
 
   (->> @optimize/optimization-history-atom
        (last)
        :ratings
        (sort-by second)
        #_first
-       (take 5)
-       (map first))
+       #_(map first)
+       (map second)
+       (distinct)
+       #_(count)
+       #_(take 5))
+
+  (->> @optimize/optimization-history-atom
+       (last)
+       :ratings
+       (sort-by second)
+       (map first)
+       (distinct)
+       #_(count)
+       (take 5))
 
 
 
@@ -388,9 +519,9 @@
   ;; {:generation-number 2020, :last-improved-generation-number 1478, :best-rating 1.0234699909057077, :population-size 500, :elite-proportion 0.05, :parent-selection-temperature 10.0, :mutation-propability 0.2, :random-solution-proportion 0.5}
 
   (let [layout #_(optimize text-statistics)
-        (gradient-descent-all text-statistics
-                              #_(random-layout (keys (:character-distribution text-statistics)))
-                              (optimize text-statistics))]
+        (hill-climb-all text-statistics
+                        #_(random-layout (keys (:character-distribution text-statistics)))
+                        (optimize text-statistics))]
     (println (rate-layout text-statistics
                           layout))
     layout)
@@ -399,8 +530,8 @@
               (fn []
                 (let [text-statistics hybrid-statistics
                       ga-optimized-layout (optimize text-statistics)
-                      gd-optimized-layout (gradient-descent-all text-statistics
-                                                                ga-optimized-layout)]
+                      gd-optimized-layout (hill-climb-all text-statistics
+                                                          ga-optimized-layout)]
                   [(rate-layout text-statistics
                                 ga-optimized-layout)
                    (rate-layout text-statistics
@@ -417,15 +548,13 @@
   ;; => 1.5022908057715776
 
   (let [text-statistics hybrid-statistics
-        gd-optimized-layout (gradient-descent-all text-statistics
-                                                  (random-layout finnish-characters))]
+        gd-optimized-layout (hill-climb-all text-statistics
+                                            (random-layout finnish-characters))]
     [(rate-layout text-statistics
                   gd-optimized-layout)
      gd-optimized-layout])
 
-
   (format "%.2f" (double 0.123455))
-
 
   (select-probability-mass 0.95
                            (normalized-trigram-distribution (slurp "temp/text/the-hacker-crackdown.txt")))
@@ -436,9 +565,7 @@
   ;; => 6133
   )
 
-(-> (->> @optimize/optimization-history-atom
-         (last))
-    (update :ratings (partial take 5)))
+
 
 (defn raf-seq
   [#^java.io.RandomAccessFile raf]
@@ -460,159 +587,179 @@
 
 
 
-(def best-optimization-run '{:metaparameters nil,
-                             :generation-number 2638,
-                             :last-improved-generation-number 1864,
+(comment
+  (-> (->> @optimize/optimization-history-atom
+           (last))
+      (update :ratings (partial take 5)))
+  )
+
+
+(def best-optimization-run '{:metaparameters
+                             {:mutation-propability-slope 0.0,
+                              :minimum-parent-selection-temperature 1.0,
+                              :elite-proportion-slope 0.0,
+                              :parent-selection-temperature-slope 0.0,
+                              :maximum-mutation-propability 0.2,
+                              :random-solution-proportion-slope 0.0,
+                              :minimum-elite-proportion 0.3,
+                              :maximum-parent-selection-temperature 1.0,
+                              :minimum-random-solution-proportion 0.0,
+                              :maximum-elite-proportion 0.3,
+                              :minimum-mutation-propability 0.2,
+                              :population-size 200,
+                              :maximum-random-solution-proportion 0.0},
+                             :generation-number 708,
+                             :last-improved-generation-number 507,
                              :ratings
-                             ([#{{:cocoa-key-code 40, :character "e"}
-                                 {:cocoa-key-code 34, :character "a"}
+                             ([#{{:cocoa-key-code 2, :character "a"}
+                                 {:cocoa-key-code 40, :character "e"}
+                                 {:cocoa-key-code 33, :character "x"}
+                                 {:cocoa-key-code 9, :character "m"}
                                  {:cocoa-key-code 38, :character "t"}
-                                 {:cocoa-key-code 6, :character "ä"}
+                                 {:cocoa-key-code 37, :character "s"}
                                  {:cocoa-key-code 46, :character "d"}
-                                 {:cocoa-key-code 31, :character "v"}
-                                 {:cocoa-key-code 7, :character "u"}
+                                 {:cocoa-key-code 7, :character "o"}
                                  {:cocoa-key-code 4, :character "r"}
-                                 {:cocoa-key-code 1, :character "o"}
-                                 {:cocoa-key-code 13, :character "z"}
-                                 {:cocoa-key-code 0, :character "k"}
-                                 {:cocoa-key-code 14, :character "g"}
-                                 {:cocoa-key-code 35, :character "å"}
-                                 {:cocoa-key-code 41, :character "p"}
-                                 {:cocoa-key-code 45, :character "m"}
-                                 {:cocoa-key-code 39, :character "x"}
+                                 {:cocoa-key-code 41, :character "h"}
+                                 {:cocoa-key-code 12, :character "z"}
+                                 {:cocoa-key-code 0, :character "g"}
+                                 {:cocoa-key-code 17, :character "v"}
+                                 {:cocoa-key-code 1, :character "i"}
                                  {:cocoa-key-code 3, :character "n"}
-                                 {:cocoa-key-code 17, :character "f"}
-                                 {:cocoa-key-code 37, :character "h"}
-                                 {:cocoa-key-code 33, :character "q"}
-                                 {:cocoa-key-code 2, :character "i"}
-                                 {:cocoa-key-code 5, :character "s"}
-                                 {:cocoa-key-code 12, :character "ö"}
-                                 {:cocoa-key-code 9, :character "w"}
-                                 {:cocoa-key-code 11, :character "b"}
-                                 {:cocoa-key-code 15, :character "y"}
-                                 {:cocoa-key-code 8, :character "c"}
-                                 {:cocoa-key-code 16, :character "j"}
-                                 {:cocoa-key-code 32, :character "l"}}
-                               1.0113131008969591]
-                              [#{{:cocoa-key-code 40, :character "e"}
-                                 {:cocoa-key-code 34, :character "a"}
+                                 {:cocoa-key-code 5, :character "l"}
+                                 {:cocoa-key-code 39, :character "y"}
+                                 {:cocoa-key-code 16, :character "b"}
+                                 {:cocoa-key-code 15, :character "ä"}
+                                 {:cocoa-key-code 34, :character "u"}
+                                 {:cocoa-key-code 14, :character "q"}
+                                 {:cocoa-key-code 45, :character "f"}
+                                 {:cocoa-key-code 6, :character "w"}
+                                 {:cocoa-key-code 32, :character "k"}
+                                 {:cocoa-key-code 11, :character "j"}
+                                 {:cocoa-key-code 35, :character "ö"}
+                                 {:cocoa-key-code 13, :character "å"}
+                                 {:cocoa-key-code 31, :character "p"}
+                                 {:cocoa-key-code 8, :character "c"}}
+                               1.0085179971004363]
+                              [#{{:cocoa-key-code 2, :character "a"}
+                                 {:cocoa-key-code 40, :character "e"}
+                                 {:cocoa-key-code 9, :character "m"}
                                  {:cocoa-key-code 38, :character "t"}
-                                 {:cocoa-key-code 6, :character "ä"}
+                                 {:cocoa-key-code 37, :character "s"}
                                  {:cocoa-key-code 46, :character "d"}
-                                 {:cocoa-key-code 31, :character "v"}
-                                 {:cocoa-key-code 7, :character "u"}
+                                 {:cocoa-key-code 7, :character "o"}
                                  {:cocoa-key-code 4, :character "r"}
-                                 {:cocoa-key-code 1, :character "o"}
-                                 {:cocoa-key-code 13, :character "z"}
-                                 {:cocoa-key-code 0, :character "k"}
-                                 {:cocoa-key-code 14, :character "g"}
-                                 {:cocoa-key-code 41, :character "p"}
-                                 {:cocoa-key-code 45, :character "m"}
-                                 {:cocoa-key-code 39, :character "x"}
-                                 {:cocoa-key-code 35, :character "q"}
+                                 {:cocoa-key-code 41, :character "h"}
+                                 {:cocoa-key-code 12, :character "z"}
+                                 {:cocoa-key-code 0, :character "g"}
+                                 {:cocoa-key-code 17, :character "v"}
+                                 {:cocoa-key-code 1, :character "i"}
                                  {:cocoa-key-code 3, :character "n"}
-                                 {:cocoa-key-code 17, :character "f"}
-                                 {:cocoa-key-code 37, :character "h"}
-                                 {:cocoa-key-code 2, :character "i"}
-                                 {:cocoa-key-code 5, :character "s"}
-                                 {:cocoa-key-code 12, :character "ö"}
-                                 {:cocoa-key-code 33, :character "å"}
-                                 {:cocoa-key-code 9, :character "w"}
-                                 {:cocoa-key-code 11, :character "b"}
-                                 {:cocoa-key-code 15, :character "y"}
-                                 {:cocoa-key-code 8, :character "c"}
-                                 {:cocoa-key-code 16, :character "j"}
-                                 {:cocoa-key-code 32, :character "l"}}
-                               1.0113131008969591]
-                              [#{{:cocoa-key-code 40, :character "e"}
-                                 {:cocoa-key-code 34, :character "a"}
-                                 {:cocoa-key-code 38, :character "t"}
-                                 {:cocoa-key-code 6, :character "ä"}
-                                 {:cocoa-key-code 39, :character "ö"}
-                                 {:cocoa-key-code 46, :character "d"}
-                                 {:cocoa-key-code 31, :character "v"}
-                                 {:cocoa-key-code 7, :character "u"}
-                                 {:cocoa-key-code 4, :character "r"}
-                                 {:cocoa-key-code 1, :character "o"}
-                                 {:cocoa-key-code 13, :character "z"}
-                                 {:cocoa-key-code 0, :character "k"}
-                                 {:cocoa-key-code 14, :character "g"}
-                                 {:cocoa-key-code 41, :character "p"}
-                                 {:cocoa-key-code 45, :character "m"}
-                                 {:cocoa-key-code 35, :character "q"}
-                                 {:cocoa-key-code 3, :character "n"}
-                                 {:cocoa-key-code 17, :character "f"}
-                                 {:cocoa-key-code 37, :character "h"}
-                                 {:cocoa-key-code 2, :character "i"}
-                                 {:cocoa-key-code 5, :character "s"}
-                                 {:cocoa-key-code 33, :character "å"}
-                                 {:cocoa-key-code 9, :character "w"}
-                                 {:cocoa-key-code 12, :character "x"}
-                                 {:cocoa-key-code 11, :character "b"}
-                                 {:cocoa-key-code 15, :character "y"}
-                                 {:cocoa-key-code 8, :character "c"}
-                                 {:cocoa-key-code 16, :character "j"}
-                                 {:cocoa-key-code 32, :character "l"}}
-                               1.0113692924863358]
-                              [#{{:cocoa-key-code 40, :character "e"}
-                                 {:cocoa-key-code 34, :character "a"}
-                                 {:cocoa-key-code 38, :character "t"}
-                                 {:cocoa-key-code 6, :character "ä"}
-                                 {:cocoa-key-code 39, :character "ö"}
-                                 {:cocoa-key-code 46, :character "d"}
-                                 {:cocoa-key-code 31, :character "v"}
-                                 {:cocoa-key-code 7, :character "u"}
-                                 {:cocoa-key-code 4, :character "r"}
-                                 {:cocoa-key-code 1, :character "o"}
-                                 {:cocoa-key-code 13, :character "z"}
-                                 {:cocoa-key-code 0, :character "k"}
-                                 {:cocoa-key-code 14, :character "g"}
-                                 {:character "å", :cocoa-key-code 35}
-                                 {:cocoa-key-code 41, :character "p"}
-                                 {:cocoa-key-code 45, :character "m"}
-                                 {:cocoa-key-code 3, :character "n"}
-                                 {:cocoa-key-code 17, :character "f"}
-                                 {:cocoa-key-code 37, :character "h"}
-                                 {:character "q", :cocoa-key-code 33}
-                                 {:cocoa-key-code 2, :character "i"}
-                                 {:cocoa-key-code 5, :character "s"}
-                                 {:cocoa-key-code 9, :character "w"}
-                                 {:cocoa-key-code 12, :character "x"}
-                                 {:cocoa-key-code 11, :character "b"}
-                                 {:cocoa-key-code 15, :character "y"}
-                                 {:cocoa-key-code 8, :character "c"}
-                                 {:cocoa-key-code 16, :character "j"}
-                                 {:cocoa-key-code 32, :character "l"}}
-                               1.0113692924863358]
-                              [#{{:cocoa-key-code 40, :character "e"}
-                                 {:cocoa-key-code 34, :character "a"}
-                                 {:cocoa-key-code 38, :character "t"}
-                                 {:cocoa-key-code 6, :character "ä"}
-                                 {:cocoa-key-code 46, :character "d"}
-                                 {:cocoa-key-code 31, :character "v"}
-                                 {:cocoa-key-code 7, :character "u"}
-                                 {:cocoa-key-code 4, :character "r"}
-                                 {:cocoa-key-code 1, :character "o"}
-                                 {:cocoa-key-code 13, :character "z"}
-                                 {:cocoa-key-code 0, :character "k"}
-                                 {:cocoa-key-code 14, :character "g"}
-                                 {:cocoa-key-code 35, :character "å"}
-                                 {:cocoa-key-code 41, :character "p"}
-                                 {:cocoa-key-code 45, :character "m"}
-                                 {:cocoa-key-code 3, :character "n"}
-                                 {:cocoa-key-code 17, :character "f"}
-                                 {:cocoa-key-code 37, :character "h"}
-                                 {:cocoa-key-code 39, :character "q"}
-                                 {:cocoa-key-code 2, :character "i"}
-                                 {:cocoa-key-code 5, :character "s"}
-                                 {:cocoa-key-code 9, :character "w"}
-                                 {:cocoa-key-code 12, :character "x"}
-                                 {:cocoa-key-code 11, :character "b"}
-                                 {:cocoa-key-code 15, :character "y"}
+                                 {:cocoa-key-code 5, :character "l"}
+                                 {:cocoa-key-code 39, :character "y"}
+                                 {:cocoa-key-code 16, :character "b"}
+                                 {:cocoa-key-code 15, :character "ä"}
+                                 {:cocoa-key-code 34, :character "u"}
+                                 {:cocoa-key-code 14, :character "q"}
+                                 {:cocoa-key-code 45, :character "f"}
+                                 {:cocoa-key-code 6, :character "w"}
+                                 {:cocoa-key-code 32, :character "k"}
+                                 {:cocoa-key-code 11, :character "j"}
+                                 {:cocoa-key-code 13, :character "å"}
+                                 {:cocoa-key-code 31, :character "p"}
                                  {:cocoa-key-code 8, :character "c"}
                                  {:cocoa-key-code 33, :character "ö"}
-                                 {:cocoa-key-code 16, :character "j"}
-                                 {:cocoa-key-code 32, :character "l"}}
-                               1.0113692924863358])})
+                                 {:cocoa-key-code 35, :character "x"}}
+                               1.0085179971004363]
+                              [#{{:cocoa-key-code 2, :character "a"}
+                                 {:cocoa-key-code 40, :character "e"}
+                                 {:cocoa-key-code 33, :character "x"}
+                                 {:cocoa-key-code 9, :character "m"}
+                                 {:cocoa-key-code 38, :character "t"}
+                                 {:cocoa-key-code 37, :character "s"}
+                                 {:cocoa-key-code 46, :character "d"}
+                                 {:cocoa-key-code 7, :character "o"}
+                                 {:cocoa-key-code 4, :character "r"}
+                                 {:cocoa-key-code 41, :character "h"}
+                                 {:cocoa-key-code 0, :character "g"}
+                                 {:cocoa-key-code 17, :character "v"}
+                                 {:cocoa-key-code 1, :character "i"}
+                                 {:cocoa-key-code 3, :character "n"}
+                                 {:cocoa-key-code 5, :character "l"}
+                                 {:cocoa-key-code 39, :character "y"}
+                                 {:cocoa-key-code 16, :character "b"}
+                                 {:cocoa-key-code 15, :character "ä"}
+                                 {:cocoa-key-code 34, :character "u"}
+                                 {:cocoa-key-code 12, :character "å"}
+                                 {:cocoa-key-code 45, :character "f"}
+                                 {:cocoa-key-code 6, :character "w"}
+                                 {:cocoa-key-code 13, :character "q"}
+                                 {:cocoa-key-code 32, :character "k"}
+                                 {:cocoa-key-code 11, :character "j"}
+                                 {:cocoa-key-code 35, :character "z"}
+                                 {:cocoa-key-code 31, :character "p"}
+                                 {:cocoa-key-code 8, :character "c"}
+                                 {:cocoa-key-code 14, :character "ö"}}
+                               1.0085412227013528]
+                              [#{{:cocoa-key-code 2, :character "a"}
+                                 {:cocoa-key-code 40, :character "e"}
+                                 {:cocoa-key-code 9, :character "m"}
+                                 {:cocoa-key-code 38, :character "t"}
+                                 {:cocoa-key-code 37, :character "s"}
+                                 {:cocoa-key-code 46, :character "d"}
+                                 {:cocoa-key-code 7, :character "o"}
+                                 {:cocoa-key-code 4, :character "r"}
+                                 {:cocoa-key-code 33, :character "z"}
+                                 {:cocoa-key-code 41, :character "h"}
+                                 {:cocoa-key-code 0, :character "g"}
+                                 {:cocoa-key-code 17, :character "v"}
+                                 {:cocoa-key-code 1, :character "i"}
+                                 {:cocoa-key-code 3, :character "n"}
+                                 {:cocoa-key-code 5, :character "l"}
+                                 {:cocoa-key-code 39, :character "y"}
+                                 {:cocoa-key-code 16, :character "b"}
+                                 {:cocoa-key-code 15, :character "ä"}
+                                 {:cocoa-key-code 34, :character "u"}
+                                 {:cocoa-key-code 12, :character "å"}
+                                 {:cocoa-key-code 45, :character "f"}
+                                 {:cocoa-key-code 6, :character "w"}
+                                 {:cocoa-key-code 13, :character "q"}
+                                 {:cocoa-key-code 32, :character "k"}
+                                 {:cocoa-key-code 11, :character "j"}
+                                 {:cocoa-key-code 31, :character "p"}
+                                 {:cocoa-key-code 8, :character "c"}
+                                 {:cocoa-key-code 14, :character "ö"}
+                                 {:cocoa-key-code 35, :character "x"}}
+                               1.0085412227013528]
+                              [#{{:cocoa-key-code 2, :character "a"}
+                                 {:cocoa-key-code 40, :character "e"}
+                                 {:cocoa-key-code 9, :character "m"}
+                                 {:cocoa-key-code 38, :character "t"}
+                                 {:cocoa-key-code 37, :character "s"}
+                                 {:cocoa-key-code 46, :character "d"}
+                                 {:cocoa-key-code 7, :character "o"}
+                                 {:cocoa-key-code 4, :character "r"}
+                                 {:cocoa-key-code 33, :character "z"}
+                                 {:cocoa-key-code 41, :character "h"}
+                                 {:cocoa-key-code 0, :character "g"}
+                                 {:cocoa-key-code 17, :character "v"}
+                                 {:cocoa-key-code 1, :character "i"}
+                                 {:cocoa-key-code 3, :character "n"}
+                                 {:cocoa-key-code 5, :character "l"}
+                                 {:cocoa-key-code 39, :character "y"}
+                                 {:cocoa-key-code 16, :character "b"}
+                                 {:cocoa-key-code 15, :character "ä"}
+                                 {:cocoa-key-code 34, :character "u"}
+                                 {:cocoa-key-code 45, :character "f"}
+                                 {:cocoa-key-code 6, :character "w"}
+                                 {:cocoa-key-code 12, :character "q"}
+                                 {:cocoa-key-code 32, :character "k"}
+                                 {:cocoa-key-code 11, :character "j"}
+                                 {:cocoa-key-code 13, :character "å"}
+                                 {:cocoa-key-code 31, :character "p"}
+                                 {:cocoa-key-code 8, :character "c"}
+                                 {:cocoa-key-code 14, :character "ö"}
+                                 {:cocoa-key-code 35, :character "x"}}
+                               1.0086570895820686])})
 
 (view/refresh-view!)

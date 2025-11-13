@@ -175,14 +175,24 @@
               (str key ":" val)))
        (string/join " ")))
 
+(defn multipliers-to-short-layout-name [multipliers]
+  (->> multipliers
+       (sort-by first)
+       (map second)
+       (map (fn [value]
+              (format-in-us-locale "%.1f" (float value))))
+       (string/join " ")))
+
 (defn layout-name [layout]
-  (str (if-let [name  (:name layout)]
-         name
-         (multipliers-to-layout-name (:multipliers layout)))
-       "-"
-       (homerow-string (layout-to-cocoa-key-code-to-character (:layout layout)))
-       "-"
-       (:statistics-name layout)))
+  (string/join "-"
+               (remove nil?
+                       [(when-some [name (:name layout)]
+                          name)
+                        #_(when-some [multipliers (:multipliers layout)]
+                          #_(multipliers-to-layout-name multipliers)
+                          (multipliers-to-short-layout-name multipliers))
+                        (homerow-string (layout-to-cocoa-key-code-to-character (:layout layout)))
+                        (:text-statistics-name layout)])))
 
 (defn layout-distance [layout-a layout-b]
   (/ (count (set/difference layout-a layout-b))
@@ -223,10 +233,12 @@
                             {:character "a", :cocoa-key-code 3}}))))
 
 (defn layout-diversity [layouts]
-  (let [pairs (for [a layouts
-                    b layouts
-                    :when (not= a b)]
-                (layout-distance a b))]
+  (let [pairs (pmap (fn [[a b]]
+                      (layout-distance a b))
+                    (for [a layouts
+                          b layouts
+                          :when (not= a b)]
+                      [a b]))]
     (if (empty? pairs)
       0
       (/ (reduce + pairs)
@@ -282,14 +294,14 @@
 
 (defn layout-entropy [layouts]
   (let [number-of-layouts (count layouts)
-        position-entropies (map (fn [characters-in-position]
-                                  (let [frequencies (vals (frequencies characters-in-position))
-                                        propabilities (map #(/ % number-of-layouts)
-                                                           frequencies)]
-                                    (- (reduce + (map #(* % (Math/log %))
-                                                      propabilities)))))
-                                (apply map vector
-                                       (map layout-to-sequence layouts)))]
+        position-entropies (pmap (fn [characters-in-position]
+                                   (let [frequencies (vals (frequencies characters-in-position))
+                                         propabilities (map #(/ % number-of-layouts)
+                                                            frequencies)]
+                                     (- (reduce + (map #(* % (Math/log %))
+                                                       propabilities)))))
+                                 (apply pmap vector
+                                        (pmap layout-to-sequence layouts)))]
     (/ (apply + position-entropies)
        (count position-entropies))))
 

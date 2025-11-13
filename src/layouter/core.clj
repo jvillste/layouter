@@ -222,9 +222,9 @@
 (defn optimize-with-multipliers [multipliers text-statistics & [{:keys [initial-layout]}]]
   (binding [multipliers multipliers]
     (let [layout (optimize text-statistics initial-layout)
-          #_(gradient-descent-all text-statistics
-                                  #_(random-layout (keys (:character-distribution text-statistics)))
-                                  (optimize text-statistics initial-layout))]
+          #_(hill-climb-all text-statistics
+                            #_(random-layout (keys (:character-distribution text-statistics)))
+                            (optimize text-statistics initial-layout))]
       ;; (println (rate-layout text-statistics
       ;;                       layout))
       layout)))
@@ -232,7 +232,7 @@
 
 (defn optimize-named-layout-with-multipliers [multipliers statistics & [{:keys [initial-layout]}]]
   {:multipliers multipliers
-   :statistics-name (:name statistics)
+   :text-statistics-name (:name statistics)
    :layout (optimize-with-multipliers multipliers
                                       statistics
                                       {:initial-layout initial-layout})})
@@ -1294,16 +1294,16 @@
                                                                                                                          (:statistics parameters))))))))))
 
   (spit "temp/optimized-layouts-with-multipliers-2" (pr-str optimized-layouts-with-multipliers))
-  (def optimized-finnish-layout (gradient-descent-all finnish-statistics
-                                                      (random-layout)))
+  (def optimized-finnish-layout (hill-climb-all finnish-statistics
+                                                (random-layout)))
 
   (binding [digram-roll-mulptiplier 1
             key-rating-multiplier 2]
     (let [file-name-body (str "temp/roll-" digram-roll-mulptiplier "-key-" key-rating-multiplier)]
-      ;; (def optimized-english-layout (gradient-descent-all english-statistics
+      ;; (def optimized-english-layout (hill-climb-all english-statistics
       ;;                                                     (random-layout)))
 
-      ;; (def optimized-hybrid-layout (gradient-descent-all hybrid-statistics
+      ;; (def optimized-hybrid-layout (hill-climb-all hybrid-statistics
       ;;                                                    (random-layout)))
 
       (spit (str file-name-body "english-text-english-layout.txt")
@@ -1352,8 +1352,8 @@
             (rating-description-to-text finnish-statistics
                                         dvorak))))
 
-  (do (def optimized-hybrid-layout (gradient-descent-all hybrid-statistics
-                                                         (random-layout)))
+  (do (def optimized-hybrid-layout (hill-climb-all hybrid-statistics
+                                                   (random-layout)))
       (print-rows 29
                   (rating-description-to-rows (describe-layout-rating english-statistics
                                                                       optimized-hybrid-layout))))
@@ -1394,8 +1394,8 @@
   (def target-text-statistics (text-statistics target-text))
   (do (def optimized-layouts (doall (repeatedly 5
                                                 (fn []
-                                                  (gradient-descent-all english-statistics
-                                                                        (random-layout))))))
+                                                  (hill-climb-all english-statistics
+                                                                  (random-layout))))))
 
       (map (partial rate-layout english-statistics)
            optimized-layouts))

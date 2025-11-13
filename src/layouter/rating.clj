@@ -409,24 +409,28 @@
                             {"a" {:finger 3}
                              "b" {:finger 4}}))))
 
-(defn rate-layout [text-statistics layout]
-  (assert (and (set? layout)
-               (every? :cocoa-key-code layout)))
+(defn rate-layout
+  ([layout]
+   (rate-layout text/hybrid-statistics layout))
 
-  (let [character-to-key (comp keyboard/cocoa-key-code-to-key
-                               (layout/layout-to-character-to-cocoa-key-code layout))]
-    (+ (rate-distribution (fn [digram]
-                            (total-effort (rate-key-pair (map character-to-key digram))))
-                          (:digram-distribution text-statistics))
-       #_(rate-distribution (fn [trigram]
-                              (total-effort (rate-key-triple (map character-to-key trigram))))
-                            (:trigram-distribution text-statistics))
-       (rate-distribution (fn [character]
-                            (total-effort (rate-key (character-to-key character))))
-                          (:character-distribution text-statistics))
-       (* (multiplier :hand-balance)
-          (rate-hand-balance (:character-distribution text-statistics)
-                             character-to-key)))))
+  ([text-statistics layout]
+   (assert (and (set? layout)
+                (every? :cocoa-key-code layout)))
+
+   (let [character-to-key (comp keyboard/cocoa-key-code-to-key
+                                (layout/layout-to-character-to-cocoa-key-code layout))]
+     (+ (rate-distribution (fn [digram]
+                             (total-effort (rate-key-pair (map character-to-key digram))))
+                           (:digram-distribution text-statistics))
+        #_(rate-distribution (fn [trigram]
+                               (total-effort (rate-key-triple (map character-to-key trigram))))
+                             (:trigram-distribution text-statistics))
+        (rate-distribution (fn [character]
+                             (total-effort (rate-key (character-to-key character))))
+                           (:character-distribution text-statistics))
+        (* (multiplier :hand-balance)
+           (rate-hand-balance (:character-distribution text-statistics)
+                              character-to-key))))))
 
 (deftest test-rate-layout
   (is (= 2.5708333333333333
