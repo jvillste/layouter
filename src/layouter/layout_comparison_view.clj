@@ -1015,13 +1015,19 @@
                              :average-rating (/ (reduce + ratings)
                                                 (count ratings))
                              :min-rating (apply min ratings)
-                             :min-rating-run-number (->> states
-                                                         (map :ratings)
-                                                         (map optimize/best-rating)
-                                                         (map-indexed vector)
-                                                         (sort-by second)
-                                                         (first)
-                                                         (first))
+                             ;; :min-rating-run-number (->> states
+                             ;;                             (map :ratings)
+                             ;;                             (map optimize/best-rating)
+                             ;;                             (map-indexed vector)
+                             ;;                             (sort-by second)
+                             ;;                             (first)
+                             ;;                             (first))
+                             :min-run-ratings (->> states
+                                                   (map :ratings)
+                                                   (map optimize/best-rating)
+                                                   (map-indexed vector)
+                                                   (sort-by second)
+                                                   (take 5))
                              ;; :max-rating (apply max ratings)
                              ;; :latest-ratings (->> states
                              ;;                      (take-last 5)

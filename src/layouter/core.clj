@@ -955,77 +955,7 @@
 
 (defonce chosen-layout {:layout qwerty})
 
-(defn layout-excercise-view []
-  (let [layout (:layout chosen-layout)
-        statistics hybrid-statistics
-        cocoa-key-code-to-character (layout-to-cocoa-key-code-to-character layout)
-        character-to-cocoa-key-code (layout-to-character-to-cocoa-key-code layout)
-        state-atom (dependable-atom/atom {:character-count 4
-                                          :typed-text ""
-                                          :cocoa-key-code-down nil
-                                          :target-word (excercise/excericse-word 4 statistics)})]
-    (fn []
-      (let [characters (excercise/take-most-common-characters (:character-count @state-atom)
-                                                              (:character-distribution statistics))]
-        {:node (black-background (layouts/center (layouts/vertically-2 {:margin 10 :centered? true}
-                                                                       (text (:target-word @state-atom))
-                                                                       (text (:typed-text @state-atom))
-                                                                       (keyboard-view cocoa-key-code-to-character
-                                                                                      (merge key-colors-for-fingers
-                                                                                             (-> (into {}
-                                                                                                       (for [character (drop-last characters)]
-                                                                                                         [(character-to-cocoa-key-code character)
-                                                                                                          [0 0 0 255]]))
-                                                                                                 (assoc (character-to-cocoa-key-code (last characters))
-                                                                                                        [0.5 0 0 255])
-                                                                                                 (assoc (:cocoa-key-code-down @state-atom)
-                                                                                                        [0 0.8 0 255]))))
-                                                                       (text (str (:character-count @state-atom)
-                                                                                  " / "
-                                                                                  (last characters))))))
-         :can-gain-focus? true
-         :keyboard-event-handler (fn [_subtree event]
-                                   (when (= :key-released
-                                            (:type event))
-                                     (swap! state-atom dissoc :cocoa-key-code-down))
 
-                                   (when (= :key-pressed
-                                            (:type event))
-
-                                     (swap! state-atom assoc :cocoa-key-code-down (java-key-code-to-cocoa-key-code (:key-code event) ))
-
-                                     (when (= :back-space (:key event))
-                                       (swap! state-atom update :typed-text (fn [typed-text]
-                                                                              (string/join (drop-last typed-text)))))
-
-                                     (when (and (= :up (:key event))
-                                                (> (count layout)
-                                                   (:character-count @state-atom)))
-                                       (swap! state-atom (fn [state]
-                                                           (-> state
-                                                               (update :character-count inc)
-                                                               (assoc :typed-text ""
-                                                                      :target-word (excercise/excericse-word (inc (:character-count @state-atom))
-                                                                                                             statistics))))))
-                                     (when (and (= :down (:key event))
-                                                (< 2 (:character-count @state-atom)))
-                                       (swap! state-atom (fn [state]
-                                                           (-> state
-                                                               (update :character-count dec)
-                                                               (assoc :typed-text ""
-                                                                      :target-word (excercise/excericse-word (inc (:character-count @state-atom))
-                                                                                                             statistics))))))
-
-                                     (when-some [character (cocoa-key-code-to-character (java-key-code-to-cocoa-key-code (:key-code event) ))]
-                                       (swap! state-atom update :typed-text str character))
-
-                                     (when (= (:target-word @state-atom)
-                                              (:typed-text @state-atom))
-                                       (swap! state-atom (fn [state]
-                                                           (assoc state
-                                                                  :typed-text ""
-                                                                  :target-word (excercise/excericse-word (:character-count @state-atom)
-                                                                                                         statistics)))))))}))))
 
 
 (comment
