@@ -58,8 +58,8 @@
          points)))
 
 (deftest test-scale-to-view
-  (is (= '({:x 0, :y 0}
-           {:x 10, :y 10})
+  (is (= '({:x 0.0, :y 0.0}
+           {:x 10.0, :y 10.0})
          (scale-to-view 10 10 [{:x 0
                                 :y 0}
                                {:x 1
@@ -332,11 +332,13 @@
                             :minimum-random-solution-proportion 0.0
                             :maximum-random-solution-proportion 0.0})
 
-(defn optimize-repeatedly! [optimize-new-layout!]
+(defn optimize-repeatedly! [optimize-new-layout! & [{:keys [maximum-number-of-rounds]}]]
   (loop [round 0]
     (println "repeated optimization round" round)
     (optimize-new-layout!)
-    (if @optimize/stop-requested?-atom
+    (if (or @optimize/stop-requested?-atom
+            (and (some? maximum-number-of-rounds)
+                 (= maximum-number-of-rounds round)))
       (println "stopped repeated optimization")
       (recur (inc round)))))
 
@@ -360,8 +362,52 @@
        ;; (count)
        ))
 
+(defn cluster-numbers-by-relative-difference [maximum-relative-difference numbers]
+  (let [sorted-numbers (sort numbers)]
+    (reduce (fn [clusters number]
+              (let [current-cluster (peek clusters)]
+                (if (> (/ number
+                          (first current-cluster))
+                       maximum-relative-difference)
+                  (conj clusters [number])
+                  (conj (pop clusters)
+                        (conj current-cluster number)))))
+            [[(first sorted-numbers)]]
+            (rest sorted-numbers))))
+
+(deftest test-cluster-numbers-by-relative-difference
+  (is (= [[1 1.005 1.008 1.01]
+          [1.011]
+          [1.2]]
+         (cluster-numbers-by-relative-difference 1.01 [1 1.005 1.008 1.01 1.011 1.2]))))
+
+(defn cluster-items-by-relative-difference [maximum-relative-difference get-number items]
+  (let [sorted-items (sort-by get-number items)]
+    (reduce (fn [clusters item]
+              (let [current-cluster (peek clusters)]
+                (if (> (/ (get-number item)
+                          (get-number (first current-cluster)))
+                       maximum-relative-difference)
+                  (conj clusters [item])
+                  (conj (pop clusters)
+                        (conj current-cluster item)))))
+            [[(first sorted-items)]]
+            (rest sorted-items))))
+
+(deftest test-cluster-items-by-relative-difference
+  (is (= [[{:x 1} {:x 1.005} {:x 1.008} {:x 1.01}]
+          [{:x 1.011}]]
+         (cluster-items-by-relative-difference 1.01 :x [{:x 1} {:x 1.005} {:x 1.008} {:x 1.01} {:x 1.011}]))))
+
+
+(def emphasize-roll-key-and-vertical-movement-multipliers {:digram-roll 1,
+                                                           :trigram-roll 0,
+                                                           :key-rating 1,
+                                                           :finger-type 0.1,
+                                                           :horizontal-movement 0.1,
+                                                           :vertical-movement 1,
+                                                           :hand-balance 0.1})
 (comment
-  (last @optimize/optimization-history-atom)
 
   (do (reset! optimize/optimization-history-atom [])
       (reset! optimize/metaoptimization-history-atom []))
@@ -411,16 +457,39 @@
                                                                        (optimize/random-layout))
                                            (fn []
                                              (optimize-layout static-metaparameters
-                                                              {:digram-roll 1
-                                                               :trigram-roll 0
-                                                               :key-rating 1
-                                                               :finger-type 0.1
-                                                               :horizontal-movement 0.1
-                                                               :vertical-movement 1
-                                                               :hand-balance 0.1}
+                                                              emphasize-roll-key-and-vertical-movement-multipliers
                                                               text-statistics
                                                               layout-optimization-log-file-path
                                                               {:maximum-number-of-generations-without-improvement 300}))))))
+    (.setName "repeating layout optimization")
+    (.start))
+
+  (doto (Thread. (fn []
+                   (reset! optimize/stop-requested?-atom false)
+                   (let [text-statistics text/finnish-statistics #_text/english-statistics #_text/hybrid-statistics
+                         rating-clusters (->> (get (->> @layout-optimization-log-atom
+                                                        (group-by (juxt :text-statistics-name :multipliers)))
+                                                   [(:name text-statistics)
+                                                    emphasize-roll-key-and-vertical-movement-multipliers])
+                                              (mapcat :ratings)
+                                              (cluster-items-by-relative-difference 1.01 second)
+                                              #_(take 5))]
+                     (doseq [[cluster-number rating-cluster] (map vector
+                                                                  (range)
+                                                                  rating-clusters)]
+                       (println "optimizing cluster" (inc cluster-number) "/" (count rating-clusters)
+                                "from" (second (first rating-cluster))
+                                "to"
+                                (second (last rating-cluster)))
+
+                       (optimize-repeatedly! (fn []
+                                               (optimize-layout static-metaparameters
+                                                                emphasize-roll-key-and-vertical-movement-multipliers
+                                                                text-statistics
+                                                                layout-optimization-log-file-path
+                                                                {:maximum-number-of-generations-without-improvement 300
+                                                                 :initial-ratings rating-cluster}))
+                                             {:maximum-number-of-rounds 1})))))
     (.setName "repeating layout optimization")
     (.start))
 
@@ -458,8 +527,6 @@
                    { ;; :maximum-number-of-generations-without-improvement 1000
                     :initial-ratings (optimize/layouts-to-ratings text/hybrid-statistics
                                                                   @optimized-layouts-atom)})
-
-  (def hill-climbing-optimized-layouts )
 
   (reset! optimize/stop-requested?-atom true)
 
@@ -514,12 +581,6 @@
 
 
 
-
-  ;; 1.0585756223599754 breeding with 0-2 mutations
-  ;; 1.0586912307882292 only mutations, no breeding
-  ;; 1.0451653252876312
-  ;; {:generation-number 2020, :last-improved-generation-number 1478, :best-rating 1.0234699909057077, :population-size 500, :elite-proportion 0.05, :parent-selection-temperature 10.0, :mutation-propability 0.2, :random-solution-proportion 0.5}
-
   (let [layout #_(optimize text-statistics)
         (hill-climb-all text-statistics
                         #_(random-layout (keys (:character-distribution text-statistics)))
@@ -565,36 +626,9 @@
   ;; => 2764
   ;; => 7470
   ;; => 6133
+
+  (->> @layout-optimization-log-atom)
   )
-
-
-
-(defn raf-seq
-  [#^java.io.RandomAccessFile raf]
-  (if-let [line (.readLine raf)]
-    (lazy-seq (cons line (raf-seq raf)))
-    []))
-
-(defn tail-seq [input]
-  (let [raf (java.io.RandomAccessFile. input "r")]
-    (.seek raf (.length raf))
-    (raf-seq raf)))
-
-(comment
-  (spit "temp/log-test.edn" "{:a 1}\n{:b 2}")
-  (slurp "temp/log-test.edn")
-  (tail-seq "temp/log-test.edn")
-  (read-last-n-lines "temp/log-test.edn" 1)
-  ) ;; TODO: remove me
-
-
-
-(comment
-  (-> (->> @optimize/optimization-history-atom
-           (last))
-      (update :ratings (partial take 5)))
-  )
-
 
 (def best-optimization-run '{:metaparameters
                              {:mutation-propability-slope 0.0,
