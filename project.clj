@@ -11,5 +11,5 @@
                  [camel-snake-kebab "0.4.3"]]
   :repl-options {:init-ns layouter.core}
 
-  :jvm-opts ["-Djdk.attach.allowAttachSelf" ;; for clj-async-profiler
+  :jvm-opts ["-Xmx2g" "-Djdk.attach.allowAttachSelf" ;; for clj-async-profiler
              "-XX:-OmitStackTraceInFastThrow"])

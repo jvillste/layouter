@@ -1,9 +1,7 @@
 (ns layouter.text
   (:require
-   [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.test :refer [deftest is]]
-   [layouter.excercise :as excercise]
    [medley.core :as medley]))
 
 
@@ -169,25 +167,3 @@
                                                         (slurp "temp/text/the-hacker-crackdown.txt"))
                                                    finnish-characters)
                                   :name "hy"))
-
-(comment
-  (defonce finnish-statistics (read-string (slurp (io/resource "finnish-statistics.edn"))))
-
-  (defonce hybrid-statistics (read-string (slurp (io/resource "hybrid-statistics.edn"))))
-
-  (spit "resources/finnish-statistics.edn"
-        (pr-str (assoc (text-statistics (str (string/join " " excercise/english-words))
-                                        finnish-characters)
-                       :name "fi")))
-
-  (spit "resources/finnish-statistics.edn"
-        (pr-str (assoc (text-statistics (str (string/join " " excercise/finnish-words))
-                                        finnish-characters)
-                       :name "fi")))
-
-  (spit "resources/hybrid-statistics.edn"
-        (pr-str (assoc (text-statistics (str (string/join " " excercise/english-words)
-                                             (string/join " " excercise/finnish-words))
-                                        finnish-characters)
-                       :name "hy")))
-  )

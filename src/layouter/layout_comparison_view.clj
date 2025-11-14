@@ -1074,7 +1074,7 @@
   (view/start-view #'optimized-layouts-rating-comparison-view)
 
   best-layouts-per-statistics-and-multipliers-with-names-atoms
-  
+
 
   )
 

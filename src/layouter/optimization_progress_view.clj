@@ -406,7 +406,7 @@
 
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
-                   (let [text-statistics #_text/finnish-statistics #_text/english-statistics text/hybrid-statistics]
+                   (let [text-statistics text/finnish-statistics #_text/english-statistics #_text/hybrid-statistics]
                      (optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
                                                                        (optimize/random-layout))
                                            (fn []
