@@ -1,5 +1,6 @@
 (ns layouter.gui
   (:require
+   [clojure.test :refer [deftest is]]
    [flow-gl.graphics.font :as font]
    [flow-gl.gui.visuals :as visuals]
    [fungl.component.text-area :as text-area]
@@ -34,3 +35,12 @@
 (defn black-background [contents]
   (layouts/superimpose (visuals/rectangle-2 {:fill-color [0 0 0 255]})
                        contents))
+
+(defn multiply-color [multiplier color]
+  (vec (concat (map (partial * multiplier)
+                    (take 3 color))
+               [(last color)])))
+
+(deftest test-multiply-color
+  (is (= [2 2 2 1]
+         (multiply-color 2 [1 1 1 1]))))

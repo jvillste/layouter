@@ -8,6 +8,7 @@
    [fungl.dependable-atom :as dependable-atom]
    [fungl.layouts :as layouts]
    [layouter.gui :as gui]
+   [layouter.layout :as layout]
    [layouter.optimize :as optimize]
    [layouter.rating :as rating]
    [layouter.text :as text]
@@ -338,29 +339,38 @@
     (optimize-new-layout!)
     (if (or @optimize/stop-requested?-atom
             (and (some? maximum-number-of-rounds)
-                 (= maximum-number-of-rounds round)))
+                 (= maximum-number-of-rounds (inc round))))
       (println "stopped repeated optimization")
       (recur (inc round)))))
 
-(defn best-layouts-per-statistics-and-multipliers [log]
-  (->> log
+(defn best-ratings-per-statistics-and-multipliers [layout-optimization-log]
+  (->> layout-optimization-log
        ;; (take 1)
        (group-by (juxt :text-statistics-name :multipliers))
        (medley/map-vals (fn [states]
                           (->> states
                                (mapcat :ratings)
                                (sort-by second)
+                               (first)
+                               (second))))))
+
+(defn best-layouts-per-statistics-and-multipliers [number-of-layouts-per-group minimum-number-of-differing-keys log]
+  (->> log
+       (group-by (juxt :text-statistics-name :multipliers))
+       (medley/map-vals (fn [states]
+                          (->> states
+                               (mapcat :ratings)
+                               (sort-by second)
                                (map first)
-                               (take 1)
+                               (distinct)
+                               (sample-items-by-distance minimum-number-of-differing-keys layout/number-of-differing-keys)
+                               (take number-of-layouts-per-group)
                                (map (fn [layout]
                                       (assoc (select-keys (first states)
                                                           [:text-statistics-name :multipliers])
                                              :layout layout))))))
        (vals)
-       (apply concat)
-
-       ;; (count)
-       ))
+       (apply concat)))
 
 (defn cluster-numbers-by-relative-difference [maximum-relative-difference numbers]
   (let [sorted-numbers (sort numbers)]
@@ -399,6 +409,33 @@
           [{:x 1.011}]]
          (cluster-items-by-relative-difference 1.01 :x [{:x 1} {:x 1.005} {:x 1.008} {:x 1.01} {:x 1.011}]))))
 
+(defn sample-items-by-distance [minimum-distance measure-distance items]
+  (reduce (fn [chosen-items item]
+            (let [latest-chosen-item (peek chosen-items)]
+              (if (> (measure-distance item
+                                       latest-chosen-item)
+                     minimum-distance)
+                (conj chosen-items item)
+                chosen-items)))
+          [(first items)]
+          (rest items)))
+
+(deftest test-sample-items-by-distance
+  (is (= [0 4 8]
+         (sample-items-by-distance 3 - (range 10)))))
+
+(defn last-to-first [function & arguments]
+  (apply function
+         (last arguments)
+         (drop-last arguments)))
+
+(defn ratings-from-layout-optimization-log [text-statistics multipliers layout-optimization-log]
+  (->> layout-optimization-log
+       (group-by (juxt :text-statistics-name :multipliers))
+       (last-to-first get
+                      [(:name text-statistics)
+                       multipliers])
+       (mapcat :ratings)))
 
 (def emphasize-roll-key-and-vertical-movement-multipliers {:digram-roll 1,
                                                            :trigram-roll 0,
@@ -464,14 +501,51 @@
     (.setName "repeating layout optimization")
     (.start))
 
+  (->> (ratings-from-layout-optimization-log text/finnish-statistics
+                                             emphasize-roll-key-and-vertical-movement-multipliers
+                                             @layout-optimization-log-atom)
+       (sort-by second)
+       (first)
+       (second))
+  ;; => 0.7018095607792347
+
+  (best-ratings-per-statistics-and-multipliers @layout-optimization-log-atom)
+  ;; before second english round
+  ;; => {["en"
+  ;;      {:digram-roll 1,
+  ;;       :trigram-roll 0,
+  ;;       :key-rating 1,
+  ;;       :finger-type 0.1,
+  ;;       :horizontal-movement 0.1,
+  ;;       :vertical-movement 1,
+  ;;       :hand-balance 0.1}]
+  ;;     0.7146674737091715,
+  ;;     ["fi"
+  ;;      {:digram-roll 1,
+  ;;       :trigram-roll 0,
+  ;;       :key-rating 1,
+  ;;       :finger-type 0.1,
+  ;;       :horizontal-movement 0.1,
+  ;;       :vertical-movement 1,
+  ;;       :hand-balance 0.1}]
+  ;;     0.7018095607792347,
+  ;;     ["hy"
+  ;;      {:digram-roll 1,
+  ;;       :trigram-roll 0,
+  ;;       :key-rating 1,
+  ;;       :finger-type 0.1,
+  ;;       :horizontal-movement 0.1,
+  ;;       :vertical-movement 1,
+  ;;       :hand-balance 0.1}]
+  ;;     0.7435772289930073}
+
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
-                   (let [text-statistics text/finnish-statistics #_text/english-statistics #_text/hybrid-statistics
-                         rating-clusters (->> (get (->> @layout-optimization-log-atom
-                                                        (group-by (juxt :text-statistics-name :multipliers)))
-                                                   [(:name text-statistics)
-                                                    emphasize-roll-key-and-vertical-movement-multipliers])
-                                              (mapcat :ratings)
+                   (let [text-statistics #_text/finnish-statistics text/english-statistics #_text/hybrid-statistics
+                         rating-clusters (->> (ratings-from-layout-optimization-log text-statistics
+                                                                                    emphasize-roll-key-and-vertical-movement-multipliers
+                                                                                    @layout-optimization-log-atom)
+
                                               (cluster-items-by-relative-difference 1.01 second)
                                               #_(take 5))]
                      (doseq [[cluster-number rating-cluster] (map vector
@@ -489,7 +563,7 @@
                                                                 layout-optimization-log-file-path
                                                                 {:maximum-number-of-generations-without-improvement 300
                                                                  :initial-ratings rating-cluster}))
-                                             {:maximum-number-of-rounds 1})))))
+                                             {:maximum-number-of-rounds 2})))))
     (.setName "repeating layout optimization")
     (.start))
 
@@ -499,8 +573,6 @@
 
   (do (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
       nil)
-  (best-layouts-per-statistics-and-multipliers (read-log layout-optimization-log-file-path))
-  (best-layouts-per-statistics-and-multipliers @layout-optimization-log-atom)
 
   (count @optimized-layouts-atom)
   (reset! optimized-layouts-atom [])

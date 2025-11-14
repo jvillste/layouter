@@ -194,8 +194,11 @@
                         (homerow-string (layout-to-cocoa-key-code-to-character (:layout layout)))
                         (:text-statistics-name layout)])))
 
+(defn number-of-differing-keys [layout-a layout-b]
+  (count (set/difference layout-a layout-b)))
+
 (defn layout-distance [layout-a layout-b]
-  (/ (count (set/difference layout-a layout-b))
+  (/ (number-of-differing-keys layout-a layout-b)
      (count layout-a)))
 
 (deftest test-layout-distance

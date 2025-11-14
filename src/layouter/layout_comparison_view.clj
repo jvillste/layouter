@@ -10,6 +10,7 @@
    [fungl.dependable-atom :as dependable-atom]
    [fungl.layouts :as layouts]
    [fungl.layouts :as layouts]
+   [layouter.excercise :as excercise]
    [layouter.gui :as gui]
    [layouter.keyboard :as keyboard]
    [layouter.layout :as layout]
@@ -145,14 +146,7 @@
                  format
                  (to-array arguments)))
 
-(defn multiply-color [multiplier color]
-  (vec (concat (map (partial * multiplier)
-                    (take 3 color))
-               [(last color)])))
 
-(deftest test-multiply-color
-  (is (= [2 2 2 1]
-         (multiply-color 2 [1 1 1 1]))))
 
 
 (defn mix-numbers [ratio number-1 number-2]
@@ -179,15 +173,6 @@
          (mix-colors 0.5
                      [1 2 3 4]
                      [1 1 1 1]))))
-
-(defn multiply-color [multiplier color]
-  (vec (concat (map (partial * multiplier)
-                    (take 3 color))
-               [(last color)])))
-
-(deftest test-multiply-color
-  (is (= [2 2 2 1]
-         (multiply-color 2 [1 1 1 1]))))
 
 
 (defn mix-numbers [ratio number-1 number-2]
@@ -239,7 +224,7 @@
                                #_(merge-with (fn [finger-color character-propability]
                                                (mix-colors (/ character-propability
                                                               largest-character-propability)
-                                                           (multiply-color 0.0 finger-color)
+                                                           (gui/multiply-color 0.0 finger-color)
                                                            [200 100 100 255]))
                                              key-colors-for-fingers
                                              (medley/map-keys character-to-cocoa-key-code
@@ -276,14 +261,14 @@
   (let [key-highlight-color (into {}
                                   (concat (map-indexed (fn [index character]
                                                          [(character-to-cocoa-key-code character)
-                                                          (multiply-color (- 1 (* 0.3 index))
-                                                                          [140 140 255 255])])
+                                                          (gui/multiply-color (- 1 (* 0.3 index))
+                                                                              [140 140 255 255])])
 
                                                        n-gram)))
         rating (rating/rate-n-gram-roll (map (comp keyboard/cocoa-key-code-to-key
                                                    character-to-cocoa-key-code)
                                              n-gram))
-        key-colors-for-fingers (medley/map-vals (partial multiply-color
+        key-colors-for-fingers (medley/map-vals (partial gui/multiply-color
                                                          (max 0.4 (- 1 (:effort rating))))
                                                 key-colors-for-fingers)]
     (layouts/vertically-2 {} (layout-comparison-text (str (:effort rating) " " (apply str n-gram)))
@@ -845,6 +830,22 @@
 
          :can-gain-focus? true}))))
 
+(defn- differing-cocoa-keycodes [named-layout-1 named-layout-2]
+  (map first
+       (set/difference
+        (set (-> named-layout-1
+                 :layout
+                 layout/layout-to-cocoa-key-code-to-character))
+        (set (-> named-layout-2
+                 :layout
+                 layout/layout-to-cocoa-key-code-to-character)))))
+
+(defn- differing-key-color-mapping [named-layout-1 named-layout-2]
+  (into {}
+        (for [differing-cocoa-keycode (differing-cocoa-keycodes named-layout-1
+                                                                named-layout-2)]
+          [differing-cocoa-keycode [100 150 100 255]])))
+
 
 (defn layout-comparison-view [named-layout-atoms statistics]
   (let [named-layouts (for [named-layout-atom named-layout-atoms]
@@ -866,18 +867,8 @@
                                                                                                               (:layout-atom named-layout-atom-1)
                                                                                                               (if (nil? named-layout-atom-2)
                                                                                                                 {}
-                                                                                                                (into {}
-                                                                                                                      (for [differing-cocoa-keycode (map first
-                                                                                                                                                         (set/difference
-                                                                                                                                                          (set (-> named-layout-atom-1
-                                                                                                                                                                   named-layout-atom-to-named-layout
-                                                                                                                                                                   :layout
-                                                                                                                                                                   layout/layout-to-cocoa-key-code-to-character))
-                                                                                                                                                          (set (-> named-layout-atom-2
-                                                                                                                                                                   named-layout-atom-to-named-layout
-                                                                                                                                                                   :layout
-                                                                                                                                                                   layout/layout-to-cocoa-key-code-to-character))))]
-                                                                                                                        [differing-cocoa-keycode [100 150 100 255]])))
+                                                                                                                (differing-key-color-mapping (named-layout-atom-to-named-layout named-layout-atom-1)
+                                                                                                                                             (named-layout-atom-to-named-layout named-layout-atom-2)))
                                                                                                               statistics]))
 
                                                                                      #_[layout-editor
@@ -957,27 +948,12 @@
                 {:cocoa-key-code 16, :character "j"}
                 {:cocoa-key-code 32, :character "l"}})
 
-(defn best-layouts-per-statistics-and-multipliers-with-names []
-  (->> (optimization-progress-view/best-layouts-per-statistics-and-multipliers @optimization-progress-view/layout-optimization-log-atom)
+(defn best-layouts-per-statistics-and-multipliers-with-names [number-of-layouts-per-group minimum-number-of-differing-keys]
+  (->> (optimization-progress-view/best-layouts-per-statistics-and-multipliers number-of-layouts-per-group
+                                                                               minimum-number-of-differing-keys
+                                                                               @optimization-progress-view/layout-optimization-log-atom)
        (map-indexed (fn [index named-layout]
                       (assoc named-layout :name (str "optimized-" index))))))
-
-(def best-layouts-per-statistics-and-multipliers-with-names-atoms
-  #_(->> @optimize/optimization-history-atom
-         (last)
-         :ratings
-         (sort-by second)
-         (map first)
-         (distinct)
-         #_(count)
-         (take 5)
-         (map-indexed (fn [index layout]
-                        {:layout layout
-                         :name (str "optimized-" index)}))
-         (map named-layout-to-named-layout-atom))
-
-  (->> (best-layouts-per-statistics-and-multipliers-with-names)
-       (map named-layout-to-named-layout-atom)))
 
 (defn optimized-layouts-comparison-view []
   (let [named-layout-atoms (concat [(named-layout-to-named-layout-atom {:layout layout/qwerty
@@ -1054,12 +1030,12 @@
        (map second))
   ) ;; TODO: remove me
 
-(defn optimized-layouts-rating-comparison-view []
+(defn optimization-status-with-rating-comparison-view []
   (let [named-layouts (concat [{:layout layout/qwerty
                                 :name "qwerty"}
                                {:layout layout/colemak-dh
                                 :name "colemak"}]
-                              (best-layouts-per-statistics-and-multipliers-with-names))]
+                              (best-layouts-per-statistics-and-multipliers-with-names 2 2))]
     (gui/black-background (layouts/vertically-2 {:margin 10}
                                                 (layout-comparison-text "hybrid statistics")
                                                 [layout-rating-comparison-view text/hybrid-statistics named-layouts]
@@ -1069,9 +1045,52 @@
                                                 [layout-rating-comparison-view text/finnish-statistics named-layouts]
                                                 [optimizatin-status-view]))))
 
+(defn optimized-layouts-comparison-view-2 []
+  (let [named-layouts (concat [{:layout layout/qwerty
+                                :name "qwerty"}
+                               {:layout layout/colemak-dh
+                                :name "colemak"}]
+                              (best-layouts-per-statistics-and-multipliers-with-names 2 0))
+        english-demo-text (string/lower-case (subs (slurp "temp/text/the-hacker-crackdown.txt")
+                                                   0 100))
+        finnish-demo-text (string/lower-case (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                   0 100))
+        state-atom (dependable-atom/atom {:selected-named-layout (first named-layouts)
+                                          :selected-text-statistics text/finnish-statistics
+                                          :demo-text finnish-demo-text})]
+    (fn []
+      (let [state @state-atom
+            selected-named-layout (:selected-named-layout state)
+            selected-text-statistics (:selected-text-statistics state)]
+        (gui/black-background (layouts/vertically-2 {:margin 10}
+                                                    (for [text-statistics [text/hybrid-statistics text/english-statistics text/finnish-statistics]]
+                                                      (layouts/vertically-2 {:margin 10}
+                                                                            (on-click (fn [] (swap! state-atom assoc
+                                                                                                    :selected-text-statistics text-statistics
+                                                                                                    :demo-text (if (= "en" (:name text-statistics))
+                                                                                                                 english-demo-text
+                                                                                                                 finnish-demo-text)))
+                                                                                      (layout-comparison-text (:name text-statistics)))
+                                                                            [layout-rating-comparison-view text-statistics named-layouts]))
+                                                    (layouts/flow (for [named-layout named-layouts]
+                                                                    (layouts/vertically-2 {:margin 10}
+                                                                                          (on-click (fn []
+                                                                                                      (swap! state-atom assoc :selected-named-layout named-layout))
+                                                                                                    (keyboard-view (layout/layout-to-cocoa-key-code-to-character (:layout named-layout))
+                                                                                                                   (merge key-colors-for-fingers
+                                                                                                                          (when selected-named-layout
+                                                                                                                            (differing-key-color-mapping selected-named-layout
+                                                                                                                                                         named-layout)))))
+                                                                                          (layout-comparison-text (layout/layout-name named-layout)))))
+                                                    {:node [excercise/layout-demo-view (:demo-text state)
+                                                            (:layout selected-named-layout)]
+                                                     :local-id (:name selected-text-statistics)}))))))
+
+
 (comment
   (view/start-view #'optimized-layouts-comparison-view)
-  (view/start-view #'optimized-layouts-rating-comparison-view)
+  (view/start-view #'optimization-status-with-rating-comparison-view)
+  (view/start-view #'optimized-layouts-comparison-view-2)
 
   best-layouts-per-statistics-and-multipliers-with-names-atoms
 
@@ -1080,4 +1099,5 @@
 
 
 
-(view/refresh-view!)
+#_(view/refresh-view!)
+(view/hard-refresh-view!)
