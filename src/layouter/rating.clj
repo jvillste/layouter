@@ -56,7 +56,8 @@
                             :finger-type 1
                             :horizontal-movement 1
                             :vertical-movement 1
-                            :hand-balance 1})
+                            :hand-balance 1
+                            :distance-from-colemak 1})
 
 (defn multiplier [multiplier-key]
   (or (get multipliers multiplier-key)
@@ -409,6 +410,9 @@
                             {"a" {:finger 3}
                              "b" {:finger 4}}))))
 
+(defn distance-from-colemak [layout]
+  (layout/layout-distance layout/colemak-dh layout))
+
 (defn rate-layout
   ([layout]
    (rate-layout text/hybrid-statistics layout))
@@ -430,7 +434,9 @@
                            (:character-distribution text-statistics))
         (* (multiplier :hand-balance)
            (rate-hand-balance (:character-distribution text-statistics)
-                              character-to-key))))))
+                              character-to-key))
+        (* (multiplier :distance-from-colemak)
+           (distance-from-colemak layout))))))
 
 (deftest test-rate-layout
   (is (= 2.5708333333333333

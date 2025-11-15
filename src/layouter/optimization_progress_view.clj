@@ -279,7 +279,17 @@
                                (:ratings))
                         :history-atom optimize/metaoptimization-history-atom})))
 
-(defonce layout-optimization-log-atom (dependable-atom/atom []))
+(def metaparameter-optimization-log-file-path "temp/metaparameter-optimization-log.edn")
+(def layout-optimization-log-file-path "temp/layout-optimization-log.edn")
+
+(defonce layout-optimization-log-atom (dependable-atom/atom (if (.exists (io/file layout-optimization-log-file-path))
+                                                              (read-log layout-optimization-log-file-path)
+                                                              [])))
+
+(comment
+  (do (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
+      nil)
+  )
 
 (defn optimize-layout [metaparameters multipliers text-statistics log-file-path & [options]]
   (let [state (-> (optimize/optimize optimize/random-layout
@@ -310,8 +320,7 @@
           :append true)
     state))
 
-(def metaparameter-optimization-log-file-path "temp/metaparameter-optimization-log.edn")
-(def layout-optimization-log-file-path "temp/layout-optimization-log.edn")
+
 
 (def optimized-layouts-atom (atom []))
 
@@ -343,6 +352,63 @@
       (println "stopped repeated optimization")
       (recur (inc round)))))
 
+(defn cluster-numbers-by-relative-difference [maximum-relative-difference numbers]
+  (let [sorted-numbers (sort numbers)]
+    (reduce (fn [clusters number]
+              (let [current-cluster (peek clusters)]
+                (if (> (/ number
+                          (first current-cluster))
+                       maximum-relative-difference)
+                  (conj clusters [number])
+                  (conj (pop clusters)
+                        (conj current-cluster number)))))
+            [[(first sorted-numbers)]]
+            (rest sorted-numbers))))
+
+(deftest test-cluster-numbers-by-relative-difference
+  (is (= [[1 1.005 1.008 1.01]
+          [1.011]
+          [1.2]]
+         (cluster-numbers-by-relative-difference 1.01 [1 1.005 1.008 1.01 1.011 1.2]))))
+
+(defn cluster-items-by-relative-difference [maximum-relative-difference get-number items]
+  (if (empty? items)
+    []
+    (let [sorted-items (sort-by get-number items)]
+      (reduce (fn [clusters item]
+                (let [current-cluster (peek clusters)]
+                  (if (> (/ (get-number item)
+                            (get-number (first current-cluster)))
+                         maximum-relative-difference)
+                    (conj clusters [item])
+                    (conj (pop clusters)
+                          (conj current-cluster item)))))
+              [[(first sorted-items)]]
+              (rest sorted-items)))))
+
+(deftest test-cluster-items-by-relative-difference
+  (is (= []
+         (cluster-items-by-relative-difference 1.01 :x [])))
+
+  (is (= [[{:x 1} {:x 1.005} {:x 1.008} {:x 1.01}]
+          [{:x 1.011}]]
+         (cluster-items-by-relative-difference 1.01 :x [{:x 1} {:x 1.005} {:x 1.008} {:x 1.01} {:x 1.011}]))))
+
+(defn sample-items-by-distance [minimum-distance measure-distance items]
+  (reduce (fn [chosen-items item]
+            (let [latest-chosen-item (peek chosen-items)]
+              (if (> (measure-distance item
+                                       latest-chosen-item)
+                     minimum-distance)
+                (conj chosen-items item)
+                chosen-items)))
+          [(first items)]
+          (rest items)))
+
+(deftest test-sample-items-by-distance
+  (is (= [0 4 8]
+         (sample-items-by-distance 3 - (range 10)))))
+
 (defn best-ratings-per-statistics-and-multipliers [layout-optimization-log]
   (->> layout-optimization-log
        ;; (take 1)
@@ -372,57 +438,6 @@
        (vals)
        (apply concat)))
 
-(defn cluster-numbers-by-relative-difference [maximum-relative-difference numbers]
-  (let [sorted-numbers (sort numbers)]
-    (reduce (fn [clusters number]
-              (let [current-cluster (peek clusters)]
-                (if (> (/ number
-                          (first current-cluster))
-                       maximum-relative-difference)
-                  (conj clusters [number])
-                  (conj (pop clusters)
-                        (conj current-cluster number)))))
-            [[(first sorted-numbers)]]
-            (rest sorted-numbers))))
-
-(deftest test-cluster-numbers-by-relative-difference
-  (is (= [[1 1.005 1.008 1.01]
-          [1.011]
-          [1.2]]
-         (cluster-numbers-by-relative-difference 1.01 [1 1.005 1.008 1.01 1.011 1.2]))))
-
-(defn cluster-items-by-relative-difference [maximum-relative-difference get-number items]
-  (let [sorted-items (sort-by get-number items)]
-    (reduce (fn [clusters item]
-              (let [current-cluster (peek clusters)]
-                (if (> (/ (get-number item)
-                          (get-number (first current-cluster)))
-                       maximum-relative-difference)
-                  (conj clusters [item])
-                  (conj (pop clusters)
-                        (conj current-cluster item)))))
-            [[(first sorted-items)]]
-            (rest sorted-items))))
-
-(deftest test-cluster-items-by-relative-difference
-  (is (= [[{:x 1} {:x 1.005} {:x 1.008} {:x 1.01}]
-          [{:x 1.011}]]
-         (cluster-items-by-relative-difference 1.01 :x [{:x 1} {:x 1.005} {:x 1.008} {:x 1.01} {:x 1.011}]))))
-
-(defn sample-items-by-distance [minimum-distance measure-distance items]
-  (reduce (fn [chosen-items item]
-            (let [latest-chosen-item (peek chosen-items)]
-              (if (> (measure-distance item
-                                       latest-chosen-item)
-                     minimum-distance)
-                (conj chosen-items item)
-                chosen-items)))
-          [(first items)]
-          (rest items)))
-
-(deftest test-sample-items-by-distance
-  (is (= [0 4 8]
-         (sample-items-by-distance 3 - (range 10)))))
 
 (defn last-to-first [function & arguments]
   (apply function
@@ -443,7 +458,8 @@
                                                            :finger-type 0.1,
                                                            :horizontal-movement 0.1,
                                                            :vertical-movement 1,
-                                                           :hand-balance 0.1})
+                                                           :hand-balance 0.1
+                                                           :distance-from-colemak 0.1})
 (comment
 
   (do (reset! optimize/optimization-history-atom [])
@@ -489,7 +505,7 @@
 
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
-                   (let [text-statistics text/finnish-statistics #_text/english-statistics #_text/hybrid-statistics]
+                   (let [text-statistics #_text/finnish-statistics text/english-statistics #_text/hybrid-statistics]
                      (optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
                                                                        (optimize/random-layout))
                                            (fn []
@@ -548,6 +564,8 @@
 
                                               (cluster-items-by-relative-difference 1.01 second)
                                               #_(take 5))]
+                     (when (empty? rating-clusters)
+                       (println "no ratings to clusterize"))
                      (doseq [[cluster-number rating-cluster] (map vector
                                                                   (range)
                                                                   rating-clusters)]
@@ -564,15 +582,22 @@
                                                                 {:maximum-number-of-generations-without-improvement 300
                                                                  :initial-ratings rating-cluster}))
                                              {:maximum-number-of-rounds 2})))))
-    (.setName "repeating layout optimization")
+    (.setName "clusterized optimization")
     (.start))
 
   (reset! optimize/stop-requested?-atom true)
 
   ;; hot-right-now TODO: remove me
 
-  (do (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
-      nil)
+  ;; remove hybrid statistics from log
+  (spit layout-optimization-log-file-path
+        (pr-str (->> #_@layout-optimization-log-atom
+                     (read-log "/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 3.edn"
+                               #_layout-optimization-log-file-path)
+                     (remove (comp #{"hy"}
+                                   :text-statistics-name)))))
+
+
 
   (count @optimized-layouts-atom)
   (reset! optimized-layouts-atom [])

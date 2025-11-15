@@ -163,7 +163,7 @@
                                                     finnish-characters)
                                    :name "fi"))
 
-(defonce hybrid-statistics (assoc (text-statistics (str (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
-                                                        (slurp "temp/text/the-hacker-crackdown.txt"))
+(defonce hybrid-statistics (assoc (text-statistics (str (take 300000 (slurp "temp/text/kirjoja-ja-kirjailijoita.txt"))
+                                                        (take 300000 (slurp "temp/text/the-hacker-crackdown.txt")))
                                                    finnish-characters)
                                   :name "hy"))

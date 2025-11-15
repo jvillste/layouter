@@ -44,3 +44,18 @@
 (deftest test-multiply-color
   (is (= [2 2 2 1]
          (multiply-color 2 [1 1 1 1]))))
+
+
+(defn highlight [content & [{:keys [fill-color] :or {fill-color [240 240 255 255]}}]]
+  (layouts/box 5
+               (visuals/rectangle-2 :fill-color fill-color
+                                    :draw-color nil
+                                    :line-width 0
+                                    :corner-arc-radius 20)
+               content))
+
+(defn maby-highlight [highlight? child]
+  (highlight child
+             {:fill-color (if highlight?
+                            [0 0.5 0 1.0]
+                            [0 0 0 0])}))

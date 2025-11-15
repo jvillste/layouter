@@ -8,8 +8,8 @@
    [fungl.layouts :as layouts]
    [layouter.gui :as gui]
    [layouter.keyboard :as keyboard]
+   [layouter.keyboard-view :as keyboard-view]
    [layouter.layout :as layout]
-   [layouter.layout-comparison-view :as layout-comparison-view]
    [layouter.text :as text]
    [layouter.view :as view]
    [medley.core :as medley])
@@ -95,14 +95,14 @@
         {:node (layouts/vertically-2 {:margin 10 :centered? true}
                                      (gui/text (:target-word @state-atom))
                                      (gui/text (:typed-text @state-atom))
-                                     (layout-comparison-view/keyboard-view cocoa-key-code-to-character
-                                                                           (merge layout-comparison-view/key-colors-for-fingers
+                                     (keyboard-view/keyboard-view cocoa-key-code-to-character
+                                                                           (merge keyboard-view/key-colors-for-fingers
                                                                                   (-> (into {}
                                                                                             (for [character (set/difference (set (keys character-to-cocoa-key-code))
                                                                                                                             (set characters))
                                                                                                   #_(drop-last characters)]
                                                                                               [(character-to-cocoa-key-code character)
-                                                                                               (let [[r g b _a] (layout-comparison-view/key-colors-for-fingers (character-to-cocoa-key-code character))]
+                                                                                               (let [[r g b _a] (keyboard-view/key-colors-for-fingers (character-to-cocoa-key-code character))]
                                                                                                  [r g b 0.6]
                                                                                                  #_[0 0 0 255])]))
                                                                                       (assoc (character-to-cocoa-key-code (last characters))
@@ -189,19 +189,19 @@
         {:node (layouts/vertically-2 {:margin 10 :centered? true}
                                      (gui/text (:target-word @state-atom))
                                      (gui/text (:typed-text @state-atom))
-                                     (layout-comparison-view/keyboard-view cocoa-key-code-to-character
-                                                                           (merge (medley/map-vals (partial gui/multiply-color 0.5)
-                                                                                                   layout-comparison-view/key-colors-for-fingers)
-                                                                                  (into {}
-                                                                                        (for [cocoa-key-code (->> @state-atom
-                                                                                                                  :target-word
-                                                                                                                  distinct
-                                                                                                                  (map str)
-                                                                                                                  (map character-to-cocoa-key-code))]
-                                                                                          [cocoa-key-code (gui/multiply-color 1.5 (get layout-comparison-view/key-colors-for-fingers
-                                                                                                                                       cocoa-key-code))]))
-                                                                                  {(:cocoa-key-code-down @state-atom)
-                                                                                   [0 0.8 0 255]})))
+                                     (keyboard-view/keyboard-view cocoa-key-code-to-character
+                                                                  (merge (medley/map-vals (partial gui/multiply-color 0.5)
+                                                                                          keyboard-view/key-colors-for-fingers)
+                                                                         (into {}
+                                                                               (for [cocoa-key-code (->> @state-atom
+                                                                                                         :target-word
+                                                                                                         distinct
+                                                                                                         (map str)
+                                                                                                         (map character-to-cocoa-key-code))]
+                                                                                 [cocoa-key-code (gui/multiply-color 1.5 (get keyboard-view/key-colors-for-fingers
+                                                                                                                              cocoa-key-code))]))
+                                                                         {(:cocoa-key-code-down @state-atom)
+                                                                          [0 0.8 0 255]})))
          :can-gain-focus? true
          :keyboard-event-handler (fn [_subtree event]
                                    (when (= :key-released

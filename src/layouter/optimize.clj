@@ -541,7 +541,7 @@
                               (assoc :best-rating (best-rating (:ratings state)))
                               ;; (assoc :rating-diversity (layout/number-diversity (map second (:ratings state))))
                               ;; (assoc :layout-diversity (layout/layout-diversity (map first (:ratings state))))
-                              (assoc :layout-entropy (layout/layout-entropy (map first (:ratings state))))
+                              ;; (assoc :layout-entropy (layout/layout-entropy (map first (:ratings state))))
                               (dissoc :ratings))
                           state]))))
 
