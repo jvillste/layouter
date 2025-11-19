@@ -11,6 +11,9 @@
 (def finnish-characters (concat english-characters
                                 ["ä" "å" "ö"]))
 
+(def finnish-characters-without-å (concat english-characters
+                                          ["ä" "ö"]))
+
 
 ;; DIGRAMS
 
@@ -140,7 +143,7 @@
 
 (defn text-statistics
   ([text]
-   (text-statistics text finnish-characters))
+   (text-statistics text finnish-characters-without-å))
 
   ([text characters]
    {:digram-distribution (select-probability-mass 0.95
@@ -163,7 +166,16 @@
                                                     finnish-characters)
                                    :name "fi"))
 
+(defonce finnish-statistics-without-å (assoc (text-statistics (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                              finnish-characters-without-å)
+                                             :name "fi-å"))
+
 (defonce hybrid-statistics (assoc (text-statistics (str (take 300000 (slurp "temp/text/kirjoja-ja-kirjailijoita.txt"))
                                                         (take 300000 (slurp "temp/text/the-hacker-crackdown.txt")))
                                                    finnish-characters)
                                   :name "hy"))
+
+(defonce hybrid-statistics-without-å (assoc (text-statistics (str (apply str (take 300000 (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")))
+                                                                  (apply str (take 300000 (slurp "temp/text/the-hacker-crackdown.txt"))))
+                                                             finnish-characters-without-å)
+                                            :name "hy-å"))

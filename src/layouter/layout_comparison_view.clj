@@ -4,6 +4,7 @@
    [clojure.set :as set]
    [clojure.string :as string]
    [clojure.test :refer [deftest is]]
+   [flow-gl.gui.path :as path]
    [flow-gl.gui.visuals :as visuals]
    [flow-gl.gui.visuals :as visuals]
    [fungl.dependable-atom :as dependable-atom]
@@ -12,6 +13,7 @@
    [fungl.layouts :as layouts]
    [layouter.excercise :as excercise]
    [layouter.gui :as gui]
+   [layouter.key-log :as key-log]
    [layouter.keyboard :as keyboard]
    [layouter.keyboard-view :as keyboard-view]
    [layouter.layout :as layout]
@@ -919,8 +921,8 @@
                                              (mapcat :ratings)
                                              (map second))]
                             {:number-of-optimization-runs (count states)
-                             :average-rating (/ (reduce + ratings)
-                                                (count ratings))
+                             ;; :average-rating (/ (reduce + ratings)
+                             ;;                    (count ratings))
                              ;; :min-rating (apply min ratings)
                              ;; :min-rating-run-number (->> states
                              ;;                             (map :ratings)
@@ -943,15 +945,41 @@
                              ;;                      (map second))
                              })))))
 
+(defn- min-rating-rungs-graph [scale-points status]
+  (let [graph-width 500
+        graph-height 100]
+    (when (not (empty? (:min-rating-runs status)))
+      (layouts/with-margin 10
+        (gui/box (layouts/with-minimum-size graph-width graph-height
+
+                   (path/path [100 100 100 255]
+                              5
+                              (->> (:min-rating-runs status)
+                                   (sort-by first)
+                                   (map (fn [[generation score]]
+                                          {:x generation
+                                           :y score}))
+                                   (scale-points graph-width graph-height)
+                                   (map (partial optimization-progress-view/scale-point {:x 1 :y -1}))
+                                   (optimization-progress-view/move-to-origin))))
+                 {:padding 0
+                  :fill-color nil
+                  :draw-color [0.2 0.2 0.2 1.0]
+                  :corner-arc-radius 0})))))
+
 
 (defn optimizatin-status-view []
   (layouts/vertically-2 {:margin 10}
                         (layout-comparison-text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
+                        (layout-comparison-text (str "best rating: " (optimize/best-rating (:ratings (last @optimize/optimization-history-atom)))))
                         (for [[[text-statistics-name multipliers] status] (optimization-status)]
                           (layouts/vertically-2 {:margin 10}
                                                 (layout-comparison-text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
                                                 (for [key (sort-by name (keys status))]
-                                                  (layout-comparison-text (str key ": " (pr-str (key status)))))))))
+                                                  (layout-comparison-text (str key ": " (pr-str (key status)))))
+                                                (layouts/horizontally-2 {:margin 10}
+                                                                        (min-rating-rungs-graph optimization-progress-view/scale-to-view-but-preserve-full-y-scale status)
+                                                                        (min-rating-rungs-graph optimization-progress-view/scale-to-view status))))))
 (comment
   (optimization-status)
   (->> @optimization-progress-view/layout-optimization-log-atom
@@ -959,6 +987,8 @@
        (map :ratings)
        (map first)
        (map second))
+
+  (first (:ratings (last @optimize/optimization-history-atom)))
   ) ;; TODO: remove me
 
 (defn optimization-status-with-rating-comparison-view []
@@ -990,19 +1020,21 @@
                                {:layout layout/colemak-dh
                                 :name "colemak"}]
                               (best-layouts-per-statistics-and-multipliers-with-names 1 0))
-        english-demo-text (string/lower-case (subs (slurp "temp/text/the-hacker-crackdown.txt")
-                                                   0 100))
-        finnish-demo-text (string/lower-case (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
-                                                   0 100))
+        english-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/the-hacker-crackdown.txt")
+                                                                   0 100)
+                                                             "\n" " "))
+        finnish-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
+                                                                   5004 5100)
+                                                             "\n" " "))
         state-atom (dependable-atom/atom {:selected-named-layout (first named-layouts)
-                                          :selected-text-statistics text/finnish-statistics
+                                          :selected-text-statistics text/finnish-statistics-without-å
                                           :demo-text finnish-demo-text})]
     (fn []
       (let [state @state-atom
             selected-named-layout (:selected-named-layout state)
             selected-text-statistics (:selected-text-statistics state)]
         (gui/black-background (layouts/vertically-2 {:margin 10}
-                                                    (for [text-statistics [text/hybrid-statistics text/english-statistics text/finnish-statistics]]
+                                                    (for [text-statistics [text/hybrid-statistics-without-å text/english-statistics text/finnish-statistics-without-å]]
                                                       (layouts/vertically-2 {:margin 10}
                                                                             (on-click (fn [] (swap! state-atom assoc
                                                                                                     :selected-text-statistics text-statistics
@@ -1020,10 +1052,10 @@
                                                                                                              :selected-named-layout named-layout
                                                                                                              :previously-selected-named-layout selected-named-layout))
                                                                                                     (keyboard-view/keyboard-view (layout/layout-to-cocoa-key-code-to-character (:layout named-layout))
-                                                                                                                   (merge keyboard-view/key-colors-for-fingers
-                                                                                                                          (when selected-named-layout
-                                                                                                                            (differing-key-color-mapping selected-named-layout
-                                                                                                                                                         named-layout)))))
+                                                                                                                                 (merge keyboard-view/key-colors-for-fingers
+                                                                                                                                        (when selected-named-layout
+                                                                                                                                          (differing-key-color-mapping selected-named-layout
+                                                                                                                                                                       named-layout)))))
                                                                                           (layout-comparison-text (layout/layout-name named-layout)))))
                                                     (layouts/horizontally-2 {:margin 10}
                                                                             {:node [excercise/layout-demo-view (:demo-text state)
@@ -1034,15 +1066,59 @@
 
                                                                             (when  (:previously-selected-named-layout state)
                                                                               [key-heat-map-view-for-named-layout selected-text-statistics (:previously-selected-named-layout state)]
-))))))))
+                                                                              ))
+                                                    [optimizatin-status-view]
+                                                    [optimization-progress-view/optimization-progress-view optimize/optimization-history-atom]))))))
 
+(defn text-statistics-view [highlighted-character on-mouse-enter on-mouse-leave text-statistics]
+  (layouts/vertically-2 {:margin 10}
+                        (layout-comparison-text (:name text-statistics))
+                        (let [maximum (apply max (map second (-> text-statistics :character-distribution)))]
+                          (for [[character frequency] (reverse (sort-by second (-> text-statistics :character-distribution)))]
+
+                            {:node (layouts/horizontally-2 {:margin 10}
+                                                           (layout-comparison-text (str character " " (format-in-us-locale "%.3f" (* 100 frequency))))
+                                                           (cell (assoc (visuals/rectangle-2 {:fill-color (if (= highlighted-character character)
+                                                                                                            [200 200 200 255]
+                                                                                                            [100 100 100 255])})
+                                                                        :height 30
+                                                                        :width (* 200
+                                                                                  (abs (/ frequency
+                                                                                          (max 0.001
+                                                                                               maximum)))))))
+                             :mouse-event-handler (fn [node event]
+                                                    (when (= :nodes-under-mouse-changed (:type event))
+                                                      (if (contains? (set (map :id (:nodes-under-mouse event)))
+                                                                     (:id node))
+                                                        (on-mouse-enter character)
+                                                        (on-mouse-leave character)))
+
+                                                    event)})))
+  )
+(defn text-statistics-comparison-view []
+  (let [state-atom (dependable-atom/atom {})
+        on-mouse-enter (fn [character]
+                         (swap! state-atom assoc :highlighted-character character))
+        on-mouse-leave (fn [_character]
+                         (swap! state-atom dissoc :highlighted-character))]
+    (fn []
+      (let [highlighted-character (:highlighted-character @state-atom)]
+        (gui/black-background (layouts/with-margin 50
+                                (layouts/horizontally-2 {:margin 10}
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/finnish-statistics-without-å]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave key-log/key-logger-text-statistics]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/hybrid-statistics-without-å]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/english-statistics])))))))
 
 (comment
   (view/start-view #'optimized-layouts-comparison-view)
   (view/start-view #'optimization-status-with-rating-comparison-view)
-  (view/start-view #'optimized-layouts-comparison-view-2)
+  (view/start-view #'optimized-layouts-comparison-view-2 ;;{:join? true}
+                   )
 
-  best-layouts-per-statistics-and-multipliers-with-names-atoms
+  (view/start-view #'text-statistics-comparison-view)
+
+
 
 
   )

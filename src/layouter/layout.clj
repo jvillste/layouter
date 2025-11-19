@@ -127,11 +127,22 @@
 (def dvorak (set (map #(dissoc % :qwerty-character)
                       dvorak-with-qwerty-characters)))
 
-(def disabled-layout-characters #{"," "." "-" "<" "ö" "ä" "å"})
+(defn replace-character [layout from-character to-character]
+  (set (for [mapping layout]
+         (if (= (:character mapping) from-character)
+           (assoc mapping :character to-character)
+           mapping))))
 
-(def layout-characters (set/difference (into #{} (map :character qwerty))
-                                       disabled-layout-characters))
+(deftest test-replace-character
+  (is (= #{{:cocoa-key-code 1 :character "a"}
+           {:cocoa-key-code 2 :character "c"}}
+         (replace-character #{{:cocoa-key-code 1 :character "a"}
+                              {:cocoa-key-code 2 :character "b"}}
+                            "b"
+                            "c"))))
 
+(defn finnish-layout-to-finnish-layout-without-å [layout]
+  (replace-character layout "å" ""))
 
 (defn layout-from-qwerty [new-layout-character-mapping-to-qwerty]
   (let [character-to-cocoa-key-code-in-qwerty (layout-to-character-to-cocoa-key-code qwerty)]

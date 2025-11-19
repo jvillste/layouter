@@ -39,7 +39,7 @@
 
 (defn random-layout
   ([]
-   (random-layout text/finnish-characters))
+   (random-layout text/finnish-characters-without-å))
   ([characters]
    (loop [remaining-cocoa-key-codes (sort (map :cocoa-key-code (remove :disabled? keyboard/keyboard-keys)))
           remaining-characters characters
@@ -56,7 +56,6 @@
                 (rest remaining-characters)
                 (conj layout {:character character
                               :cocoa-key-code cocoa-key-code})))))))
-
 
 (defn crossbreed-layouts [layout-1 layout-2]
   (loop [cocoa-key-code-to-character-1 (layouter.layout/layout-to-cocoa-key-code-to-character layout-1)
