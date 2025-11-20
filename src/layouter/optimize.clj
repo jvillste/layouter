@@ -1,5 +1,7 @@
 (ns layouter.optimize
   (:require
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.test :refer [deftest is]]
    [fungl.dependable-atom :as dependable-atom]
@@ -588,3 +590,71 @@
                                                            (:generation-number state)
                                                            (:last-improved-generation-number state))
                         :ratings next-generation-ratings)))))))
+
+(defn optimize-repeatedly! [optimize-new-layout! & [{:keys [maximum-number-of-rounds]}]]
+  (loop [round 0]
+    (println "repeated optimization round" round)
+    (optimize-new-layout!)
+    (if (or @stop-requested?-atom
+            (and (some? maximum-number-of-rounds)
+                 (= maximum-number-of-rounds (inc round))))
+      (println "stopped repeated optimization")
+      (recur (inc round)))))
+
+
+(def layout-optimization-log-file-path "temp/layout-optimization-log.edn")
+
+
+(defn read-log [log-file-path]
+  (if (not (.exists (io/file log-file-path)))
+    []
+    (->> (io/reader log-file-path)
+         (line-seq)
+         (map edn/read-string))))
+
+(defn write-log [log-file-path log-rows]
+  (doseq [log-row log-rows]
+    (spit log-file-path
+          (str (pr-str log-row)
+               "\n")
+          :append true)))
+
+(comment
+
+  (do (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
+      nil)
+  )
+
+(defonce layout-optimization-log-atom (dependable-atom/atom (if (.exists (io/file layout-optimization-log-file-path))
+                                                              (read-log layout-optimization-log-file-path)
+                                                              [])))
+
+
+(defn optimize-layout [metaparameters multipliers text-statistics log-file-path & [options]]
+  (let [state (-> (optimize random-layout
+                            crossbreed-layouts
+                            (fn [layouts]
+                              (binding [rating/multipliers multipliers]
+                                (layouts-to-ratings text-statistics
+                                                    layouts)))
+                            mutate-layout
+                            (merge {:metaparameters metaparameters
+                                    #_(random-metaparameters)
+                                    ;; :number-of-generations 30
+                                    ;; :initial-ratings (->> @optimization-state-atom
+                                    ;;                       (last))
+                                    :logging-frequency 100
+                                    :history-atom optimization-history-atom}
+                                   options))
+                  (assoc :text-statistics-name (:name text-statistics)
+                         :multipliers multipliers)
+                  (update :ratings (fn [ratings]
+                                     (->> ratings
+                                          (sort-by second)
+                                          (take 10)))))]
+    (swap! layout-optimization-log-atom conj state)
+    (spit log-file-path
+          (str (pr-str state)
+               "\n")
+          :append true)
+    state))

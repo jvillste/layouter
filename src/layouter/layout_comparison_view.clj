@@ -196,8 +196,8 @@
                                                    character-to-cocoa-key-code)
                                              n-gram))
         key-colors-for-fingers (medley/map-vals (partial gui/multiply-color
-                                                                       (max 0.4 (- 1 (:effort rating))))
-                                                              keyboard-view/key-colors-for-fingers)]
+                                                         (max 0.4 (- 1 (:effort rating))))
+                                                keyboard-view/key-colors-for-fingers)]
     (layouts/vertically-2 {} (layout-comparison-text (str (:effort rating) " " (apply str n-gram)))
                           [keyboard-view/keyboard-view
                            cocoa-key-code-to-character
@@ -884,7 +884,7 @@
 (defn best-layouts-per-statistics-and-multipliers-with-names [number-of-layouts-per-group minimum-number-of-differing-keys]
   (->> (optimization-progress-view/best-layouts-per-statistics-and-multipliers number-of-layouts-per-group
                                                                                minimum-number-of-differing-keys
-                                                                               @optimization-progress-view/layout-optimization-log-atom)
+                                                                               @optimize/layout-optimization-log-atom)
        (map-indexed (fn [index named-layout]
                       (assoc named-layout :name (str "optimized-" index))))))
 
@@ -914,7 +914,7 @@
                                                 [#'layout-comparison-view named-layout-atoms text/hybrid-statistics]))))
 
 (defn- optimization-status []
-  (->> @optimization-progress-view/layout-optimization-log-atom
+  (->> @optimize/layout-optimization-log-atom
        (group-by (juxt :text-statistics-name :multipliers))
        (medley/map-vals (fn [states]
                           (let [ratings (->> states
@@ -982,7 +982,7 @@
                                                                         (min-rating-rungs-graph optimization-progress-view/scale-to-view status))))))
 (comment
   (optimization-status)
-  (->> @optimization-progress-view/layout-optimization-log-atom
+  (->> @optimize/layout-optimization-log-atom
        (take-last 5)
        (map :ratings)
        (map first)
@@ -1106,7 +1106,7 @@
         (gui/black-background (layouts/with-margin 50
                                 (layouts/horizontally-2 {:margin 10}
                                                         [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/finnish-statistics-without-å]
-                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave key-log/key-logger-text-statistics]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave key-log/key-log-text-statistics]
                                                         [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/hybrid-statistics-without-å]
                                                         [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/english-statistics])))))))
 

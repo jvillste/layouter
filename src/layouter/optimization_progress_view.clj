@@ -132,29 +132,29 @@
 
 (defn- progress-graph-view [displayed-keys enriched-states key-to-color graph-height]
   (apply layouts/superimpose
-                      (for [key displayed-keys]
-                        (let [states (->> enriched-states
-                                          (remove (comp nil? key)))]
-                          (when (not (empty? states))
-                            (layouts/with-margin 50
-                              (path/path (key-to-color key)
-                                         5
-                                         (->> states
-                                              (map (fn [state]
-                                                     {:x (:generation-number state)
-                                                      :y (key state)}))
-                                              (scale-to-view graph-height graph-height)
-                                              (map (partial scale-point {:x 1 :y -1}))
-                                              (move-to-origin)))))))))
+         (for [key displayed-keys]
+           (let [states (->> enriched-states
+                             (remove (comp nil? key)))]
+             (when (not (empty? states))
+               (layouts/with-margin 50
+                 (path/path (key-to-color key)
+                            5
+                            (->> states
+                                 (map (fn [state]
+                                        {:x (:generation-number state)
+                                         :y (key state)}))
+                                 (scale-to-view graph-height graph-height)
+                                 (map (partial scale-point {:x 1 :y -1}))
+                                 (move-to-origin)))))))))
 
 (defn- create-key-to-color [displayed-keys]
   (into {} (for [[index key] (map vector (range) displayed-keys)]
-                                    [key (concat (color/hsl-to-rgb (* 360
-                                                                      (/ index
-                                                                         (count displayed-keys)))
-                                                                   0.5
-                                                                   0.5)
-                                                 [1.0])])))
+             [key (concat (color/hsl-to-rgb (* 360
+                                               (/ index
+                                                  (count displayed-keys)))
+                                            0.5
+                                            0.5)
+                          [1.0])])))
 
 (defn optimization-progress-view [history-atom]
   (layouts/with-margin 10
@@ -257,25 +257,12 @@
                      (conj line (char byte))
                      (dec position)))))))
 
-(defn read-log [log-file-path]
-  (if (not (.exists (io/file log-file-path)))
-    []
-    (->> (io/reader log-file-path)
-         (line-seq)
-         (map edn/read-string))))
-
-(defn write-log [log-file-path log-rows]
-  (doseq [log-row log-rows]
-    (spit log-file-path
-          (str (pr-str log-row)
-               "\n")
-          :append true)))
 
 (defn rated-metaparameters [log-file-path]
   (if (not (.exists (io/file log-file-path)))
     []
     (->> #_(tail 0 log-file-path)
-         (read-log log-file-path)
+         (optimize/read-log log-file-path)
          (map (fn [state]
                 [(:metaparameters state)
                  (optimize/best-rating (:ratings state))]))
@@ -317,45 +304,6 @@
                         :history-atom optimize/metaoptimization-history-atom})))
 
 (def metaparameter-optimization-log-file-path "temp/metaparameter-optimization-log.edn")
-(def layout-optimization-log-file-path "temp/layout-optimization-log.edn")
-
-(defonce layout-optimization-log-atom (dependable-atom/atom (if (.exists (io/file layout-optimization-log-file-path))
-                                                              (read-log layout-optimization-log-file-path)
-                                                              [])))
-
-(comment
-  (do (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
-      nil)
-  )
-
-(defn optimize-layout [metaparameters multipliers text-statistics log-file-path & [options]]
-  (let [state (-> (optimize/optimize optimize/random-layout
-                                     optimize/crossbreed-layouts
-                                     (fn [layouts]
-                                       (binding [rating/multipliers multipliers]
-                                         (optimize/layouts-to-ratings text-statistics
-                                                                      layouts)))
-                                     optimize/mutate-layout
-                                     (merge {:metaparameters metaparameters
-                                             #_(random-metaparameters)
-                                             ;; :number-of-generations 30
-                                             ;; :initial-ratings (->> @optimization-state-atom
-                                             ;;                       (last))
-                                             :logging-frequency 100
-                                             :history-atom optimize/optimization-history-atom}
-                                            options))
-                  (assoc :text-statistics-name (:name text-statistics)
-                         :multipliers multipliers)
-                  (update :ratings (fn [ratings]
-                                     (->> ratings
-                                          (sort-by second)
-                                          (take 10)))))]
-    (swap! layout-optimization-log-atom conj state)
-    (spit log-file-path
-          (str (pr-str state)
-               "\n")
-          :append true)
-    state))
 
 
 
@@ -379,15 +327,6 @@
                             :minimum-random-solution-proportion 0.0
                             :maximum-random-solution-proportion 0.0})
 
-(defn optimize-repeatedly! [optimize-new-layout! & [{:keys [maximum-number-of-rounds]}]]
-  (loop [round 0]
-    (println "repeated optimization round" round)
-    (optimize-new-layout!)
-    (if (or @optimize/stop-requested?-atom
-            (and (some? maximum-number-of-rounds)
-                 (= maximum-number-of-rounds (inc round))))
-      (println "stopped repeated optimization")
-      (recur (inc round)))))
 
 (defn cluster-numbers-by-relative-difference [maximum-relative-difference numbers]
   (let [sorted-numbers (sort numbers)]
@@ -541,14 +480,14 @@
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
                    (let [text-statistics #_text/finnish-statistics #_text/finnish-statistics-without-å #_text/english-statistics #_text/hybrid-statistics text/hybrid-statistics-without-å]
-                     (optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
-                                                                       (optimize/random-layout))
-                                           (fn []
-                                             (optimize-layout static-metaparameters
-                                                              emphasize-roll-key-and-vertical-movement-multipliers
-                                                              text-statistics
-                                                              layout-optimization-log-file-path
-                                                              {:maximum-number-of-generations-without-improvement 300}))))))
+                     (optimize/optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
+                                                                                (optimize/random-layout))
+                                                    (fn []
+                                                      (optimize-layout static-metaparameters
+                                                                       emphasize-roll-key-and-vertical-movement-multipliers
+                                                                       text-statistics
+                                                                       optimize/layout-optimization-log-file-path
+                                                                       {:maximum-number-of-generations-without-improvement 300}))))))
     (.setName "repeating layout optimization")
     (.start))
   ;; hot-right-now TODO: remove me
@@ -556,13 +495,13 @@
 
   (->> (ratings-from-layout-optimization-log text/finnish-statistics
                                              emphasize-roll-key-and-vertical-movement-multipliers
-                                             @layout-optimization-log-atom)
+                                             @optimize/layout-optimization-log-atom)
        (sort-by second)
        (first)
        (second))
   ;; => 0.7018095607792347
 
-  (best-ratings-per-statistics-and-multipliers @layout-optimization-log-atom)
+  (best-ratings-per-statistics-and-multipliers @optimize/layout-optimization-log-atom)
   ;; before second english round
   ;; => {["en"
   ;;      {:digram-roll 1,
@@ -597,7 +536,7 @@
                    (let [text-statistics #_text/finnish-statistics text/english-statistics #_text/hybrid-statistics
                          rating-clusters (->> (ratings-from-layout-optimization-log text-statistics
                                                                                     emphasize-roll-key-and-vertical-movement-multipliers
-                                                                                    @layout-optimization-log-atom)
+                                                                                    @optimize/layout-optimization-log-atom)
                                               (map (fn [[layout rating]]
                                                      [(layout/finnish-layout-to-finnish-layout-without-å layout) rating]))
 
@@ -613,14 +552,14 @@
                                 "to"
                                 (second (last rating-cluster)))
 
-                       (optimize-repeatedly! (fn []
-                                               (optimize-layout static-metaparameters
-                                                                emphasize-roll-key-and-vertical-movement-multipliers
-                                                                text-statistics
-                                                                layout-optimization-log-file-path
-                                                                {:maximum-number-of-generations-without-improvement 300
-                                                                 :initial-ratings rating-cluster}))
-                                             {:maximum-number-of-rounds 2})))))
+                       (optimize/optimize-repeatedly! (fn []
+                                                        (optimize-layout static-metaparameters
+                                                                         emphasize-roll-key-and-vertical-movement-multipliers
+                                                                         text-statistics
+                                                                         optimize/layout-optimization-log-file-path
+                                                                         {:maximum-number-of-generations-without-improvement 300
+                                                                          :initial-ratings rating-cluster}))
+                                                      {:maximum-number-of-rounds 2})))))
     (.setName "clusterized optimization")
     (.start))
 
@@ -630,23 +569,23 @@
 
   ;; remove hybrid statistics from log
 
-  (->> #_@layout-optimization-log-atom
-       (read-log layout-optimization-log-file-path)
+  (->> #_@optimize/layout-optimization-log-atom
+       (optimize/read-log optimize/layout-optimization-log-file-path)
        (best-ratings-per-statistics-and-multipliers))
 
-  (do (.delete (io/file layout-optimization-log-file-path))
-      (->> #_@layout-optimization-log-atom
-           (read-log "/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 6.edn"
-                     #_layout-optimization-log-file-path)
+  (do (.delete (io/file optimize/layout-optimization-log-file-path))
+      (->> #_@optimize/layout-optimization-log-atom
+           (optimize/read-log "/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 6.edn"
+                              #_optimize/layout-optimization-log-file-path)
            (remove (comp #{"hy" "hy-å"}
                          :text-statistics-name))
            #_(take 2)
            #_(best-ratings-per-statistics-and-multipliers)
-           (write-log layout-optimization-log-file-path)
+           (optimize/write-log optimize/layout-optimization-log-file-path)
            #_(every? map?)))
 
-  (every? map? (read-log #_"/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 3.edn"
-                         layout-optimization-log-file-path))
+  (every? map? (optimize/read-log #_"/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 3.edn"
+                                  optimize/layout-optimization-log-file-path))
 
 
   (count @optimized-layouts-atom)
@@ -774,7 +713,7 @@
   ;; => 7470
   ;; => 6133
 
-  (->> @layout-optimization-log-atom)
+  (->> @optimize/layout-optimization-log-atom)
   )
 
 (def best-optimization-run '{:metaparameters
