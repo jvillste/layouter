@@ -1,7 +1,6 @@
 (ns layouter.keyboard-view
   (:require
    [fungl.layouts :as layouts]
-   [fungl.layouts :as layouts]
    [layouter.gui :as gui]
    [layouter.keyboard :as keyboard]))
 
@@ -46,36 +45,40 @@
                                                                    :character character}))
                                                       event)}))))
 
-(defn keyboard-view [cocoa-key-code-to-character key-color & [{:keys [on-key-event]}]]
-  (layouts/vertically-2 {:margin 10}
-                        (layouts/vertically-2 {:margin 1}
-                                              (layouts/with-margins 0 0 0 (* 0.3 key-size)
-                                                (layouts/horizontally-2 {:margin 10}
-                                                                        (row-view [12 13 14 15 17]
-                                                                                  cocoa-key-code-to-character
-                                                                                  key-color
-                                                                                  on-key-event)
-                                                                        (row-view [16 32 34 31 35 33]
-                                                                                  cocoa-key-code-to-character
-                                                                                  key-color
-                                                                                  on-key-event)))
-                                              (layouts/with-margins 0 0 0 (* 0.7 key-size)
-                                                (layouts/horizontally-2 {:margin 10}
-                                                                        (row-view [0 1 2 3 5]
-                                                                                  cocoa-key-code-to-character
-                                                                                  key-color
-                                                                                  on-key-event)
-                                                                        (row-view [4 38 40 37 41 39]
-                                                                                  cocoa-key-code-to-character
-                                                                                  key-color
-                                                                                  on-key-event)))
-                                              (layouts/with-margins 0 0 0 0
-                                                (layouts/horizontally-2 {:margin 10}
-                                                                        (row-view [50 6 7 8 9 11]
-                                                                                  cocoa-key-code-to-character
-                                                                                  key-color
-                                                                                  on-key-event)
-                                                                        (row-view [45 46 43 47 44]
-                                                                                  cocoa-key-code-to-character
-                                                                                  key-color
-                                                                                  on-key-event))))))
+(defn keyboard-view
+  ([cocoa-key-code-to-character]
+   (keyboard-view cocoa-key-code-to-character
+                  key-colors-for-fingers))
+  ([cocoa-key-code-to-character key-color & [{:keys [on-key-event]}]]
+   (layouts/vertically-2 {:margin 10}
+                         (layouts/vertically-2 {:margin 1}
+                                               (layouts/with-margins 0 0 0 (* 0.3 key-size)
+                                                 (layouts/horizontally-2 {:margin 10}
+                                                                         (row-view [12 13 14 15 17]
+                                                                                   cocoa-key-code-to-character
+                                                                                   key-color
+                                                                                   on-key-event)
+                                                                         (row-view [16 32 34 31 35 33]
+                                                                                   cocoa-key-code-to-character
+                                                                                   key-color
+                                                                                   on-key-event)))
+                                               (layouts/with-margins 0 0 0 (* 0.7 key-size)
+                                                 (layouts/horizontally-2 {:margin 10}
+                                                                         (row-view [0 1 2 3 5]
+                                                                                   cocoa-key-code-to-character
+                                                                                   key-color
+                                                                                   on-key-event)
+                                                                         (row-view [4 38 40 37 41 39]
+                                                                                   cocoa-key-code-to-character
+                                                                                   key-color
+                                                                                   on-key-event)))
+                                               (layouts/with-margins 0 0 0 0
+                                                 (layouts/horizontally-2 {:margin 10}
+                                                                         (row-view [50 6 7 8 9 11]
+                                                                                   cocoa-key-code-to-character
+                                                                                   key-color
+                                                                                   on-key-event)
+                                                                         (row-view [45 46 43 47 44]
+                                                                                   cocoa-key-code-to-character
+                                                                                   key-color
+                                                                                   on-key-event)))))))
