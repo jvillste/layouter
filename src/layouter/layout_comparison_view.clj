@@ -4,6 +4,7 @@
    [clojure.set :as set]
    [clojure.string :as string]
    [clojure.test :refer [deftest is]]
+   [flow-gl.graphics.font :as font]
    [flow-gl.gui.path :as path]
    [flow-gl.gui.visuals :as visuals]
    [flow-gl.gui.visuals :as visuals]
@@ -65,9 +66,12 @@
                   (apply max (vals (:character-distribution hybrid-statistics))))
   )
 
+(def font-size 50)
+(def courier-new (font/create-by-name "CourierNewPSMT" font-size))
+
 (defn layout-comparison-text [text]
   (visuals/text text
-                {:font-size 30}))
+                {:font courier-new}))
 
 (defn format-in-us-locale [format & arguments]
   (String/format Locale/US
@@ -630,7 +634,7 @@
                                                                       :rating (:key column)
                                                                       :layout layout))
                                                              (cell (layouts/superimpose (assoc (visuals/rectangle-2 {:fill-color [100 100 100 255]})
-                                                                                               :height 30
+                                                                                               :height font-size
                                                                                                :width (* 200
                                                                                                          (abs (/ (get (:summary layout)
                                                                                                                       (:key column))
@@ -958,7 +962,7 @@
                                    (sort-by first)
                                    (map (fn [[generation score]]
                                           {:x generation
-                                           :y score}))
+                                           :y (- score 0.7)}))
                                    (scale-points graph-width graph-height)
                                    (map (partial optimization-progress-view/scale-point {:x 1 :y -1}))
                                    (optimization-progress-view/move-to-origin))))
@@ -971,7 +975,8 @@
 (defn optimizatin-status-view []
   (layouts/vertically-2 {:margin 10}
                         (layout-comparison-text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
-                        (layout-comparison-text (str "best rating: " (optimize/best-rating (:ratings (last @optimize/optimization-history-atom)))))
+                        (layout-comparison-text (str "best rating: " (when-some [ratings (:ratings (last @optimize/optimization-history-atom))]
+                                                                       (optimize/best-rating ratings))))
                         (for [[[text-statistics-name multipliers] status] (optimization-status)]
                           (layouts/vertically-2 {:margin 10}
                                                 (layout-comparison-text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
@@ -979,7 +984,7 @@
                                                   (layout-comparison-text (str key ": " (pr-str (key status)))))
                                                 (layouts/horizontally-2 {:margin 10}
                                                                         (min-rating-rungs-graph optimization-progress-view/scale-to-view-but-preserve-full-y-scale status)
-                                                                        (min-rating-rungs-graph optimization-progress-view/scale-to-view status))))))
+                                                                        #_(min-rating-rungs-graph optimization-progress-view/scale-to-view status))))))
 (comment
   (optimization-status)
   (->> @optimize/layout-optimization-log-atom
@@ -1014,61 +1019,81 @@
                          (:character-distribution text-statistics named-layout)]
                         (layout-comparison-text (layout/layout-name named-layout))))
 
+(defn scroll-pane [_content]
+  (let [state-atom (dependable-atom/atom {:x 0 :y 0})]
+    (fn [content]
+      {:node content
+       :x (:x @state-atom)
+       :y (:y @state-atom)
+       :mouse-event-handler (fn [_node event]
+                              (when (= :mouse-wheel-rotated
+                                       (:type event))
+                                (swap! state-atom
+                                       update
+                                       (if (:horizontal? event)
+                                         :x :y)
+                                       (fn [value]
+                                         (min 0 (- value (* 3 (:precise-wheel-rotation event)))))))
+                              event)})))
+
 (defn optimized-layouts-comparison-view-2 []
-  (let [named-layouts (concat [{:layout layout/qwerty
-                                :name "qwerty"}
-                               {:layout layout/colemak-dh
-                                :name "colemak"}]
-                              (best-layouts-per-statistics-and-multipliers-with-names 1 0))
-        english-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/the-hacker-crackdown.txt")
+  (let [english-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/the-hacker-crackdown.txt")
                                                                    0 100)
                                                              "\n" " "))
         finnish-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
                                                                    5004 5100)
                                                              "\n" " "))
-        state-atom (dependable-atom/atom {:selected-named-layout (first named-layouts)
+        state-atom (dependable-atom/atom {:selected-named-layout {:layout layout/qwerty
+                                                                  :name "qwerty"}
                                           :selected-text-statistics text/finnish-statistics-without-å
                                           :demo-text finnish-demo-text})]
     (fn []
-      (let [state @state-atom
+      (let [named-layouts (concat [{:layout layout/qwerty
+                                    :name "qwerty"}
+                                   {:layout layout/colemak-dh
+                                    :name "colemak"}]
+                                  (best-layouts-per-statistics-and-multipliers-with-names 1 0))
+            state @state-atom
             selected-named-layout (:selected-named-layout state)
             selected-text-statistics (:selected-text-statistics state)]
-        (gui/black-background (layouts/vertically-2 {:margin 10}
-                                                    (for [text-statistics [text/hybrid-statistics-without-å text/english-statistics text/finnish-statistics-without-å]]
-                                                      (layouts/vertically-2 {:margin 10}
-                                                                            (on-click (fn [] (swap! state-atom assoc
-                                                                                                    :selected-text-statistics text-statistics
-                                                                                                    :demo-text (if (= "en" (:name text-statistics))
-                                                                                                                 english-demo-text
-                                                                                                                 finnish-demo-text)))
-                                                                                      (gui/maby-highlight (= selected-text-statistics
-                                                                                                             text-statistics)
-                                                                                                          (layout-comparison-text (:name text-statistics))))
-                                                                            [layout-rating-comparison-view text-statistics named-layouts]))
-                                                    (layouts/flow (for [named-layout named-layouts]
-                                                                    (layouts/vertically-2 {:margin 10}
-                                                                                          (on-click (fn []
-                                                                                                      (swap! state-atom assoc
-                                                                                                             :selected-named-layout named-layout
-                                                                                                             :previously-selected-named-layout selected-named-layout))
-                                                                                                    (keyboard-view/keyboard-view (layout/layout-to-cocoa-key-code-to-character (:layout named-layout))
-                                                                                                                                 (merge keyboard-view/key-colors-for-fingers
-                                                                                                                                        (when selected-named-layout
-                                                                                                                                          (differing-key-color-mapping selected-named-layout
-                                                                                                                                                                       named-layout)))))
-                                                                                          (layout-comparison-text (layout/layout-name named-layout)))))
-                                                    (layouts/horizontally-2 {:margin 10}
-                                                                            {:node [excercise/layout-demo-view (:demo-text state)
-                                                                                    (:layout selected-named-layout)]
-                                                                             :local-id (take 5 (:demo-text state))}
+        (gui/black-background [#'scroll-pane (layouts/vertically-2 {:margin 10}
+                                                                   (for [text-statistics [text/hybrid-statistics-without-å text/english-statistics text/finnish-statistics-without-å]]
+                                                                     (layouts/vertically-2 {:margin 10}
+                                                                                           (on-click (fn [] (swap! state-atom assoc
+                                                                                                                   :selected-text-statistics text-statistics
+                                                                                                                   :demo-text (if (= "en" (:name text-statistics))
+                                                                                                                                english-demo-text
+                                                                                                                                finnish-demo-text)))
+                                                                                                     (gui/maby-highlight (= selected-text-statistics
+                                                                                                                            text-statistics)
+                                                                                                                         (layout-comparison-text (:name text-statistics))))
+                                                                                           [layout-rating-comparison-view text-statistics named-layouts]))
+                                                                   (layouts/flow (for [named-layout named-layouts]
+                                                                                   (layouts/vertically-2 {:margin 10}
+                                                                                                         (on-click (fn []
+                                                                                                                     (swap! state-atom assoc
+                                                                                                                            :selected-named-layout named-layout
+                                                                                                                            :previously-selected-named-layout selected-named-layout))
+                                                                                                                   (keyboard-view/keyboard-view (layout/layout-to-cocoa-key-code-to-character (:layout named-layout))
+                                                                                                                                                (merge keyboard-view/key-colors-for-fingers
+                                                                                                                                                       (when selected-named-layout
+                                                                                                                                                         (differing-key-color-mapping selected-named-layout
+                                                                                                                                                                                      named-layout)))))
+                                                                                                         (layout-comparison-text (layout/layout-name named-layout)))))
+                                                                   (layouts/horizontally-2 {:margin 10}
+                                                                                           {:node [excercise/layout-demo-view (:demo-text state)
+                                                                                                   (:layout selected-named-layout)]
+                                                                                            :local-id (take 5 (:demo-text state))}
 
-                                                                            [key-heat-map-view-for-named-layout selected-text-statistics selected-named-layout]
+                                                                                           [key-heat-map-view-for-named-layout selected-text-statistics selected-named-layout]
 
-                                                                            (when  (:previously-selected-named-layout state)
-                                                                              [key-heat-map-view-for-named-layout selected-text-statistics (:previously-selected-named-layout state)]
-                                                                              ))
-                                                    [optimizatin-status-view]
-                                                    [optimization-progress-view/optimization-progress-view optimize/optimization-history-atom]))))))
+                                                                                           (when  (:previously-selected-named-layout state)
+                                                                                             [key-heat-map-view-for-named-layout selected-text-statistics (:previously-selected-named-layout state)]
+                                                                                             ))
+                                                                   (layouts/with-margins 50 0 0 0
+                                                                     [optimizatin-status-view])
+                                                                   (layouts/with-margins 50 0 0 0
+                                                                     [#'optimization-progress-view/optimization-progress-view optimize/optimization-history-atom]))])))))
 
 (defn text-statistics-view [highlighted-character on-mouse-enter on-mouse-leave text-statistics]
   (layouts/vertically-2 {:margin 10}
