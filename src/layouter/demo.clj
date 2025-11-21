@@ -11,7 +11,38 @@
    [layouter.view :as view]))
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (comment
+
   layout/qwerty
 
   (view/start-view (fn [] (->> layout/qwerty
@@ -22,7 +53,31 @@
   text/finnish-statistics-without-å
   key-log/key-log-text-statistics
 
+  ;; see keylogger.c
+
   )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
