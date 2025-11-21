@@ -19,13 +19,11 @@
                                      (get both-hands-finger-colors
                                           (:finger keyboard-key))])))
 
-(def key-size 30)
-
 (defn row-view [cocoa-key-codes cocoa-key-code-to-character key-color on-event]
   (layouts/horizontally-2 {:margin 1}
                           (for [cocoa-key-code cocoa-key-codes]
                             (let [character (cocoa-key-code-to-character cocoa-key-code)]
-                              {:node (gui/box (layouts/with-minimum-size key-size key-size (gui/text character))
+                              {:node (gui/box (layouts/with-minimum-size gui/font-size gui/font-size (gui/text character))
                                               {:fill-color (or (key-color cocoa-key-code)
                                                                [0 0 0 0])
                                                :padding 5})
@@ -52,7 +50,7 @@
   ([cocoa-key-code-to-character key-color & [{:keys [on-key-event]}]]
    (layouts/vertically-2 {:margin 10}
                          (layouts/vertically-2 {:margin 1}
-                                               (layouts/with-margins 0 0 0 (* 0.3 key-size)
+                                               (layouts/with-margins 0 0 0 (* 0.3 gui/font-size)
                                                  (layouts/horizontally-2 {:margin 10}
                                                                          (row-view [12 13 14 15 17]
                                                                                    cocoa-key-code-to-character
@@ -62,7 +60,7 @@
                                                                                    cocoa-key-code-to-character
                                                                                    key-color
                                                                                    on-key-event)))
-                                               (layouts/with-margins 0 0 0 (* 0.7 key-size)
+                                               (layouts/with-margins 0 0 0 (* 0.7 gui/font-size)
                                                  (layouts/horizontally-2 {:margin 10}
                                                                          (row-view [0 1 2 3 5]
                                                                                    cocoa-key-code-to-character

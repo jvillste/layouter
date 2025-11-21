@@ -547,7 +547,7 @@
                           state]))))
 
       (when (= 0 (mod (:generation-number state)
-                      20))
+                      5))
         ;; (println "calling refresh in " (.getName (Thread/currentThread)))
         (view/refresh-view!))
 

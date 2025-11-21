@@ -22,8 +22,6 @@
   text/finnish-statistics-without-å
   key-log/key-log-text-statistics
 
-
-
   )
 
 
@@ -52,23 +50,46 @@
 
 
 (comment
+
+
   (rating/rate-key-pair (map (layout/layout-to-character-to-key layout/qwerty)
                              ["k" "j"]))
+
 
   (rating/rate-key-pair (map (layout/layout-to-character-to-key layout/qwerty)
                              ["m" "y"]))
 
+
+
   (rating/rate-key ((layout/layout-to-character-to-key layout/qwerty) "j"))
+
   (rating/rate-key ((layout/layout-to-character-to-key layout/qwerty) "q"))
 
-  (rating/rate-layout text/finnish-statistics-without-å layout/qwerty)
-  (rating/rate-layout text/finnish-statistics-without-å layout/colemak-dh)
-  (rating/rate-layout text/english-statistics layout/colemak-dh)
-  (rating/rate-layout text/finnish-statistics-without-å (optimize/random-layout))
 
 
+  (rating/rate-layout text/finnish-statistics-without-å
+                      layout/qwerty
+                      emphasize-roll-key-and-vertical-movement-multipliers)
+
+  (rating/rate-layout text/finnish-statistics-without-å
+                      layout/colemak-dh
+                      emphasize-roll-key-and-vertical-movement-multipliers)
+
+  (rating/rate-layout text/english-statistics
+                      layout/colemak-dh
+                      emphasize-roll-key-and-vertical-movement-multipliers)
+
+  (repeatedly 5 #(rating/rate-layout text/finnish-statistics-without-å
+                                     (optimize/random-layout)
+                                     emphasize-roll-key-and-vertical-movement-multipliers))
 
   )
+
+
+
+
+
+
 
 
 
@@ -110,10 +131,12 @@
                             :maximum-random-solution-proportion 0.0})
 
 (comment
-  (reset! optimize/layout-optimization-log-atom [])
-  (reset! optimize/optimization-history-atom [])
+  (do (reset! optimize/layout-optimization-log-atom [])
+      (reset! optimize/optimization-history-atom [])
+      (view/refresh-view!))
 
-  (view/start-view #'layout-comparison-view/optimized-layouts-comparison-view-2 #_{:join? true})
+  (view/start-view #'layout-comparison-view/optimized-layouts-comparison-view-2
+                   {:join? false})
 
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
@@ -127,4 +150,9 @@
     (.start))
 
   (reset! optimize/stop-requested?-atom true)
+
+
+  ;; Try this:
+  ;; use map instead of pmap for rating
+
   )

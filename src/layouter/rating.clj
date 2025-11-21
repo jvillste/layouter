@@ -436,7 +436,11 @@
            (rate-hand-balance (:character-distribution text-statistics)
                               character-to-key))
         (* (multiplier :distance-from-colemak)
-           (distance-from-colemak layout))))))
+           (distance-from-colemak layout)))))
+
+  ([text-statistics layout multipliers]
+   (binding [multipliers multipliers]
+     (rate-layout text-statistics layout))))
 
 (deftest test-rate-layout
   (is (= 2.5708333333333333

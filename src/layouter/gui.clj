@@ -4,7 +4,8 @@
    [flow-gl.graphics.font :as font]
    [flow-gl.gui.visuals :as visuals]
    [fungl.component.text-area :as text-area]
-   [fungl.layouts :as layouts]))
+   [fungl.layouts :as layouts]
+   [layouter.view :as view]))
 
 (def theme (let [text-color [200 200 200 255]
                  background-color [0 0 0 255]]
@@ -24,7 +25,7 @@
                                     :corner-arc-radius corner-arc-radius)
                content))
 
-(def font-size 60)
+(def font-size 50)
 (def font (font/create-by-name "CourierNewPSMT" font-size))
 
 (defn text [string & [{:keys [font color] :or {font font
@@ -60,3 +61,5 @@
              {:fill-color (if highlight?
                             [0 0.5 0 1.0]
                             [0 0 0 0])}))
+
+(view/hard-refresh-view!)

@@ -66,12 +66,6 @@
                   (apply max (vals (:character-distribution hybrid-statistics))))
   )
 
-(def font-size 50)
-(def courier-new (font/create-by-name "CourierNewPSMT" font-size))
-
-(defn layout-comparison-text [text]
-  (visuals/text text
-                {:font courier-new}))
 
 (defn format-in-us-locale [format & arguments]
   (String/format Locale/US
@@ -167,7 +161,7 @@
                                                 :mouse-left-character
                                                 (swap! state-atom dissoc :character-under-mouse (:character event))
                                                 nil))})
-                            (layout-comparison-text (if-let [character-under-mouse (:character-under-mouse @state-atom)]
+                            (gui/text (if-let [character-under-mouse (:character-under-mouse @state-atom)]
                                                       (format-in-us-locale "%.3f" (get character-distribution
                                                                                        character-under-mouse))
                                                       ""))))))
@@ -202,7 +196,7 @@
         key-colors-for-fingers (medley/map-vals (partial gui/multiply-color
                                                          (max 0.4 (- 1 (:effort rating))))
                                                 keyboard-view/key-colors-for-fingers)]
-    (layouts/vertically-2 {} (layout-comparison-text (str (:effort rating) " " (apply str n-gram)))
+    (layouts/vertically-2 {} (gui/text (str (:effort rating) " " (apply str n-gram)))
                           [keyboard-view/keyboard-view
                            cocoa-key-code-to-character
                            (merge keyboard-view/key-colors-for-fingers
@@ -213,7 +207,7 @@
         character-to-cocoa-key-code (layout/layout-to-character-to-cocoa-key-code (:layout named-layout))]
     (fn [named-layout n-gram-distribution]
       (layouts/vertically-2 {:margin 10}
-                            (layout-comparison-text (pr-str (:multipliers named-layout)))
+                            (gui/text (pr-str (:multipliers named-layout)))
                             (layouts/flow (for [n-gram (map first (take 50 (reverse (sort-by second n-gram-distribution))))]
                                             (layouts/with-margin 20 (ngram-view cocoa-key-code-to-character
                                                                                 character-to-cocoa-key-code
@@ -352,7 +346,7 @@
                                       [(character-to-cocoa-key-code highlighted-character) [100 150 70 255]])))]
         (layouts/vertically-2 {:margin 10}
                               ;; (text (:name layout))
-                              (layout-comparison-text (pr-str (:multipliers layout)))
+                              (gui/text (pr-str (:multipliers layout)))
                               [keyboard-view/keyboard-view cocoa-key-code-to-character
                                (merge keyboard-view/key-colors-for-fingers
                                       key-color)]
@@ -609,13 +603,13 @@
                         {:key column
                          :minimum (apply min (map column (map :summary layouts)))
                          :maximum (apply max (map column (map :summary layouts)))})]
-          [layouts/grid (doall (concat [(concat [(layout-comparison-text "layout")]
+          [layouts/grid (doall (concat [(concat [(gui/text "layout")]
                                                 (for [column columns]
                                                   (on-click (fn []
                                                               (if (= column (:sort-column @state-atom))
                                                                 (swap! state-atom update :sort-descending? not)
                                                                 (swap! state-atom assoc :sort-column column)))
-                                                            (cell (layout-comparison-text (name (:key column)))))))]
+                                                            (cell (gui/text (name (:key column)))))))]
                                        (for [layout (-> (if (:sort-column @state-atom)
                                                           (sort-by (fn [layout]
                                                                      (get (:summary layout)
@@ -625,7 +619,7 @@
                                                           layouts)
                                                         (cond-> (:sort-descending? @state-atom)
                                                           (reverse)))]
-                                         (concat [(layout-comparison-text (layout/layout-name layout))]
+                                         (concat [(gui/text (layout/layout-name layout))]
                                                  (for [column columns]
                                                    (on-click (fn []
                                                                (swap! state-atom
@@ -634,7 +628,7 @@
                                                                       :rating (:key column)
                                                                       :layout layout))
                                                              (cell (layouts/superimpose (assoc (visuals/rectangle-2 {:fill-color [100 100 100 255]})
-                                                                                               :height font-size
+                                                                                               :height gui/font-size
                                                                                                :width (* 200
                                                                                                          (abs (/ (get (:summary layout)
                                                                                                                       (:key column))
@@ -647,7 +641,7 @@
                                                                                                                  offset)
                                                                                                               (- (:maximum column)
                                                                                                                  offset))))))
-                                                                                        (layout-comparison-text (str (format "%.4f" (get (:summary layout)
+                                                                                        (gui/text (str (format "%.4f" (get (:summary layout)
                                                                                                                                          (:key column)))))))))))))])))))
 
 
@@ -738,7 +732,7 @@
                                                             cocoa-key-code-to-effort)
                                            {(character-to-cocoa-key-code selected-character) [120 120 200 255]})
                                     {:on-key-event on-key-event})
-                                   (layout-comparison-text (string/join " "
+                                   (gui/text (string/join " "
                                                                         [ ;; "effort: "
                                                                          (format-in-us-locale "%.3f" current-effort)
                                                                          ;; " difference to minimum effort "
@@ -762,7 +756,7 @@
                                   (merge keyboard-view/key-colors-for-fingers
                                          key-colors)
                                   {:on-key-event on-key-event}]
-                                 (layout-comparison-text (str "effort: " (format-in-us-locale "%.3f" current-effort)))))
+                                 (gui/text (str "effort: " (format-in-us-locale "%.3f" current-effort)))))
 
 
          :can-gain-focus? true}))))
@@ -796,10 +790,10 @@
                                                #_(layouts/with-margins 50 0 0 50 [layout-rating-comparison-view statistics named-layouts])
                                                (layouts/flow (layouts/with-margin 40
                                                                (layouts/vertically-2 {:margin 10}
-                                                                                     (layout-comparison-text "editor")
+                                                                                     (gui/text "editor")
                                                                                      (for [[named-layout-atom-1 named-layout-atom-2] (partition-all 2 1 named-layout-atoms)]
                                                                                        (layouts/vertically-2 {:margin 10}
-                                                                                                             (layout-comparison-text (:name named-layout-atom-1))
+                                                                                                             (gui/text (:name named-layout-atom-1))
                                                                                                              [layout-editor
                                                                                                               (:layout-atom named-layout-atom-1)
                                                                                                               (if (nil? named-layout-atom-2)
@@ -818,11 +812,11 @@
 
                                                              (layouts/with-margin 40
                                                                (layouts/vertically-2 {:margin 0}
-                                                                                     (layout-comparison-text "heatmap")
+                                                                                     (gui/text "heatmap")
 
                                                                                      (for [named-layout-atom named-layout-atoms]
                                                                                        (layouts/vertically-2 {:margin 10}
-                                                                                                             (layout-comparison-text (:name named-layout-atom))
+                                                                                                             (gui/text (:name named-layout-atom))
                                                                                                              [key-heat-map-view
                                                                                                               (-> named-layout-atom
                                                                                                                   named-layout-atom-to-named-layout
@@ -839,7 +833,7 @@
                                                                                         (first cocoa-key-code-to-characters)
                                                                                         (first character-to-cocoa-key-codes)
                                                                                         (:character-distribution statistics)]
-                                                                                     ;; (layout-comparison-text "")
+                                                                                     ;; (gui/text "")
                                                                                      #_[key-heat-map-view
                                                                                         (second cocoa-key-code-to-characters)
                                                                                         (second character-to-cocoa-key-codes)
@@ -909,11 +903,11 @@
                                           (map named-layout-to-named-layout-atom)))
         named-layouts (map named-layout-atom-to-named-layout named-layout-atoms)]
     (gui/black-background (layouts/vertically-2 {:margin 10}
-                                                (layout-comparison-text "hybrid statistics")
+                                                (gui/text "hybrid statistics")
                                                 [layout-rating-comparison-view text/hybrid-statistics named-layouts]
-                                                (layout-comparison-text "english statistics")
+                                                (gui/text "english statistics")
                                                 [layout-rating-comparison-view text/english-statistics named-layouts]
-                                                (layout-comparison-text "finnish statistics")
+                                                (gui/text "finnish statistics")
                                                 [layout-rating-comparison-view text/finnish-statistics named-layouts]
                                                 [#'layout-comparison-view named-layout-atoms text/hybrid-statistics]))))
 
@@ -974,14 +968,14 @@
 
 (defn optimizatin-status-view []
   (layouts/vertically-2 {:margin 10}
-                        (layout-comparison-text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
-                        (layout-comparison-text (str "best rating: " (when-some [ratings (:ratings (last @optimize/optimization-history-atom))]
+                        (gui/text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
+                        (gui/text (str "best rating: " (when-some [ratings (:ratings (last @optimize/optimization-history-atom))]
                                                                        (optimize/best-rating ratings))))
                         (for [[[text-statistics-name multipliers] status] (optimization-status)]
                           (layouts/vertically-2 {:margin 10}
-                                                (layout-comparison-text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
+                                                (gui/text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
                                                 (for [key (sort-by name (keys status))]
-                                                  (layout-comparison-text (str key ": " (pr-str (key status)))))
+                                                  (gui/text (str key ": " (pr-str (key status)))))
                                                 (layouts/horizontally-2 {:margin 10}
                                                                         (min-rating-rungs-graph optimization-progress-view/scale-to-view-but-preserve-full-y-scale status)
                                                                         #_(min-rating-rungs-graph optimization-progress-view/scale-to-view status))))))
@@ -1003,11 +997,11 @@
                                 :name "colemak"}]
                               (best-layouts-per-statistics-and-multipliers-with-names 1 0))]
     (gui/black-background (layouts/vertically-2 {:margin 10}
-                                                (layout-comparison-text "hybrid statistics")
+                                                (gui/text "hybrid statistics")
                                                 [layout-rating-comparison-view text/hybrid-statistics named-layouts]
-                                                (layout-comparison-text "english statistics")
+                                                (gui/text "english statistics")
                                                 [layout-rating-comparison-view text/english-statistics named-layouts]
-                                                (layout-comparison-text "finnish statistics")
+                                                (gui/text "finnish statistics")
                                                 [layout-rating-comparison-view text/finnish-statistics named-layouts]
                                                 [optimizatin-status-view]))))
 
@@ -1017,7 +1011,7 @@
                          (-> named-layout :layout layout/layout-to-cocoa-key-code-to-character)
                          (-> named-layout :layout layout/layout-to-character-to-cocoa-key-code)
                          (:character-distribution text-statistics named-layout)]
-                        (layout-comparison-text (layout/layout-name named-layout))))
+                        (gui/text (layout/layout-name named-layout))))
 
 (defn scroll-pane [_content]
   (let [state-atom (dependable-atom/atom {:x 0 :y 0})]
@@ -1046,12 +1040,15 @@
         state-atom (dependable-atom/atom {:selected-named-layout {:layout layout/qwerty
                                                                   :name "qwerty"}
                                           :selected-text-statistics text/finnish-statistics-without-å
-                                          :demo-text finnish-demo-text})]
+                                          :demo-text finnish-demo-text})
+        random-layout (optimize/random-layout)]
     (fn []
       (let [named-layouts (concat [{:layout layout/qwerty
                                     :name "qwerty"}
                                    {:layout layout/colemak-dh
-                                    :name "colemak"}]
+                                    :name "colemak"}
+                                   {:layout random-layout
+                                    :name "random"}]
                                   (best-layouts-per-statistics-and-multipliers-with-names 1 0))
             state @state-atom
             selected-named-layout (:selected-named-layout state)
@@ -1066,7 +1063,7 @@
                                                                                                                                 finnish-demo-text)))
                                                                                                      (gui/maby-highlight (= selected-text-statistics
                                                                                                                             text-statistics)
-                                                                                                                         (layout-comparison-text (:name text-statistics))))
+                                                                                                                         (gui/text (:name text-statistics))))
                                                                                            [layout-rating-comparison-view text-statistics named-layouts]))
                                                                    (layouts/flow (for [named-layout named-layouts]
                                                                                    (layouts/vertically-2 {:margin 10}
@@ -1079,7 +1076,7 @@
                                                                                                                                                        (when selected-named-layout
                                                                                                                                                          (differing-key-color-mapping selected-named-layout
                                                                                                                                                                                       named-layout)))))
-                                                                                                         (layout-comparison-text (layout/layout-name named-layout)))))
+                                                                                                         (gui/text (layout/layout-name named-layout)))))
                                                                    (layouts/horizontally-2 {:margin 10}
                                                                                            {:node [excercise/layout-demo-view (:demo-text state)
                                                                                                    (:layout selected-named-layout)]
@@ -1097,12 +1094,12 @@
 
 (defn text-statistics-view [highlighted-character on-mouse-enter on-mouse-leave text-statistics]
   (layouts/vertically-2 {:margin 10}
-                        (layout-comparison-text (:name text-statistics))
+                        (gui/text (:name text-statistics))
                         (let [maximum (apply max (map second (-> text-statistics :character-distribution)))]
                           (for [[character frequency] (reverse (sort-by second (-> text-statistics :character-distribution)))]
 
                             {:node (layouts/horizontally-2 {:margin 10}
-                                                           (layout-comparison-text (str character " " (format-in-us-locale "%.3f" (* 100 frequency))))
+                                                           (gui/text (str character " " (format-in-us-locale "%.3f" (* 100 frequency))))
                                                            (cell (assoc (visuals/rectangle-2 {:fill-color (if (= highlighted-character character)
                                                                                                             [200 200 200 255]
                                                                                                             [100 100 100 255])})
