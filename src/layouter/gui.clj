@@ -24,7 +24,8 @@
                                     :corner-arc-radius corner-arc-radius)
                content))
 
-(def font (font/create-by-name "CourierNewPSMT" 40))
+(def font-size 60)
+(def font (font/create-by-name "CourierNewPSMT" font-size))
 
 (defn text [string & [{:keys [font color] :or {font font
                                                color (:text-color theme)}}]]

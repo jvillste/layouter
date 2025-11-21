@@ -166,17 +166,18 @@
 
             displayed-keys [:generation-number
                             :best-rating
-                            ;; :rating-diversity
+                            :rating-diversity
                             ;; :layout-diversity
-                            ;; :layout-entropy
+                            :layout-entropy
 
                             ;; :elite-proportion
                             ;; :parent-selection-temperature
                             ;; :mutation-propability
                             ;; :random-solution-proportion
-                            :generations-since-last-improvement]
+                            :generations-since-last-improvement
+                            ]
             key-to-color (create-key-to-color displayed-keys)
-            graph-height 300]
+            graph-height 800]
 
         (apply layouts/vertically-2
                {:margin 10}
@@ -198,9 +199,9 @@
                                     (str " max: " (apply max values)))))
                            {:color (key-to-color key)}))
 
-               (let [metaparameters (:metaparameters (last enriched-states))]
-                 (for [key (sort-by name (keys metaparameters))]
-                   (gui/text (str key ": " (key metaparameters))))))))))
+               #_(let [metaparameters (:metaparameters (last enriched-states))]
+                   (for [key (sort-by name (keys metaparameters))]
+                     (gui/text (str key ": " (key metaparameters))))))))))
 
 
 (defn metaoptimization-progress-view []

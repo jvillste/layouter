@@ -14,6 +14,10 @@
 (defn layout-to-character-to-cocoa-key-code [layout]
   (medley/map-vals :cocoa-key-code (medley/index-by :character layout)))
 
+(defn layout-to-character-to-key [layout]
+  (medley/map-vals keyboard/cocoa-key-code-to-key
+                   (layout-to-character-to-cocoa-key-code layout)))
+
 (defn layout-to-java-key-code-to-character [layout]
   (medley/map-keys
    (layout-to-cocoa-key-code-to-character layout))
