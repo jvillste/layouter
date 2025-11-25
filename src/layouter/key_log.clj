@@ -1,10 +1,17 @@
 (ns layouter.key-log
   (:require
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.test :refer [deftest is]]
    [com.stuartsierra.frequencies :as frequencies]
+   [fungl.dependable-atom :as dependable-atom]
+   [fungl.layouts :as layouts]
+   [layouter.corpus :as corpus]
+   [layouter.gui :as gui]
    [layouter.layout :as layout]
    [layouter.text :as text]
+   [layouter.view :as view]
    [medley.core :as medley]))
 
 (defn parse-key-log [key-log]
@@ -89,19 +96,66 @@
       (key-log-to-string (* 2 second-in-microseconds))))
 
 (defn key-log-to-words-from-file [file-name]
-  (remove #(= 1 (count %))
-          (-> (key-log-to-string-from-file file-name)
-              (string/split #"\s+"))))
+  (-> (key-log-to-string-from-file file-name)
+              (string/split #"\s+")))
+
+(defn filter-known-words [words]
+  (let [english-word-set (set (filter #(< 2 (count %))
+                                      corpus/english-words))]
+    #_(map (fn [word]
+             [(contains? english-word-set word)
+              (corpus/finnish-word? word)])
+           words)
+    (filter (fn [word]
+              (or #_(contains? english-word-set word)
+                  (corpus/finnish-word? word)
+                  (corpus/english-word? word)))
+            words)))
+
+(deftest test-filter-known-words
+  (is (=
+       (filter-known-words ["bbb" "moi"]))))
+
+(comment
+  (contains? (set corpus/english-words) "nm")
+  (contains? (set corpus/finnish-words) "meni")
+
+  (filter-known-words ["bky"])
+  )
+
+(deftest test-filter-known-words
+  (is (=
+       (filter-known-words ["pf"]))))
 
 ;; TODO: keylogger logs characters that were not typed by me
 ;; keylogger should also log characters rather than keycodes
 
+(defn word-language [word]
+  (cond (corpus/finnish-word? word)
+        :fi
+
+        (corpus/english-word? word)
+        :en
+
+        :else
+        nil))
+
+(defn unknown-words []
+  (->> (key-log-to-words-from-file key-log-file-path)
+       (distinct)
+       (pmap (fn [word]
+               {:word word
+                :language (word-language word)}))
+       (filter (comp nil? :language))
+       #_(take 100)
+       (map :word)))
+
 (comment
   (take-last 10 (key-log-from-file key-log-file-path))
 
-  (key-log-to-string-from-file key-log-file-path)
 
-  (text/text-statistics (string/join " " (key-log-to-words-from-file key-log-file-path)))
+  (time (count (filter-known-words (key-log-to-words-from-file key-log-file-path))))
+  (text/text-statistics (string/join " " (filter-known-words (key-log-to-words-from-file key-log-file-path))))
 
   (let [key-pair-means (->> (parse-key-log (slurp key-log-file-path))
                             (filter :down?)
@@ -129,7 +183,118 @@
                           key-pair-means)
          (sort-by second)))
 
+
+  (->> (unknown-words)
+       (remove #(>= 2 (count %)))
+       (frequencies)
+       (sort-by second)
+       (reverse)
+       (take 10))
   )
+
+(defonce word-classifications-atom (dependable-atom/atom (if (.exists (io/file word-classifications-file-name))
+                                                           (edn/read-string (slurp word-classifications-file-name))
+                                                           {})))
+
+(def ^:private word-classifications-file-name
+  "temp/word-clsasifications.edn")
+
+(comment
+  (do (swap! word-classifications-atom
+             (fn [word-classifications]
+               (merge (->> (unknown-words)
+                           #_(take 10)
+                           (map (fn [word]
+                                  [word nil]))
+                           (into {}))
+                      word-classifications)))
+      nil)
+
+  (spit word-classifications-file-name (pr-str (medley/filter-vals keyword? @word-classifications-atom)))
+  (reset! word-classifications-atom (edn/read-string (slurp word-classifications-file-name)))
+
+  (frequencies (vals @word-classifications-atom))
+
+  )
+
+
+(defn next-words-to-be-classified []
+  (->> @word-classifications-atom
+       (medley/filter-vals (comp not keyword?))
+       (take 8)
+       (into {})))
+
+(defn word-classification-view []
+  (let [state-atom (dependable-atom/atom {:current-word-classifications (next-words-to-be-classified)})]
+    (fn []
+      (let [current-word-classifications (:current-word-classifications @state-atom)
+            character-to-word (into {} (map vector
+                                            ["a" "s" "d" "f" "j" "k" "l" "ö"]
+                                            (keys current-word-classifications)))]
+        {:node (gui/black-background (layouts/center (layouts/vertically-2 {:margin 50}
+                                                                           (for [[key word] character-to-word]
+                                                                             (gui/text (str key ": " word)
+                                                                                       {:color (case (get current-word-classifications
+                                                                                                          word)
+                                                                                                 :fi
+                                                                                                 [0.0 0.0 1.0 1.0]
+
+                                                                                                 :en
+                                                                                                 [1.0 0.0 0.0 1.0]
+
+                                                                                                 [0.7 0.7 0.7 1.0])} )))))
+         :can-gain-focus? true
+         :keyboard-event-handler (fn [_subtree event]
+                                   (when (= :key-pressed
+                                            (:type event))
+
+                                     (let [word (get character-to-word
+                                                     (str (:character event)))]
+                                       (when (some? word)
+                                         (swap! state-atom
+                                                update-in
+                                                [:current-word-classifications word]
+                                                (fn [class]
+                                                  (case class
+                                                    :fi :en
+                                                    :en :invalid
+                                                    :invalid :fi
+                                                    :fi)))))
+
+                                     (when (= :space (:key event))
+                                       (swap! word-classifications-atom
+                                              (fn [word-classifications]
+                                                (merge word-classifications
+                                                       (medley/map-vals (fn [class]
+                                                                          (if (keyword? class)
+                                                                            class
+                                                                            :invalid))
+                                                                        current-word-classifications))))
+                                       (swap! state-atom assoc :current-word-classifications (next-words-to-be-classified)))))}))))
+(comment
+  (view/start-view #'word-classification-view)
+  (medley/filter-vals some? @word-classifications-atom)
+
+  (->> (key-log-to-words-from-file key-log-file-path)
+       (take-last 500)
+       (pmap (fn [word]
+               {:word word
+                :language (word-language word)
+                :valid? (get @word-classifications-atom word)}))
+       (filter (fn [word-with-metadata]
+                 (or (:language word-with-metadata)
+                     (:valid? word-with-metadata))))
+       (group-by :language)
+       (medley/map-vals (fn [classified-words]
+                          (string/join " " (map :word classified-words)))))
+
+  ;; hot-right-now TODO: remove me
+
+  )
+
+(view/hard-refresh-view!)
+
+
 
 (def key-log-text-statistics '{:name "key log"
                                :digram-distribution

@@ -8,7 +8,11 @@
                  [dev.weavejester/medley "1.7.0"]
                  [flow-gl "3"]
                  [metosin/jsonista "0.3.9"]
-                 [camel-snake-kebab "0.4.3"]]
+                 [fi.evident.raudikko/raudikko "0.1.4"]
+                 [camel-snake-kebab "0.4.3"]
+                 [clj-http "3.13.1"]
+                 [org.languagetool/language-en "6.6"]
+                 [com.google.guava/guava "21.0"]]
   :repl-options {:init-ns layouter.core}
 
   :jvm-opts ["-Xmx2g" "-Djdk.attach.allowAttachSelf" ;; for clj-async-profiler
