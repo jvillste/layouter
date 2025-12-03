@@ -181,13 +181,26 @@
   (let [generate-excercise-word (make-excercise-word-generator-from-text sample-text)
         state-atom (dependable-atom/atom {:typed-text ""
                                           :cocoa-key-code-down nil
-                                          :target-word (generate-excercise-word)})]
+                                          :target-word (generate-excercise-word)})
+        qwerty-cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character layout/qwerty)]
     (fn [_sample-text layout]
       (let [cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character layout)
             character-to-cocoa-key-code (layout/layout-to-character-to-cocoa-key-code layout)]
 
         {:node (layouts/vertically-2 {:margin 10 :centered? true}
                                      (gui/text (:target-word @state-atom))
+                                     (layouts/horizontally-2 {}
+                                                             (gui/text (apply str
+                                                                              (map (comp qwerty-cocoa-key-code-to-character
+                                                                                         character-to-cocoa-key-code)
+                                                                                   (map str (:typed-text @state-atom))))
+                                                                       {:color [0.8 1.0 0.8 1.0]})
+                                                             (gui/text (apply str
+                                                                              (map (comp qwerty-cocoa-key-code-to-character
+                                                                                         character-to-cocoa-key-code)
+                                                                                   (map str (subs (:target-word @state-atom)
+                                                                                                  (count (:typed-text @state-atom))))))))
+
                                      (gui/text (:typed-text @state-atom))
                                      (keyboard-view/keyboard-view cocoa-key-code-to-character
                                                                   (merge (medley/map-vals (partial gui/multiply-color 0.5)
@@ -246,9 +259,16 @@
 
   (view/start-view (fn []
                      (gui/black-background (layouts/center [#'layout-demo-view
-                                                            (string/lower-case (subs (slurp "temp/text/the-hacker-crackdown.txt")
-                                                                                     0 100))
-                                                            layout/qwerty]))))
+                                                            (->> (-> "temp/text/the-hacker-crackdown.txt"
+                                                                     slurp
+                                                                     (subs 0 500)
+                                                                     (string/replace #"\s+" " "))
+                                                                 (map str)
+                                                                 (map string/lower-case)
+                                                                 (filter (conj (set text/english-characters)
+                                                                               " "))
+                                                                 (apply str))
+                                                            layout/colemak-dh]))))
   )
 
 (view/hard-refresh-view!)
