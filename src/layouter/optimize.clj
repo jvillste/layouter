@@ -517,7 +517,7 @@
   (reset! history-atom [])
   #_(reset! stop-requested?-atom false)
 
-  (println "starting optimization")
+  #_(println "starting optimization")
 
   #_(println "metaparameters" (pr-str metaparameters))
 
@@ -540,9 +540,9 @@
                  (concat (drop-last states)
                          [(-> (last states)
                               (assoc :best-rating (best-rating (:ratings state)))
-                              (assoc :rating-diversity (layout/number-diversity (map second (:ratings state))))
+                              ;; (assoc :rating-diversity (layout/number-diversity (map second (:ratings state))))
                               ;; (assoc :layout-diversity (layout/layout-diversity (map first (:ratings state))))
-                              (assoc :layout-entropy (layout/layout-entropy (map first (:ratings state))))
+                              ;; (assoc :layout-entropy (layout/layout-entropy (map first (:ratings state))))
                               (dissoc :ratings))
                           state]))))
 
@@ -551,17 +551,17 @@
         ;; (println "calling refresh in " (.getName (Thread/currentThread)))
         (view/refresh-view!))
 
-      (when (= 0 (mod (:generation-number state)
-                      logging-frequency))
-        (println "generation:" (:generation-number state) "/" (when number-of-generations
-                                                                (dec number-of-generations))
-                 "best rating: " (best-rating (:ratings state)))
-        ;; (prn (merge (-> state
-        ;;                 (dissoc :ratings)
-        ;;                 (assoc :best-rating (best-rating (:ratings state))))
-        ;;             (next-generation-parameters (- (:generation-number state)
-        ;;                                            (:last-improved-generation-number state)))))
-        )
+      #_(when (= 0 (mod (:generation-number state)
+                        logging-frequency))
+          (println "generation:" (:generation-number state) "/" (when number-of-generations
+                                                                  (dec number-of-generations))
+                   "best rating: " (best-rating (:ratings state)))
+          ;; (prn (merge (-> state
+          ;;                 (dissoc :ratings)
+          ;;                 (assoc :best-rating (best-rating (:ratings state))))
+          ;;             (next-generation-parameters (- (:generation-number state)
+          ;;                                            (:last-improved-generation-number state)))))
+          )
 
       (let [generations-since-latest-improvement (- (:generation-number state)
                                                     (:last-improved-generation-number state))
@@ -581,7 +581,7 @@
                         (- (:generation-number state)
                            (:last-improved-generation-number state))))
                 @stop-requested?-atom)
-          (do (println "stopped")
+          (do #_(println "stopped")
               state)
           (recur (assoc state
                         :generation-number (inc (:generation-number state))
