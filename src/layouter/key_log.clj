@@ -14,15 +14,33 @@
    [layouter.view :as view]
    [medley.core :as medley]))
 
-(defn parse-key-log [key-log]
-  (->> (string/split key-log #",")
-       (remove empty?)
-       (map string/trim)
-       (map (fn [line]
-              (map parse-long (string/split line #" "))))
-       (map (fn [[keycode time]]
-              {:keycode keycode
-               :time time}))))
+
+
+(defn transduce-reader [xform rf ^java.io.BufferedReader reader]
+  (let [rf* (xform rf)]
+    (loop [acc (rf)]
+      (let [character (.read reader)]
+        (if (= -1 character)
+          (rf* acc)
+          (let [acc' (rf* acc character)]
+            (if (reduced? acc')
+              @acc'
+              (recur acc'))))))))
+
+(defn parse-key-log-from-file [file-name]
+  (with-open [reader (io/reader file-name)]
+    (transduce-reader (comp (map char)
+                            (partition-by #{\,})
+                            (remove #{[\,]})
+                            (map (partial apply str))
+                            (map string/trim)
+                            (map (fn [line]
+                                   (map parse-long (string/split line #" "))))
+                            (map (fn [[keycode time]]
+                                   {:keycode keycode
+                                    :time time})))
+                      conj
+                      reader)))
 
 (def key-log-file-path "/Users/jukka/nitor-src/posti/matching/temp/data/keylog.txt")
 
@@ -55,7 +73,7 @@
 
 (defn key-log-to-string [parsed-log minimum-pause-for-inserting-space]
   (->> parsed-log
-       (sort-by :time)
+       #_(sort-by :time)
        (apply-back-spaces)
        (partition-all 2 1)
        (mapcat (fn [[event following-event]]
@@ -86,22 +104,51 @@
                                {:keycode (character-to-cocoa-key-code "c"), :time 3}])
                             2))))
 
-(defn key-log-from-file [file-name]
-  (-> file-name
-      (slurp)
-      (parse-key-log)))
+(def ^:private word-classifications-file-name "temp/word-clsasifications.edn")
+
+(defonce word-classifications-atom (dependable-atom/atom (if (.exists (io/file word-classifications-file-name))
+                                                           (edn/read-string (slurp word-classifications-file-name))
+                                                           {})))
+
+;; hot-right-now TODO: remove me
+(def ^:private statistics-from-key-log-file-name "temp/statistics-from-key-log.edn")
+
+(defonce statistics-from-key-log (if (.exists (io/file statistics-from-key-log-file-name))
+                                   (edn/read-string (slurp statistics-from-key-log-file-name))
+                                   nil))
+
+(defn word-language [word]
+  (let [classification (get @word-classifications-atom word)]
+    (if (contains? #{:fi :en} classification)
+      classification
+      (cond (corpus/finnish-word? word)
+            :fi
+
+            (corpus/english-word? word)
+            :en
+
+            :else
+            nil))))
 
 (defn key-log-to-string-from-file [file-name]
-  (-> (key-log-from-file file-name)
+  (-> (parse-key-log-from-file file-name)
       (key-log-to-string (* 2 second-in-microseconds))))
 
 (defn key-log-to-words-from-file [file-name]
   (-> (key-log-to-string-from-file file-name)
-              (string/split #"\s+")))
+      (string/split #"\s+")))
+
+(defn key-log-to-words-with-language-from-file [file-name]
+  (->> (key-log-to-words-from-file file-name)
+       (pmap (fn [word]
+               {:word word
+                :language (or (word-language word)
+                              (get @word-classifications-atom word))}))
+       #_(filter :language)))
 
 (defn filter-known-words [words]
   (let [english-word-set (set (filter #(< 2 (count %))
-                                      corpus/english-words))]
+                                      corpus/english-words-sorted-set))]
     #_(map (fn [word]
              [(contains? english-word-set word)
               (corpus/finnish-word? word)])
@@ -113,45 +160,21 @@
             words)))
 
 (deftest test-filter-known-words
-  (is (=
-       (filter-known-words ["bbb" "moi"]))))
+  (is (= (filter-known-words ["bbb" "moi"]))))
 
-(comment
-  (contains? (set corpus/english-words) "nm")
-  (contains? (set corpus/finnish-words) "meni")
-
-  (filter-known-words ["bky"])
-  )
-
-(deftest test-filter-known-words
-  (is (=
-       (filter-known-words ["pf"]))))
 
 ;; TODO: keylogger logs characters that were not typed by me
 ;; keylogger should also log characters rather than keycodes
 
-(defn word-language [word]
-  (cond (corpus/finnish-word? word)
-        :fi
 
-        (corpus/english-word? word)
-        :en
 
-        :else
-        nil))
 
-(defn unknown-words []
-  (->> (key-log-to-words-from-file key-log-file-path)
-       (distinct)
-       (pmap (fn [word]
-               {:word word
-                :language (word-language word)}))
-       (filter (comp nil? :language))
-       #_(take 100)
-       (map :word)))
 
 (comment
+  (apply str (take-last 100 (slurp key-log-file-path)))
   (take-last 10 (key-log-from-file key-log-file-path))
+
+
 
 
   (time (count (filter-known-words (key-log-to-words-from-file key-log-file-path))))
@@ -184,36 +207,66 @@
          (sort-by second)))
 
 
+
+  )
+
+
+(comment
+
+  (->> (key-log-to-words-with-language-from-file key-log-file-path)
+       (group-by :language)
+       (medley/map-vals (fn [words-with-langauge]
+                          (string/join " " (map :word words-with-langauge)))))
+
+  (def statistics-from-key-log (let [words-with-language (->> (key-log-to-words-from-file key-log-file-path)
+                                                              (pmap (fn [word]
+                                                                      {:word word
+                                                                       :language (or (word-language word)
+                                                                                     (get @word-classifications-atom word))}))
+                                                              (filter :language))]
+                                 (merge (->> words-with-language
+                                             (group-by :language)
+                                             (medley/map-vals (fn [classified-words]
+                                                                (assoc (text/text-statistics (string/join " " (map :word classified-words)))
+                                                                       :name (str "kl-" (name (:language (first classified-words))))))))
+                                        {:hybrid (assoc (->> words-with-language
+                                                             (filter (comp #{:en :fi} :language))
+                                                             (map :word)
+                                                             (string/join " ")
+                                                             (text/text-statistics))
+                                                        :name "kl-hy")})))
+
+  (spit "temp/statistics-from-key-log.edn"
+        (pr-str statistics-from-key-log))
+
+  )
+
+
+
+
+
+(defn unknown-words []
+  (->> (key-log-to-words-from-file key-log-file-path)
+       (distinct)
+       (pmap (fn [word]
+               {:word word
+                :language (word-language word)}))
+       (filter (comp nil? :language))
+       (map :word)))
+
+(comment
+
+  (reset! word-classifications-atom (edn/read-string (slurp word-classifications-file-name)))
+
+  (frequencies (vals @word-classifications-atom))
+
+
   (->> (unknown-words)
        (remove #(>= 2 (count %)))
        (frequencies)
        (sort-by second)
        (reverse)
        (take 10))
-  )
-
-(defonce word-classifications-atom (dependable-atom/atom (if (.exists (io/file word-classifications-file-name))
-                                                           (edn/read-string (slurp word-classifications-file-name))
-                                                           {})))
-
-(def ^:private word-classifications-file-name
-  "temp/word-clsasifications.edn")
-
-(comment
-  (do (swap! word-classifications-atom
-             (fn [word-classifications]
-               (merge (->> (unknown-words)
-                           #_(take 10)
-                           (map (fn [word]
-                                  [word nil]))
-                           (into {}))
-                      word-classifications)))
-      nil)
-
-  (spit word-classifications-file-name (pr-str (medley/filter-vals keyword? @word-classifications-atom)))
-  (reset! word-classifications-atom (edn/read-string (slurp word-classifications-file-name)))
-
-  (frequencies (vals @word-classifications-atom))
 
   )
 
@@ -237,12 +290,12 @@
                                                                                        {:color (case (get current-word-classifications
                                                                                                           word)
                                                                                                  :fi
-                                                                                                 [0.0 0.0 1.0 1.0]
+                                                                                                 [0.5 0.5 1.0 1.0]
 
                                                                                                  :en
-                                                                                                 [1.0 0.0 0.0 1.0]
+                                                                                                 [0.8 0.5 0.0 1.0]
 
-                                                                                                 [0.7 0.7 0.7 1.0])} )))))
+                                                                                                 [0.7 0.7 0.7 1.0])})))))
          :can-gain-focus? true
          :keyboard-event-handler (fn [_subtree event]
                                    (when (= :key-pressed
@@ -272,21 +325,51 @@
                                                                         current-word-classifications))))
                                        (swap! state-atom assoc :current-word-classifications (next-words-to-be-classified)))))}))))
 (comment
+  ;; add unknown words to be classified
+  (do (swap! word-classifications-atom
+             (fn [word-classifications]
+               (merge (->> (unknown-words)
+                           #_(take 10)
+                           (map (fn [word]
+                                  [word nil]))
+                           (into {}))
+                      word-classifications)))
+      nil)
+
+  ;; classify
   (view/start-view #'word-classification-view)
+
+  ;; save classifications
+  (spit word-classifications-file-name (pr-str (medley/filter-vals keyword? @word-classifications-atom)))
+
   (medley/filter-vals some? @word-classifications-atom)
 
+  (->> (key-log-to-string (parse-key-log-from-file key-log-file-path)
+                          (* 2 second-in-microseconds))
+       (take-last 100)
+       (apply str))
+
   (->> (key-log-to-words-from-file key-log-file-path)
-       (take-last 500)
+       (take-last 50)
+       (string/join " "))
+
+  (->> (key-log-to-words-from-file key-log-file-path)
+       ;;       (take-last 500)
        (pmap (fn [word]
                {:word word
-                :language (word-language word)
-                :valid? (get @word-classifications-atom word)}))
-       (filter (fn [word-with-metadata]
-                 (or (:language word-with-metadata)
-                     (:valid? word-with-metadata))))
+                :language (or (word-language word)
+                              (get @word-classifications-atom word))}))
+       (filter :language)
        (group-by :language)
+       #_(medley/map-vals count)
        (medley/map-vals (fn [classified-words]
                           (string/join " " (map :word classified-words)))))
+
+  ;; => {:fi 5568, :en 4282, :invalid 1131}
+  ;; => {:fi 4634, :en 3703, :invalid 1003}
+
+  ;; => {:fi 4625, :en 3702, nil 1003}
+
 
   ;; hot-right-now TODO: remove me
 

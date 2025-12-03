@@ -913,6 +913,8 @@
 
 (defn- optimization-status []
   (->> @optimize/layout-optimization-log-atom
+       (map-indexed (fn [index state]
+                      (assoc state :index index)))
        (group-by (juxt :text-statistics-name :multipliers))
        (medley/map-vals (fn [states]
                           (let [ratings (->> states
@@ -932,6 +934,7 @@
                              :min-rating-runs (->> states
                                                    (map :ratings)
                                                    (map optimize/best-rating)
+                                                   (sort-by :index)
                                                    (map-indexed vector)
                                                    (sort-by second)
                                                    (take 5))
@@ -1027,7 +1030,7 @@
                                        (if (:horizontal? event)
                                          :x :y)
                                        (fn [value]
-                                         (min 0 (- value (* 3 (:precise-wheel-rotation event)))))))
+                                         (min 0 (- value (* 5 (:precise-wheel-rotation event)))))))
                               event)})))
 
 (defn optimized-layouts-comparison-view-2 []
@@ -1054,7 +1057,12 @@
             selected-named-layout (:selected-named-layout state)
             selected-text-statistics (:selected-text-statistics state)]
         (gui/black-background [#'scroll-pane (layouts/vertically-2 {:margin 10}
-                                                                   (for [text-statistics [text/hybrid-statistics-without-å text/english-statistics text/finnish-statistics-without-å]]
+                                                                   (for [text-statistics [text/hybrid-statistics-without-å
+                                                                                          text/english-statistics
+                                                                                          text/finnish-statistics-without-å
+                                                                                          (:fi key-log/statistics-from-key-log)
+                                                                                          (:en key-log/statistics-from-key-log)
+                                                                                          (:hybrid key-log/statistics-from-key-log)]]
                                                                      (layouts/vertically-2 {:margin 10}
                                                                                            (on-click (fn [] (swap! state-atom assoc
                                                                                                                    :selected-text-statistics text-statistics
@@ -1099,12 +1107,13 @@
                           (for [[character frequency] (reverse (sort-by second (-> text-statistics :character-distribution)))]
 
                             {:node (layouts/horizontally-2 {:margin 10}
-                                                           (gui/text (str character " " (format-in-us-locale "%.3f" (* 100 frequency))))
+                                                           (layouts/with-minimum-size 150 0
+                                                             (gui/text (str character " " (format-in-us-locale "%.3f" (* 100 frequency)))))
                                                            (cell (assoc (visuals/rectangle-2 {:fill-color (if (= highlighted-character character)
                                                                                                             [200 200 200 255]
                                                                                                             [100 100 100 255])})
                                                                         :height 30
-                                                                        :width (* 200
+                                                                        :width (* 100
                                                                                   (abs (/ frequency
                                                                                           (max 0.001
                                                                                                maximum)))))))
@@ -1117,6 +1126,7 @@
 
                                                     event)})))
   )
+
 (defn text-statistics-comparison-view []
   (let [state-atom (dependable-atom/atom {})
         on-mouse-enter (fn [character]
@@ -1128,9 +1138,20 @@
         (gui/black-background (layouts/with-margin 50
                                 (layouts/horizontally-2 {:margin 10}
                                                         [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/finnish-statistics-without-å]
-                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave key-log/key-log-text-statistics]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave (:fi key-log/statistics-from-key-log)]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/wikinews-finnish-statistics]
+
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/english-statistics]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/keyboard-design-com-english-text-statistics]
+
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/wikibooks-english-statistics]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/wikinews-english-statistics]
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave (:en key-log/statistics-from-key-log)]
+
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave (:hybrid key-log/statistics-from-key-log)]
                                                         [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/hybrid-statistics-without-å]
-                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/english-statistics])))))))
+                                                        [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/wikinews-hybrid-statistics]
+                                                        )))))))
 
 (comment
   (view/start-view #'optimized-layouts-comparison-view)
