@@ -1,5 +1,6 @@
 (ns layouter.text
   (:require
+   [clojure.edn :as edn]
    [clojure.string :as string]
    [clojure.test :refer [deftest is]]
    [medley.core :as medley]))
@@ -179,3 +180,56 @@
                                                                   (apply str (take 300000 (slurp "temp/text/the-hacker-crackdown.txt"))))
                                                              finnish-characters-without-å)
                                             :name "hy-å"))
+
+(defonce wikinews-english-statistics (edn/read-string (slurp "temp/wikinews-english-statistics.edn")))
+(defonce wikinews-finnish-statistics (edn/read-string (slurp "temp/wikinews-finnish-statistics.edn")))
+(defonce wikinews-hybrid-statistics (edn/read-string (slurp "temp/wikinews-hybrid-statistics.edn")))
+(defonce wikibooks-english-statistics (edn/read-string (slurp "temp/wikibooks-english-statistics.edn")))
+
+;; (spit "temp/wikinews-english-statistics.edn" (pr-str (assoc (text/text-statistics (extract-english-text))
+;;                                                             :name "wi-en")))
+;;   (spit "temp/wikinews-finnish-statistics.edn" (pr-str (assoc (text/text-statistics (extract-finnish-text))
+;;                                                               :name "wi-fi")))
+;;   (spit "temp/wikinews-hybrid-statistics.edn" (pr-str (assoc (text/text-statistics (str (extract-english-text)
+;;                                                                                         (extract-finnish-text)))
+;;                                                               :name "wi-hy")))
+
+(defn parse-keyboard-design-com-data-file [file-name]
+  (->> (-> (slurp file-name)
+           (string/split #"\n"))
+       (map #(string/split % #"\t"))
+       (drop 1)
+       (map (fn [[character count]]
+              [character (Integer/parseInt count)]))))
+
+(defn parse-ngrams-from-keyboard-design-com-data-file-rows [data-rows]
+  (->> data-rows
+       (map (fn [[n-string count]]
+              [(map str n-string) count]))
+       (filter (fn [[n-gram _count]]
+                 (every? (set finnish-characters-without-å)
+                         n-gram)))))
+
+(defn counts-to-propabilities [data-rows]
+  (let [sum (reduce + (map second data-rows))]
+    (map (fn [[value count]]
+           [value (double (/ count sum))])
+         data-rows)))
+
+(defonce keyboard-design-com-english-text-statistics {:name "kdc"
+                                                      :character-distribution (->> (parse-keyboard-design-com-data-file "temp/text/keyboard-design-com/english-frequency.txt")
+                                                                                   (filter (comp (set finnish-characters-without-å) first))
+                                                                                   (counts-to-propabilities)
+                                                                                   (into {}))
+
+                                                      :digram-distribution (->> (parse-keyboard-design-com-data-file "temp/text/keyboard-design-com/english-bigrams.txt")
+                                                                                (parse-ngrams-from-keyboard-design-com-data-file-rows)
+                                                                                (counts-to-propabilities)
+                                                                                (select-probability-mass 0.95)
+                                                                                (count))
+
+                                                      :trigram-distribution (->> (parse-keyboard-design-com-data-file "temp/text/keyboard-design-com/english-trigrams.txt")
+                                                                                 (parse-ngrams-from-keyboard-design-com-data-file-rows)
+                                                                                 (counts-to-propabilities)
+                                                                                 (select-probability-mass 0.95)
+                                                                                 (count))})
