@@ -5,7 +5,6 @@
    [clojure.test :refer [deftest is]]
    [flow-gl.gui.path :as path]
    [fungl.color :as color]
-   [fungl.dependable-atom :as dependable-atom]
    [fungl.layouts :as layouts]
    [layouter.gui :as gui]
    [layouter.layout :as layout]
@@ -147,14 +146,7 @@
                                  (map (partial scale-point {:x 1 :y -1}))
                                  (move-to-origin)))))))))
 
-(defn- create-key-to-color [displayed-keys]
-  (into {} (for [[index key] (map vector (range) displayed-keys)]
-             [key (concat (color/hsl-to-rgb (* 360
-                                               (/ index
-                                                  (count displayed-keys)))
-                                            0.5
-                                            0.5)
-                          [1.0])])))
+
 
 (defn optimization-progress-view [history-atom]
   (layouts/with-margin 10
@@ -176,7 +168,7 @@
                             ;; :random-solution-proportion
                             :generations-since-last-improvement
                             ]
-            key-to-color (create-key-to-color displayed-keys)
+            key-to-color (gui/create-key-to-color displayed-keys)
             graph-height 800]
 
         (apply layouts/vertically-2
@@ -430,13 +422,18 @@
        (mapcat :ratings)))
 
 (def emphasize-roll-key-and-vertical-movement-multipliers {:digram-roll 1,
-                                                           :trigram-roll 0,
-                                                           :key-rating 1,
-                                                           :finger-type 0.1,
-                                                           :horizontal-movement 0.1,
+                                                           :trigram-roll 1,
+
+                                                           :horizontal-movement 1,
                                                            :vertical-movement 1,
+                                                           :vertical-movement-in-skipgram 1
+
+                                                           :key-rating 0.5,
+                                                           :finger-type 0.5,
+
                                                            :hand-balance 0.1
-                                                           :distance-from-colemak 0.1})
+                                                           :hand-alternation 0.0
+                                                           :dist-from-colemak 0.1})
 (comment
 
   (do (reset! optimize/optimization-history-atom [])
@@ -480,15 +477,150 @@
 
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
-                   (let [text-statistics #_text/finnish-statistics #_text/finnish-statistics-without-å #_text/english-statistics #_text/hybrid-statistics text/hybrid-statistics-without-å]
-                     (optimize/optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
-                                                                                (optimize/random-layout))
-                                                    (fn []
-                                                      (optimize-layout static-metaparameters
-                                                                       emphasize-roll-key-and-vertical-movement-multipliers
-                                                                       text-statistics
-                                                                       optimize/layout-optimization-log-file-path
-                                                                       {:maximum-number-of-generations-without-improvement 300}))))))
+                   (optimize/optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
+                                                                              (optimize/random-layout)
+                                                                              )
+                                                  (fn []
+                                                    (let [text-statistics
+                                                          #_text/finnish-statistics
+                                                          #_text/finnish-statistics-without-å
+                                                          #_text/english-statistics
+                                                          #_text/hybrid-statistics
+                                                          #_text/hybrid-statistics-without-å
+
+                                                          text/keyboard-design-com-english-text-statistics
+                                                          #_(:fi key-log/statistics-from-key-log)
+                                                          #_(:en key-log/statistics-from-key-log)
+                                                          #_(:hybrid key-log/statistics-from-key-log)
+                                                          multipliers
+
+                                                          ;; hand alternating
+                                                          ;; {:key-rating 0.5,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 0.0,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :hand-alternation 1,
+                                                          ;;  :dist-from-colemak 0.0,
+                                                          ;;  :finger-type 0.1,
+                                                          ;;  :digram-roll 0.0,
+                                                          ;;  :horizontal-movement 1}
+
+                                                          ;; hand alternating, more key weight
+                                                          ;; {:key-rating 1
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 0.0,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :hand-alternation 1,
+                                                          ;;  :dist-from-colemak 0.0,
+                                                          ;;  :finger-type 0.1,
+                                                          ;;  :digram-roll 0.0,
+                                                          ;;  :horizontal-movement 1}
+
+                                                          ;; hand alternating, more key and finger weight
+                                                          {:trigram-roll 0.0,
+                                                           :digram-roll 0.0,
+
+                                                           :key-rating 1
+                                                           :finger-type 1,
+
+                                                           :vertical-movement-in-skipgram 1,
+                                                           :vertical-movement 1,
+                                                           :horizontal-movement 1
+
+                                                           :hand-balance 0.1,
+                                                           :hand-alternation 1,
+
+                                                           :dist-from-colemak 0.0}
+
+
+                                                          ;; rolls and alternation
+                                                          ;; {:key-rating 0.5,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :hand-alternation 1,
+                                                          ;;  :dist-from-colemak 0.0,
+                                                          ;;  :finger-type 0.1,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
+
+                                                          ;; rolls, no alternation, finger 0.1 key 0.5
+                                                          ;; {:key-rating 0.5,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :hand-alternation 0.0,
+                                                          ;;  :dist-from-colemak 0.0,
+                                                          ;;  :finger-type 0.1,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
+
+
+                                                          ;; {:key-rating 0.1,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :dist-from-colemak 0.0,
+                                                          ;;  :finger-type 0.1,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
+
+                                                          ;; {:key-rating 0.5,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :dist-from-colemak 0.1,
+                                                          ;;  :finger-type 0.5,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
+
+                                                          ;; {:key-rating 1,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :dist-from-colemak 0.1,
+                                                          ;;  :finger-type 0.1,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
+                                                          ;; {:key-rating 1,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 1,
+                                                          ;;  :dist-from-colemak 0.1,
+                                                          ;;  :finger-type 1,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
+                                                          ]
+
+                                                      (-> (optimize/optimize-layout static-metaparameters
+                                                                                    #_emphasize-roll-key-and-vertical-movement-multipliers
+                                                                                    multipliers
+                                                                                    text-statistics
+                                                                                    optimize/layout-optimization-log-file-path
+                                                                                    {:maximum-number-of-generations-without-improvement 300})
+                                                          ;; todo: hill climb the best rated layout
+                                                          (update :ratings (fn [ratings]
+                                                                             (let [hill-climbed-layout (optimize/hill-climb-all
+                                                                                                        text-statistics
+                                                                                                        multipliers
+                                                                                                        (->> ratings
+                                                                                                             (sort-by second)
+                                                                                                             (first)
+                                                                                                             (first)))]
+                                                                               (->> (conj ratings
+                                                                                          [(set hill-climbed-layout)
+                                                                                           (rating/rate-layout text-statistics
+                                                                                                               hill-climbed-layout
+                                                                                                               multipliers)])
+                                                                                    (sort-by second)))))))))))
     (.setName "repeating layout optimization")
     (.start))
   ;; hot-right-now TODO: remove me

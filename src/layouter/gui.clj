@@ -3,6 +3,7 @@
    [clojure.test :refer [deftest is]]
    [flow-gl.graphics.font :as font]
    [flow-gl.gui.visuals :as visuals]
+   [fungl.color :as color]
    [fungl.component.text-area :as text-area]
    [fungl.layouts :as layouts]
    [layouter.view :as view]))
@@ -25,7 +26,7 @@
                                     :corner-arc-radius corner-arc-radius)
                content))
 
-(def font-size 50)
+(def font-size 30)
 (def font (font/create-by-name "CourierNewPSMT" font-size))
 
 (defn text [string & [{:keys [font color] :or {font font
@@ -63,3 +64,30 @@
                             [0 0 0 0])}))
 
 (view/hard-refresh-view!)
+
+(defn distinc-colors [number-of-colors]
+  (map (fn [index]
+         (concat (color/hsl-to-rgb (* 360
+                                      (/ index
+                                         number-of-colors))
+                                   0.5
+                                   0.5)
+                 [1.0]))
+       (range number-of-colors)))
+
+(deftest test-distinc-colors
+  (is (= '((191 63 63 1.0)
+           (165 191 63 1.0)
+           (63 191 114 1.0)
+           (63 114 191 1.0)
+           (165 63 191 1.0))
+         (distinc-colors 5))))
+
+(defn create-key-to-color [displayed-keys]
+  (into {} (map vector
+                displayed-keys
+                (distinc-colors (count displayed-keys)))))
+
+(deftest test-create-key-to-color
+  (is (= '{:a (191 63 63 1.0), :b (63 191 191 1.0)}
+         (create-key-to-color [:a :b]))))

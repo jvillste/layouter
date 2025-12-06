@@ -110,9 +110,9 @@
       (conj (assoc mapping-1 :cocoa-key-code (:cocoa-key-code mapping-2)))
       (conj (assoc mapping-2 :cocoa-key-code (:cocoa-key-code mapping-1)))))
 
-(defn hill-climb-one [text-statistics layout]
+(defn hill-climb-one [text-statistics multipliers layout]
   (assert (not (nil? layout)))
-  (let [current-effort (rating/rate-layout text-statistics layout)
+  (let [current-effort (rating/rate-layout text-statistics layout multipliers)
         {:keys [effort layout]} (->> (for [mapping-1 layout
                                            mapping-2 layout]
                                        (-> layout
@@ -120,22 +120,25 @@
                                                           mapping-2)))
                                      (pmap (fn [layout]
                                              {:effort (rating/rate-layout text-statistics
-                                                                          layout)
+                                                                          layout
+                                                                          multipliers)
                                               :layout layout}))
                                      (sort-by :effort)
                                      (first))]
     (when (> current-effort effort)
       layout)))
 
-(defn hill-climb-all [text-statistics layout]
+(defn hill-climb-all [text-statistics multipliers layout]
   (loop [current-layout layout
          next-layout (hill-climb-one text-statistics
+                                     multipliers
                                      layout)]
 
     (if (nil? next-layout)
       (set current-layout)
       (recur next-layout
              (hill-climb-one text-statistics
+                             multipliers
                              next-layout)))))
 
 (deftest test-hill-climb-all
@@ -250,12 +253,9 @@
                                   [:b 10]]))))
 
 (defn ratings-to-distribution [ratings]
-  (try (->> ratings
-            (invert-distribution)
-            (normalize-distribution))
-       (catch Throwable throwable
-         (def ratings ratings) ;; TODO: remove me
-         )))
+  (->> ratings
+       (invert-distribution)
+       (normalize-distribution)))
 
 (deftest test-ratings-to-distribution
   (is (= '([:a 0.6666666666444444]
@@ -269,9 +269,10 @@
          (ratings-to-distribution #{[:a 1.5]
                                     [:b 1.0]}))))
 
-(defn layouts-to-ratings [text-statistics layouts]
+(defn layouts-to-ratings [text-statistics multipliers layouts]
   (pmap (fn [layout]
-          [layout (rating/rate-layout text-statistics layout)])
+          [layout (binding [rating/multipliers multipliers]
+                    (rating/rate-layout text-statistics layout))])
         layouts))
 
 (defn next-generation-ratings [current-generation-ratings
@@ -634,9 +635,9 @@
   (let [state (-> (optimize random-layout
                             crossbreed-layouts
                             (fn [layouts]
-                              (binding [rating/multipliers multipliers]
-                                (layouts-to-ratings text-statistics
-                                                    layouts)))
+                              (layouts-to-ratings text-statistics
+                                                  multipliers
+                                                  layouts))
                             mutate-layout
                             (merge {:metaparameters metaparameters
                                     #_(random-metaparameters)

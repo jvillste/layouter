@@ -170,12 +170,12 @@
   ;;            :cocoa-key-code (character-to-cocoa-key-code-in-qwerty qwerty-character)})))
   )
 
-(defn homerow-string [cocoa-key-code-to-character]
-  (apply str (map cocoa-key-code-to-character [0 1 2 3 5])))
+(defn homerow-string [layout]
+  (apply str (map (layout-to-cocoa-key-code-to-character layout) [0 1 2 3 5])))
 
 (deftest test-homerow-string
   (is (= "asdfg"
-         (homerow-string (layout-to-cocoa-key-code-to-character qwerty)))))
+         (homerow-string qwerty))))
 
 (defn format-in-us-locale [format & arguments]
   (String/format Locale/US
@@ -212,7 +212,7 @@
                         #_(when-some [multipliers (:multipliers layout)]
                           #_(multipliers-to-layout-name multipliers)
                           (multipliers-to-short-layout-name multipliers))
-                        (homerow-string (layout-to-cocoa-key-code-to-character (:layout layout)))
+                        (homerow-string (:layout layout))
                         (:text-statistics-name layout)])))
 
 (defn number-of-differing-keys [layout-a layout-b]

@@ -101,7 +101,7 @@
                                                            :horizontal-movement 0.1,
                                                            :vertical-movement 1,
                                                            :hand-balance 0.1
-                                                           :distance-from-colemak 0.1})
+                                                           :dist-from-colemak 0.1})
 
 
 (comment

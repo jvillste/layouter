@@ -82,7 +82,10 @@
 
 (defn layout-excercise-view [text-statistics _layout]
   (let [generate-excercise-word (partial excericise-word-from-text-statistics text-statistics)
-        state-atom (dependable-atom/atom {:character-count 4
+        state-atom (dependable-atom/atom {:xp 0
+                                          :next-level-xp 50
+                                          :next-level-xp-increment 50
+                                          :character-count 4
                                           :typed-text ""
                                           :cocoa-key-code-down nil
                                           :target-word (generate-excercise-word 4)})]
@@ -96,22 +99,25 @@
                                      (gui/text (:target-word @state-atom))
                                      (gui/text (:typed-text @state-atom))
                                      (keyboard-view/keyboard-view cocoa-key-code-to-character
-                                                                           (merge keyboard-view/key-colors-for-fingers
-                                                                                  (-> (into {}
-                                                                                            (for [character (set/difference (set (keys character-to-cocoa-key-code))
-                                                                                                                            (set characters))
-                                                                                                  #_(drop-last characters)]
-                                                                                              [(character-to-cocoa-key-code character)
-                                                                                               (let [[r g b _a] (keyboard-view/key-colors-for-fingers (character-to-cocoa-key-code character))]
-                                                                                                 [r g b 0.6]
-                                                                                                 #_[0 0 0 255])]))
-                                                                                      (assoc (character-to-cocoa-key-code (last characters))
-                                                                                             [0.5 0 0 255])
-                                                                                      (assoc (:cocoa-key-code-down @state-atom)
-                                                                                             [0 0.8 0 255]))))
+                                                                  (merge keyboard-view/key-colors-for-fingers
+                                                                         (-> (into {}
+                                                                                   (for [character (set/difference (set (keys character-to-cocoa-key-code))
+                                                                                                                   (set characters))
+                                                                                         #_(drop-last characters)]
+                                                                                     [(character-to-cocoa-key-code character)
+                                                                                      (let [[r g b _a] (keyboard-view/key-colors-for-fingers (character-to-cocoa-key-code character))]
+                                                                                        [r g b 0.6]
+                                                                                        #_[0 0 0 255])]))
+                                                                             (assoc (character-to-cocoa-key-code (last characters))
+                                                                                    [0.5 0 0 255])
+                                                                             (assoc (:cocoa-key-code-down @state-atom)
+                                                                                    [0 0.8 0 255]))))
                                      (gui/text (str (:character-count @state-atom)
                                                     " / "
-                                                    (last characters))))
+                                                    (last characters)))
+                                     (gui/text (str (:xp @state-atom)
+                                                    " / "
+                                                    (:next-level-xp @state-atom))))
          :can-gain-focus? true
          :keyboard-event-handler (fn [_subtree event]
                                    (when (= :key-released
@@ -163,9 +169,19 @@
                                      (when (= (:target-word @state-atom)
                                               (:typed-text @state-atom))
                                        (swap! state-atom (fn [state]
-                                                           (assoc state
-                                                                  :typed-text ""
-                                                                  :target-word (generate-excercise-word (:character-count @state-atom))))))))}))))
+                                                           (-> state
+                                                               (assoc :xp (+ (:xp state)
+                                                                             (count (:target-word state)))
+                                                                      :typed-text ""
+                                                                      :target-word (generate-excercise-word (:character-count @state-atom)))
+                                                               (cond-> (<= (:next-level-xp state)
+                                                                           (+ (:xp state)
+                                                                              (count (:target-word state))))
+                                                                 (assoc :next-level-xp (+ (:next-level-xp state)
+                                                                                          (:next-level-xp-increment state))
+                                                                        :character-count (inc (:character-count state))
+                                                                        :next-level-xp-increment (+ 10
+                                                                                                    (:next-level-xp-increment state))))))))))}))))
 
 (defn make-sequencer [sequence]
   (let [state (atom (cycle sequence))]
@@ -199,7 +215,8 @@
                                                                               (map (comp qwerty-cocoa-key-code-to-character
                                                                                          character-to-cocoa-key-code)
                                                                                    (map str (subs (:target-word @state-atom)
-                                                                                                  (count (:typed-text @state-atom))))))))
+                                                                                                  (min (count (:target-word @state-atom))
+                                                                                                       (count (:typed-text @state-atom)))))))))
 
                                      (gui/text (:typed-text @state-atom))
                                      (keyboard-view/keyboard-view cocoa-key-code-to-character
@@ -255,11 +272,13 @@
 (comment
 
   (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'layout-excercise-view text/finnish-statistics layout/qwerty]))))
+                     (gui/black-background (layouts/center [#'layout-excercise-view text/english-statistics #_text/finnish-statistics layout/qwerty]))))
 
   (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'layout-demo-view
-                                                            (->> (-> "temp/text/the-hacker-crackdown.txt"
+                     (gui/black-background (layouts/center [;; #'layout-demo-view
+                                                            #'layout-excercise-view
+
+                                                            #_(->> (-> "temp/text/the-hacker-crackdown.txt"
                                                                      slurp
                                                                      (subs 0 500)
                                                                      (string/replace #"\s+" " "))
@@ -268,7 +287,18 @@
                                                                  (filter (conj (set text/english-characters)
                                                                                " "))
                                                                  (apply str))
-                                                            layout/colemak-dh]))))
+                                                            layout/qwerty #_layout/colemak-dh]))))
   )
 
 (view/hard-refresh-view!)
+
+(defn english-demo-text []
+  (->> (-> "temp/text/the-hacker-crackdown.txt"
+           slurp
+           (subs 0 500)
+           (string/replace #"\s+" " "))
+       (map str)
+       (map string/lower-case)
+       (filter (conj (set text/english-characters)
+                     " "))
+       (apply str)))

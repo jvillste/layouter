@@ -50,14 +50,25 @@
    :label (:class key)
    :effort (key-class-effort (:class key))})
 
-(def ^:dynamic multipliers {:digram-roll 1
-                            :trigram-roll 1
-                            :key-rating 1
-                            :finger-type 1
-                            :horizontal-movement 1
-                            :vertical-movement 1
-                            :hand-balance 1
-                            :distance-from-colemak 1})
+(def multiplier-keys [:digram-roll
+                      :trigram-rol
+
+                      :key-rating
+                      :finger-typ
+
+                      :horizontal-movement
+                      :vertical-movement
+                      :vertical-movement-in-skipgram
+
+                      :hand-balance
+                      :hand-alternation
+
+                      :dist-from-colemak])
+
+(def ^:dynamic multipliers (->> multiplier-keys
+                                (map (fn [multiplier-key]
+                                       [multiplier-key 1]))
+                                (into {})))
 
 (defn multiplier [multiplier-key]
   (or (get multipliers multiplier-key)
@@ -79,8 +90,8 @@
 (defn same-hand? [key-pair]
   (= 1 (count (hands key-pair))))
 
-(defn same-finger? [key-pair]
-  (= 1 (count (set (map :finger key-pair)))))
+(defn same-finger? [keys]
+  (= 1 (count (set (map :finger keys)))))
 
 (defn different-fingers? [key-sequence]
   (= (count key-sequence)
@@ -237,7 +248,6 @@
   (adjacent-numbers? (map :finger key-sequence)))
 
 (defn two-adjacent-rows? [key-sequence]
-
   (let [rows (map :row key-sequence)]
     (and (adjacent-numbers? rows)
          (= 2 (count (set rows))))))
@@ -360,13 +370,45 @@
                             (keyboard/qwerty-character-to-key "e")
                             (keyboard/qwerty-character-to-key "c")]))))
 
+(defn- rate-hand-alternation [key-pair]
+  (merge {:rating :hand-alternation}
+         (if (same-hand? key-pair)
+           {:effort 1 :label :same-hand}
+           {:effort 0 :label :different-hand})))
+
 (defn rate-key-pair [key-pair]
   [(multiply-effort :vertical-movement (rate-vertical-movement key-pair))
    (multiply-effort :horizontal-movement (rate-horizontal-movement key-pair))
-   (multiply-effort :digram-roll (rate-n-gram-roll key-pair))])
+   (multiply-effort :digram-roll (rate-n-gram-roll key-pair))
+   (multiply-effort :hand-alternation (rate-hand-alternation key-pair))])
+
+(defn rate-vertical-movement-in-skipgram [key-triple]
+  (assoc (rate-vertical-movement [(first key-triple)
+                                  (last key-triple)])
+         :rating :skipgram-vm))
+
+(defn string-to-keys [string]
+  (map (comp keyboard/cocoa-key-code-to-key
+             (layout/layout-to-character-to-cocoa-key-code layout/qwerty))
+       (map str string)))
+
+(deftest test-rate-rate-vertical-movement-in-skipgram
+  (is (= {:label :same-row, :effort 0, :rating :skipgram-vm}
+         (rate-vertical-movement-in-skipgram (string-to-keys "asd"))))
+
+  (is (= {:label :same-finger-two-row-leap,
+          :effort 1,
+          :rating :skipgram-vm}
+         (rate-vertical-movement-in-skipgram (string-to-keys "vft"))))
+
+  (is (= {:label :same-finger-two-row-leap,
+          :effort 1,
+          :rating :skipgram-vm}
+         (rate-vertical-movement-in-skipgram (string-to-keys "vjt")))))
 
 (defn rate-key-triple [key-triple]
-  [(multiply-effort :trigram-roll (rate-n-gram-roll key-triple))])
+  [(multiply-effort :trigram-roll (rate-n-gram-roll key-triple))
+   (multiply-effort :vertical-movement-in-skipgram (rate-vertical-movement-in-skipgram key-triple))])
 
 (defn rate-distribution [rate distribution]
   (reduce +
@@ -426,16 +468,16 @@
      (+ (rate-distribution (fn [digram]
                              (total-effort (rate-key-pair (map character-to-key digram))))
                            (:digram-distribution text-statistics))
-        #_(rate-distribution (fn [trigram]
-                               (total-effort (rate-key-triple (map character-to-key trigram))))
-                             (:trigram-distribution text-statistics))
+        (rate-distribution (fn [trigram]
+                             (total-effort (rate-key-triple (map character-to-key trigram))))
+                           (:trigram-distribution text-statistics))
         (rate-distribution (fn [character]
                              (total-effort (rate-key (character-to-key character))))
                            (:character-distribution text-statistics))
         (* (multiplier :hand-balance)
            (rate-hand-balance (:character-distribution text-statistics)
                               character-to-key))
-        (* (multiplier :distance-from-colemak)
+        (* (multiplier :dist-from-colemak)
            (distance-from-colemak layout)))))
 
   ([text-statistics layout multipliers]

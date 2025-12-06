@@ -216,7 +216,7 @@
            [value (double (/ count sum))])
          data-rows)))
 
-(defonce keyboard-design-com-english-text-statistics {:name "kdc"
+(defonce keyboard-design-com-english-text-statistics {:name "kdc-en"
                                                       :character-distribution (->> (parse-keyboard-design-com-data-file "temp/text/keyboard-design-com/english-frequency.txt")
                                                                                    (filter (comp (set finnish-characters-without-å) first))
                                                                                    (counts-to-propabilities)
@@ -225,11 +225,9 @@
                                                       :digram-distribution (->> (parse-keyboard-design-com-data-file "temp/text/keyboard-design-com/english-bigrams.txt")
                                                                                 (parse-ngrams-from-keyboard-design-com-data-file-rows)
                                                                                 (counts-to-propabilities)
-                                                                                (select-probability-mass 0.95)
-                                                                                (count))
+                                                                                (select-probability-mass 0.95))
 
                                                       :trigram-distribution (->> (parse-keyboard-design-com-data-file "temp/text/keyboard-design-com/english-trigrams.txt")
                                                                                  (parse-ngrams-from-keyboard-design-com-data-file-rows)
                                                                                  (counts-to-propabilities)
-                                                                                 (select-probability-mass 0.95)
-                                                                                 (count))})
+                                                                                 (select-probability-mass 0.95))})
