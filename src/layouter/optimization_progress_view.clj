@@ -168,7 +168,7 @@
                             ;; :random-solution-proportion
                             :generations-since-last-improvement
                             ]
-            key-to-color (gui/create-key-to-color displayed-keys)
+            key-to-color (gui/create-key-to-color 0.5 0.5 displayed-keys)
             graph-height 800]
 
         (apply layouts/vertically-2
@@ -487,11 +487,11 @@
                                                           #_text/english-statistics
                                                           #_text/hybrid-statistics
                                                           #_text/hybrid-statistics-without-å
-
                                                           text/keyboard-design-com-english-text-statistics
                                                           #_(:fi key-log/statistics-from-key-log)
                                                           #_(:en key-log/statistics-from-key-log)
                                                           #_(:hybrid key-log/statistics-from-key-log)
+
                                                           multipliers
 
                                                           ;; hand alternating
@@ -519,20 +519,20 @@
                                                           ;;  :horizontal-movement 1}
 
                                                           ;; hand alternating, more key and finger weight
-                                                          {:trigram-roll 0.0,
-                                                           :digram-roll 0.0,
+                                                          ;; {:trigram-roll 0.0,
+                                                          ;;  :digram-roll 0.0,
 
-                                                           :key-rating 1
-                                                           :finger-type 1,
+                                                          ;;  :key-rating 1
+                                                          ;;  :finger-type 1,
 
-                                                           :vertical-movement-in-skipgram 1,
-                                                           :vertical-movement 1,
-                                                           :horizontal-movement 1
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :horizontal-movement 1
 
-                                                           :hand-balance 0.1,
-                                                           :hand-alternation 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :hand-alternation 1,
 
-                                                           :dist-from-colemak 0.0}
+                                                          ;;  :dist-from-colemak 0.0}
 
 
                                                           ;; rolls and alternation
@@ -559,7 +559,19 @@
                                                           ;;  :digram-roll 1,
                                                           ;;  :horizontal-movement 1}
 
+                                                          ;; rolls, no alternation, finger 1 key 0.5
+                                                          ;; {:key-rating 0.5,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :distance-from-colemak 0.1,
+                                                          ;;  :finger-type 1,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
 
+
+                                                          ;; best rolls
                                                           ;; {:key-rating 0.1,
                                                           ;;  :vertical-movement-in-skipgram 1,
                                                           ;;  :vertical-movement 1,
@@ -598,6 +610,45 @@
                                                           ;;  :finger-type 1,
                                                           ;;  :digram-roll 1,
                                                           ;;  :horizontal-movement 1}
+
+
+
+                                                          ;; {:key-rating 0.5,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 1,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :hand-alternation 0.0,
+                                                          ;;  :distance-from-colemak 0.0,
+                                                          ;;  :finger-type 0.1,
+                                                          ;;  :digram-roll 1,
+                                                          ;;  :horizontal-movement 1}
+
+
+                                                          ;; no finger no roll all alternation and movement
+                                                          ;; {:key-rating 1,
+                                                          ;;  :vertical-movement-in-skipgram 1,
+                                                          ;;  :vertical-movement 1,
+                                                          ;;  :trigram-roll 0.0,
+                                                          ;;  :hand-balance 0.1,
+                                                          ;;  :hand-alternation 1,
+                                                          ;;  :distance-from-colemak 0.0,
+                                                          ;;  :finger-type 0.0,
+                                                          ;;  :digram-roll 0.0,
+                                                          ;;  :horizontal-movement 1}
+
+
+                                                          ;; only movement
+                                                          {:key-rating 0.0,
+                                                           :vertical-movement-in-skipgram 1,
+                                                           :vertical-movement 1,
+                                                           :trigram-roll 0.0,
+                                                           :hand-balance 0.0,
+                                                           :hand-alternation 0.0,
+                                                           :distance-from-colemak 0.0,
+                                                           :finger-type 0.0,
+                                                           :digram-roll 0.0,
+                                                           :horizontal-movement 1}
                                                           ]
 
                                                       (-> (optimize/optimize-layout static-metaparameters
