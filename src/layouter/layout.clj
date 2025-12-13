@@ -131,6 +131,186 @@
 (def dvorak (set (map #(dissoc % :qwerty-character)
                       dvorak-with-qwerty-characters)))
 
+
+(def hand-alternating-named-layout {:text-statistics-name "kdc-en",
+                                    :multipliers
+                                    {:key-rating 1,
+                                     :vertical-movement-in-skipgram 1,
+                                     :vertical-movement 1,
+                                     :trigram-roll 0.0,
+                                     :hand-balance 0.1,
+                                     :hand-alternation 1,
+                                     :distance-from-colemak 0.0,
+                                     :finger-type 0.1,
+                                     :digram-roll 0.0,
+                                     :horizontal-movement 1},
+                                    :layout
+                                    #{{:cocoa-key-code 17, :character "p"}
+                                      {:cocoa-key-code 1, :character "s"}
+                                      {:cocoa-key-code 37, :character "t"}
+                                      {:cocoa-key-code 12, :character "l"}
+                                      {:cocoa-key-code 11, :character "q"}
+                                      {:cocoa-key-code 40, :character "i"}
+                                      {:cocoa-key-code 8, :character "f"}
+                                      {:cocoa-key-code 2, :character "d"}
+                                      {:cocoa-key-code 6, :character "g"}
+                                      {:cocoa-key-code 31, :character "k"}
+                                      {:cocoa-key-code 9, :character "x"}
+                                      {:cocoa-key-code 38, :character "e"}
+                                      {:cocoa-key-code 16, :character ""}
+                                      {:cocoa-key-code 4, :character "o"}
+                                      {:cocoa-key-code 15, :character "c"}
+                                      {:cocoa-key-code 32, :character "z"}
+                                      {:cocoa-key-code 3, :character "n"}
+                                      {:cocoa-key-code 13, :character "v"}
+                                      {:cocoa-key-code 39, :character "u"}
+                                      {:cocoa-key-code 46, :character "j"}
+                                      {:cocoa-key-code 33, :character "ä"}
+                                      {:cocoa-key-code 34, :character "y"}
+                                      {:cocoa-key-code 45, :character "b"}
+                                      {:cocoa-key-code 7, :character "w"}
+                                      {:cocoa-key-code 14, :character "m"}
+                                      {:cocoa-key-code 35, :character "ö"}
+                                      {:cocoa-key-code 41, :character "a"}
+                                      {:cocoa-key-code 0, :character "r"}
+                                      {:cocoa-key-code 5, :character "h"}},
+                                    :name "hand alternating"})
+
+
+(def alternating-oeitau {:text-statistics-name "kdc-en",
+                         :multipliers
+                         {:key-rating 1,
+                          :vertical-movement-in-skipgram 1,
+                          :vertical-movement 1,
+                          :trigram-roll 0.0,
+                          :hand-balance 0.1,
+                          :hand-alternation 1,
+                          :distance-from-colemak 0.0,
+                          :finger-type 0.1,
+                          :digram-roll 0.0,
+                          :horizontal-movement 1},
+                         :layout
+                         #{{:cocoa-key-code 17, :character "p"}
+                           {:cocoa-key-code 1, :character "s"}
+                           {:cocoa-key-code 37, :character "t"}
+                           {:cocoa-key-code 12, :character "l"}
+                           {:cocoa-key-code 11, :character "q"}
+                           {:cocoa-key-code 40, :character "i"}
+                           {:cocoa-key-code 8, :character "f"}
+                           {:cocoa-key-code 2, :character "d"}
+                           {:cocoa-key-code 6, :character "g"}
+                           {:cocoa-key-code 31, :character "k"}
+                           {:cocoa-key-code 9, :character "x"}
+                           {:cocoa-key-code 38, :character "e"}
+                           {:cocoa-key-code 16, :character ""}
+                           {:cocoa-key-code 4, :character "o"}
+                           {:cocoa-key-code 15, :character "c"}
+                           {:cocoa-key-code 32, :character "z"}
+                           {:cocoa-key-code 3, :character "n"}
+                           {:cocoa-key-code 13, :character "v"}
+                           {:cocoa-key-code 39, :character "u"}
+                           {:cocoa-key-code 46, :character "j"}
+                           {:cocoa-key-code 33, :character "ä"}
+                           {:cocoa-key-code 34, :character "y"}
+                           {:cocoa-key-code 45, :character "b"}
+                           {:cocoa-key-code 7, :character "w"}
+                           {:cocoa-key-code 14, :character "m"}
+                           {:cocoa-key-code 35, :character "ö"}
+                           {:cocoa-key-code 41, :character "a"}
+                           {:cocoa-key-code 0, :character "r"}
+                           {:cocoa-key-code 5, :character "h"}},
+                         :name "7"})
+
+(def edited-alternating-oeitau {:text-statistics-name "kdc-en",
+                                :multipliers
+                                {:key-rating 1,
+                                 :vertical-movement-in-skipgram 1,
+                                 :vertical-movement 1,
+                                 :trigram-roll 0.0,
+                                 :hand-balance 0.1,
+                                 :hand-alternation 1,
+                                 :distance-from-colemak 0.0,
+                                 :finger-type 0.1,
+                                 :digram-roll 0.0,
+                                 :horizontal-movement 1},
+                                :layout
+                                #{{:cocoa-key-code 17, :character "p"}
+                                  {:cocoa-key-code 1, :character "s"}
+                                  {:cocoa-key-code 37, :character "t"}
+                                  {:cocoa-key-code 8, :character "l"}
+                                  {:cocoa-key-code 11, :character "q"}
+                                  {:cocoa-key-code 40, :character "i"}
+                                  {:cocoa-key-code 2, :character "d"}
+                                  {:cocoa-key-code 6, :character "g"}
+                                  {:cocoa-key-code 31, :character "k"}
+                                  {:cocoa-key-code 9, :character "x"}
+                                  {:cocoa-key-code 38, :character "e"}
+                                  {:cocoa-key-code 16, :character ""}
+                                  {:cocoa-key-code 4, :character "o"}
+                                  {:cocoa-key-code 15, :character "c"}
+                                  {:cocoa-key-code 32, :character "z"}
+                                  {:cocoa-key-code 3, :character "n"}
+                                  {:cocoa-key-code 13, :character "v"}
+                                  {:cocoa-key-code 39, :character "u"}
+                                  {:cocoa-key-code 46, :character "j"}
+                                  {:cocoa-key-code 33, :character "ä"}
+                                  {:cocoa-key-code 34, :character "y"}
+                                  {:cocoa-key-code 45, :character "b"}
+                                  {:cocoa-key-code 14, :character "m"}
+                                  {:cocoa-key-code 35, :character "ö"}
+                                  {:cocoa-key-code 41, :character "a"}
+                                  {:cocoa-key-code 7, :character "f"}
+                                  {:cocoa-key-code 0, :character "r"}
+                                  {:cocoa-key-code 5, :character "h"}
+                                  {:cocoa-key-code 12, :character "w"}},
+                                :name "7"})
+
+(def edited-alternating-with-undo-optimization-oeitau {:text-statistics-name "kdc-en",
+                                                       :multipliers
+                                                       {:key-rating 1,
+                                                        :vertical-movement-in-skipgram 1,
+                                                        :vertical-movement 1,
+                                                        :trigram-roll 0.0,
+                                                        :hand-balance 0.1,
+                                                        :hand-alternation 1,
+                                                        :distance-from-colemak 0.0,
+                                                        :finger-type 0.1,
+                                                        :digram-roll 0.0,
+                                                        :horizontal-movement 1},
+                                                       :layout
+                                                       #{{:cocoa-key-code 17, :character "p"}
+                                                         {:cocoa-key-code 1, :character "s"}
+                                                         {:cocoa-key-code 37, :character "t"}
+                                                         {:cocoa-key-code 8, :character "l"}
+                                                         {:cocoa-key-code 11, :character "z"}
+                                                         {:cocoa-key-code 40, :character "i"}
+                                                         {:cocoa-key-code 2, :character "d"}
+                                                         {:cocoa-key-code 6, :character "g"}
+                                                         {:cocoa-key-code 31, :character "k"}
+                                                         {:cocoa-key-code 9, :character "x"}
+                                                         {:cocoa-key-code 38, :character "e"}
+                                                         {:cocoa-key-code 16, :character ""}
+                                                         {:cocoa-key-code 4, :character "o"}
+                                                         {:cocoa-key-code 15, :character "c"}
+                                                         {:cocoa-key-code 32, :character "q"}
+                                                         {:cocoa-key-code 3, :character "n"}
+                                                         {:cocoa-key-code 13, :character "v"}
+                                                         {:cocoa-key-code 39, :character "u"}
+                                                         {:cocoa-key-code 46, :character "j"}
+                                                         {:cocoa-key-code 33, :character "ä"}
+                                                         {:cocoa-key-code 34, :character "y"}
+                                                         {:cocoa-key-code 45, :character "b"}
+                                                         {:cocoa-key-code 14, :character "m"}
+                                                         {:cocoa-key-code 35, :character "ö"}
+                                                         {:cocoa-key-code 41, :character "a"}
+                                                         {:cocoa-key-code 7, :character "f"}
+                                                         {:cocoa-key-code 0, :character "r"}
+                                                         {:cocoa-key-code 5, :character "h"}
+                                                         {:cocoa-key-code 12, :character "w"}},
+                                                       :name "7"})
+
+
+
 (defn replace-character [layout from-character to-character]
   (set (for [mapping layout]
          (if (= (:character mapping) from-character)
