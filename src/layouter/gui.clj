@@ -65,13 +65,13 @@
 
 (view/hard-refresh-view!)
 
-(defn distinc-colors [number-of-colors]
+(defn distinc-colors [saturation lightness number-of-colors]
   (map (fn [index]
          (concat (color/hsl-to-rgb (* 360
                                       (/ index
                                          number-of-colors))
-                                   0.5
-                                   0.5)
+                                   saturation
+                                   lightness)
                  [1.0]))
        (range number-of-colors)))
 
@@ -81,13 +81,17 @@
            (63 191 114 1.0)
            (63 114 191 1.0)
            (165 63 191 1.0))
-         (distinc-colors 5))))
+         (distinc-colors 0.5
+                         0.5
+                         5))))
 
-(defn create-key-to-color [displayed-keys]
+(defn create-key-to-color [saturation lightness displayed-keys]
   (into {} (map vector
                 displayed-keys
-                (distinc-colors (count displayed-keys)))))
+                (distinc-colors saturation
+                                lightness
+                                (count displayed-keys)))))
 
 (deftest test-create-key-to-color
   (is (= '{:a (191 63 63 1.0), :b (63 191 191 1.0)}
-         (create-key-to-color [:a :b]))))
+         (create-key-to-color 0.5 0.5 [:a :b]))))
