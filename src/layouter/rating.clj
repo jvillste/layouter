@@ -434,21 +434,27 @@
           (apply /))))
 
 (deftest test-rate-hand-balance
-  (is (= 1.0
+  (is (= 0.0
          (rate-hand-balance {"a" 0.5
                              "b" 0.5}
                             {"a" {:finger 3}
                              "b" {:finger 4}})))
 
-  (is (= 0.8181818181818181
+  (is (= 0.18181818181818188
          (rate-hand-balance {"a" 0.45
                              "b" 0.55}
                             {"a" {:finger 3}
                              "b" {:finger 4}})))
 
-  (is (= 0.6666666666666667
+  (is (= 0.33333333333333326
          (rate-hand-balance {"a" 0.4
                              "b" 0.6}
+                            {"a" {:finger 3}
+                             "b" {:finger 4}})))
+
+  (is (= 1
+         (rate-hand-balance {"a" 0
+                             "b" 1}
                             {"a" {:finger 3}
                              "b" {:finger 4}}))))
 

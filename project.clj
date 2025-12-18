@@ -6,7 +6,7 @@
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [com.stuartsierra/frequencies "0.1.0"]
                  [dev.weavejester/medley "1.7.0"]
-                 [flow-gl "3"]
+                 [flow-gl "4"]
                  [metosin/jsonista "0.3.9"]
                  [fi.evident.raudikko/raudikko "0.1.4"]
                  [camel-snake-kebab "0.4.3"]

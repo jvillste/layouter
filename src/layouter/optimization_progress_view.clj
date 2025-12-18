@@ -581,16 +581,16 @@
 
 
         ;; no finger no roll all alternation and movement
-        {:key-rating 1,
-         :vertical-movement-in-skipgram 1,
-         :vertical-movement 1,
-         :trigram-roll 0.0,
-         :hand-balance 0.0,
-         :hand-alternation 1,
-         :dist-from-colemak 0.0,
-         :finger-type 0.0,
-         :digram-roll 0.0,
-         :horizontal-movement 1}
+        ;; {:key-rating 1,
+        ;;  :vertical-movement-in-skipgram 1,
+        ;;  :vertical-movement 1,
+        ;;  :trigram-roll 0.0,
+        ;;  :hand-balance 0.0,
+        ;;  :hand-alternation 1,
+        ;;  :dist-from-colemak 0.0,
+        ;;  :finger-type 0.0,
+        ;;  :digram-roll 0.0,
+        ;;  :horizontal-movement 1}
 
 
         ;; only movement
@@ -604,7 +604,53 @@
         ;;  :finger-type 0.0,
         ;;  :digram-roll 0.0,
         ;;  :horizontal-movement 1}
+
+        ;; {:key-rating 1.0,
+        ;;  :vertical-movement-in-skipgram 1,
+        ;;  :vertical-movement 1,
+        ;;  :trigram-roll 0.0,
+        ;;  :hand-balance 0.0,
+        ;;  :hand-alternation 1,
+        ;;  :dist-from-colemak 0.0,
+        ;;  :finger-type 1.0,
+        ;;  :digram-roll 0.0,
+        ;;  :horizontal-movement 1}
+
+        ;; {:key-rating 1.0,
+        ;;  :vertical-movement-in-skipgram 1,
+        ;;  :vertical-movement 1,
+        ;;  :trigram-roll 0.0,
+        ;;  :hand-balance 0.1,
+        ;;  :hand-alternation 1,
+        ;;  :finger-type 0.5,
+        ;;  :digram-roll 0.0,
+        ;;  :horizontal-movement 1,
+        ;;  :dist-from-colemak 0.0}
+
+        ;; {:key-rating 1.0,
+        ;;  :vertical-movement-in-skipgram 1,
+        ;;  :vertical-movement 1,
+        ;;  :trigram-roll 0.0,
+        ;;  :hand-balance 0.0,
+        ;;  :hand-alternation 1,
+        ;;  :finger-type 0.5,
+        ;;  :digram-roll 0.0,
+        ;;  :horizontal-movement 1,
+        ;;  :dist-from-colemak 0.0}
+
+        {:key-rating 1.0,
+         :vertical-movement-in-skipgram 1,
+         :vertical-movement 1,
+         :trigram-roll 0.0,
+         :hand-balance 0.0,
+         :hand-alternation 1,
+         :distance-from-colemak 0.0,
+         :finger-type 1.0,
+         :digram-roll 0.0,
+         :horizontal-movement 1}
         ]
+    #_(:multipliers @layouter.layout-comparison-view/selected-named-layout-atom)
+
 
     (-> (optimize/optimize-layout static-metaparameters
                                   #_emphasize-roll-key-and-vertical-movement-multipliers
@@ -625,15 +671,16 @@
                                                              hill-climbed-layout
                                                              multipliers)])
                                   (sort-by second))))))))
-;; hot-right-now TODO: remove me
 (comment
-  (def optimization-state (optimize-layout))
-  (rating/distance-from-colemak (->> #_optimization-state
-                                     (optimize-layout)
-                                     :ratings
-                                     (sort-by second)
-                                     (first)
-                                     (first)))
+  (doto (Thread. (fn []
+                   (reset! optimize/stop-requested?-atom false)
+                   (optimize/optimize-repeatedly! optimize-layout)))
+    (.setName "repeating layout optimization")
+    (.start))
+  (reset! optimize/stop-requested?-atom true)
+  ;; hot-right-now TODO: remove me
+
+
 
   (do (reset! optimize/optimization-history-atom [])
       (reset! optimize/metaoptimization-history-atom []))
@@ -674,16 +721,6 @@
     (.start))
 
 
-  (doto (Thread. (fn []
-                   (reset! optimize/stop-requested?-atom false)
-                   (optimize/optimize-repeatedly! #_#(optimize/hill-climb-all text/hybrid-statistics
-                                                                              (optimize/random-layout)
-                                                                              )
-                                                  (fn []
-                                                    (optimize-layout)))))
-    (.setName "repeating layout optimization")
-    (.start))
-  ;; hot-right-now TODO: remove me
   (reset! optimize/stop-requested?-atom true)
 
   (->> (ratings-from-layout-optimization-log text/finnish-statistics
@@ -768,20 +805,31 @@
 
   (do (.delete (io/file optimize/layout-optimization-log-file-path))
       (->> #_@optimize/layout-optimization-log-atom
-           (optimize/read-log "/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 6.edn"
+           (optimize/read-log "/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 8.edn"
                               #_optimize/layout-optimization-log-file-path)
-           (remove (comp #{"hy" "hy-å"}
-                         :text-statistics-name))
+           (remove (fn [state]
+                     (->> state
+                          :ratings
+                          (sort-by second)
+                          (first)
+                          (first)
+                          (rating/distance-from-colemak)
+                          (> 0.5))))
+           #_(count)
            #_(take 2)
            #_(best-ratings-per-statistics-and-multipliers)
-           (optimize/write-log optimize/layout-optimization-log-file-path)
-           #_(every? map?)))
+           (optimize/write-log optimize/layout-optimization-log-file-path))
+      )
 
   (every? map? (optimize/read-log #_"/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 3.edn"
                                   optimize/layout-optimization-log-file-path))
 
+  (->> @optimize/layout-optimization-log-atom
+       (filter (comp :distance-from-colemak
+                     :multipliers))
+       (count))
 
-  (count @optimized-layouts-atom)
+   (count @optimized-layouts-atom)
   (reset! optimized-layouts-atom [])
 
   (optimize-layout (assoc static-metaparameters

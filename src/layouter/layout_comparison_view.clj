@@ -586,7 +586,7 @@
                                                (for [multiplier-key multiplier-keys]
                                                  [multiplier-key group-key])))))
 
-(def group-key-to-color (gui/create-key-to-color 1.0 0.6 (map first multiplier-groups)))
+(def group-key-to-color (gui/create-key-to-color 1 0.5 (map first multiplier-groups)))
 
 (defn- multiplier-groups-view [multipliers multiplier-groups]
   (let [width 50]
@@ -645,6 +645,9 @@
                    {:join? true})
   )
 
+(defn optimization-parameters [state-or-layout]
+  (select-keys state-or-layout
+               [:multipliers :text-statistics-name]))
 
 (defn layout-rating-comparison-view [_statistics _selected-named-layout-atom _layouts]
   (let [state-atom (dependable-atom/atom {})]
@@ -676,9 +679,41 @@
                                      :layout-rating-description layout-rating-description
                                      :summary (-> summary
                                                   (merge-summary)
-                                                  (assoc :rating-wo-di (- (rating/rate-layout statistics (:layout layout))
-                                                                          (-> summary :holistic-ratings :dist-from-colemak))))))))
-              columns (for [column (into #{} (apply concat (map keys (map :summary layouts))))]
+                                                  (assoc :alter-rating (rating/rate-layout statistics (:layout layout)
+                                                                                           {:key-rating 1
+                                                                                            :vertical-movement-in-skipgram 1,
+                                                                                            :vertical-movement 1,
+                                                                                            :hand-balance 0.5
+                                                                                            :hand-alternation 1,
+                                                                                            :finger-type 0.4
+                                                                                            :horizontal-movement 1
+
+                                                                                            :digram-roll 0
+                                                                                            :trigram-roll 0
+                                                                                            :dist-from-colemak 0}))
+                                                  (assoc :runs (->> @optimize/layout-optimization-log-atom
+                                                                    (filter (fn [state]
+                                                                              (= (optimization-parameters layout)
+                                                                                 (optimization-parameters state))))
+                                                                    (count)
+                                                                    (double))))))))
+              columns (for [column [:alter-rating
+
+                                    :vertical-movement
+                                    :skipgram-vm
+                                    :horizontal-movement
+
+                                    :key
+                                    :finger-type
+
+                                    :hand-alternation
+                                    :hand-balance
+
+                                    :2-roll
+                                    :3-roll
+                                    :runs
+                                    :dist-from-colemak]
+                            #_(into #{} (apply concat (map keys (map :summary layouts))))]
                         {:key column
                          :minimum (apply min (map column (map :summary layouts)))
                          :maximum (apply max (map column (map :summary layouts)))})]
@@ -1083,7 +1118,9 @@
                         (gui/text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
                         (gui/text (str "best rating: " (when-some [ratings (:ratings (last @optimize/optimization-history-atom))]
                                                          (optimize/best-rating ratings))))
-                        (for [[[text-statistics-name multipliers] status] (optimization-status)]
+                        (for [[[text-statistics-name multipliers] status] (sort-by (comp :runsnumber-of-optimization-runs
+                                                                                         second)
+                                                                                   (optimization-status))]
                           (layouts/vertically-2 {:margin 10}
                                                 #_(gui/text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
                                                 [multipliers-view multipliers]
@@ -1143,7 +1180,7 @@
                                                            :name "qwerty"}))
 
 (defn optimized-layouts-comparison-view-2 []
-  (let [english-demo-text (excercise/english-demo-text)
+  (let [english-demo-text "kehitella varahdysliike" #_ (excercise/english-demo-text)
         finnish-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
                                                                    5004 5100)
                                                              "\n" " "))
@@ -1160,6 +1197,8 @@
                                     :name "colemak"}
                                    {:layout layout/dvorak
                                     :name "dvorak"}
+                                   {:layout (:layout layout/alternating-copy-paste-on-left)
+                                    :name "cp on left"}
                                    #_{:layout random-layout
                                       :name "random"}
                                    ;; hill-climbed-layout
@@ -1174,7 +1213,7 @@
             selected-text-statistics (:selected-text-statistics state)]
         (gui/black-background [scroll-pane (layouts/vertically-2 {:margin 10}
                                                                  (for [text-statistics [text/keyboard-design-com-english-text-statistics
-                                                                                        text/wikinews-finnish-statistics
+                                                                                        ;; text/wikinews-finnish-statistics
 
                                                                                         ;; text/hybrid-statistics-without-å
                                                                                         ;; text/english-statistics
@@ -1350,8 +1389,8 @@
 
        (map :multipliers (best-layouts-per-statistics-and-multipliers-with-names 1 0))
        )
-  @selected-named-layout-atom
-  @edited-layout-atom
+  (:multipliers @selected-named-layout-atom)
+  (layout/homerow-string @edited-layout-atom)
 
   (reset! edited-layout-atom layout/edited-alternating-oeitau)
 

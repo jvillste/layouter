@@ -611,7 +611,8 @@
     []
     (->> (io/reader log-file-path)
          (line-seq)
-         (map edn/read-string))))
+         (map edn/read-string)
+         vec)))
 
 (defn write-log [log-file-path log-rows]
   (doseq [log-row log-rows]
@@ -626,9 +627,7 @@
       nil)
   )
 
-(defonce layout-optimization-log-atom (dependable-atom/atom (if (.exists (io/file layout-optimization-log-file-path))
-                                                              (read-log layout-optimization-log-file-path)
-                                                              [])))
+(defonce layout-optimization-log-atom (dependable-atom/atom (read-log layout-optimization-log-file-path)))
 
 
 (defn optimize-layout [metaparameters multipliers text-statistics log-file-path & [options]]
