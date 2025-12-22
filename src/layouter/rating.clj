@@ -461,6 +461,29 @@
 (defn distance-from-colemak [layout]
   (layout/layout-distance layout/colemak-dh layout))
 
+;; (defn copy-paste-on-left-rating [character-to-key]
+
+;;   ;; TODO: just count how mmany of the keys are on left
+;;   (merge {:rating :copy-paste-on-left}
+;;          (cond (and (= 0 (-> (character-to-key "c") :finger finger-hand))
+;;                     (= 0 (-> (character-to-key "v") :finger finger-hand))
+;;                     (= 0 (-> (character-to-key "x") :finger finger-hand)))
+;;                {:label :c-v-and-x-on-left
+;;                 :effort 0.0}
+
+;;                (and (= 0 (-> (character-to-key "c") :finger finger-hand))
+;;                     (= 0 (-> (character-to-key "v") :finger finger-hand))
+;;                     (= 1 (-> (character-to-key "x") :finger finger-hand)))
+;;                {:label :c-and-v-on-left
+;;                 :effort 0.5}
+
+;;                :else
+;;                {:label :c-and-v-on-left
+;;                 :effort 0.5}
+
+;;                )))
+
+
 (defn rate-layout
   ([layout]
    (rate-layout text/hybrid-statistics layout))
