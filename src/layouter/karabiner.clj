@@ -1,9 +1,10 @@
-
 (ns layouter.karabiner
-  (:require [jsonista.core :as jsonista]
-            [clojure.java.io :as io]
-            [camel-snake-kebab.core :as camel-snake-kebab]
-            [clojure.test :refer [deftest is]]))
+  (:require
+   [camel-snake-kebab.core :as camel-snake-kebab]
+   [clojure.java.io :as io]
+   [clojure.test :refer [deftest is]]
+   [jsonista.core :as jsonista]
+   [layouter.layout :as layout]))
 
 (defn read-json-string [string]
   (jsonista/read-value (io/input-stream (.getBytes string
@@ -85,6 +86,22 @@
    {:key-code key :modifiers {:mandatory ["left_shift" modifier]}}
    {:shell-command (str "/opt/homebrew/bin/yabai -m window --space " workspace-number)}])
 
+(defn qwerty-character-to-karabiner-key-code [qwerty-character]
+  (get {"å" "open_bracket"
+        "ö" "semicolon"
+        "ä" "quote"}
+       qwerty-character
+       qwerty-character))
+
+(defn alternative-layout-rules [alternative-layout]
+  (let [alternative-layout-character-to-qwerty-character (comp (layout/layout-to-cocoa-key-code-to-character layout/qwerty)
+                                                               (layout/layout-to-character-to-cocoa-key-code alternative-layout))]
+    (for [alternative-layout-character (map :character (:layout layout/oeita))]
+      {:type "basic",
+       :conditions [{:type "variable_if", :name "alternative layout", :value 1}],
+       :from {:key-code (qwerty-character-to-karabiner-key-code (alternative-layout-character-to-qwerty-character alternative-layout-character)) :modifiers {:optional ["any"]}},
+       :to [{:key-code (qwerty-character-to-karabiner-key-code alternative-layout-character)}]})))
+
 (def rules [{:description "control-m to enter",
              :manipulators
              [{:type "basic",
@@ -93,12 +110,21 @@
                 :modifiers {:mandatory ["left_control"], :optional ["any"]}},
                :to [{:key-code "return_or_enter"}]}]}
 
-            {:description "control-ö to backspace",
+            ;; {:description "control-ö to backspace",
+            ;;  :manipulators
+            ;;  [{:type "basic",
+            ;;    :from
+            ;;    {:key-code "semicolon",
+            ;;     :modifiers {:mandatory ["left_control"], :optional ["any"]}},
+            ;;    :to [{:key-code "delete_or_backspace"}]}]}
+
+            {:description "¨ to backspace",
              :manipulators
              [{:type "basic",
                :from
-               {:key-code "semicolon",
-                :modifiers {:mandatory ["left_control"], :optional ["any"]}},
+               {:key-code "close_bracket",
+;;                :modifiers {:mandatory [], :optional []}
+                },
                :to [{:key-code "delete_or_backspace"}]}]}
 
             {:description "caps lock to control",
@@ -308,8 +334,8 @@
             (shell-command ["right_command"] "d" "/opt/homebrew/bin/yabai -m window --toggle split")
             (shell-command ["right_command"] "r" "/opt/homebrew/bin/yabai -m window --toggle float")
             (shell-command ["right_command"] "u" "/opt/homebrew/bin/yabai -m space --rotate 90")
-            (shell-command ["right_command"] "y" "/opt/homebrew/bin/yabai -m space --mirror x-axis")
-            (shell-command ["right_command"] "h" "/opt/homebrew/bin/yabai -m space --mirror y-axis")
+            ;; (shell-command ["right_command"] "y" "/opt/homebrew/bin/yabai -m space --mirror x-axis")
+            ;; (shell-command ["right_command"] "h" "/opt/homebrew/bin/yabai -m space --mirror y-axis")
             (shell-command ["right_command"] "l" "/opt/homebrew/bin/yabai -m space --balance")
             (shell-command ["right_command"] "j" "/opt/homebrew/bin/yabai -m window --focus next || /opt/homebrew/bin/yabai -m window --focus first")
             (shell-command ["right_command"] "k" "/opt/homebrew/bin/yabai -m window --focus prev || /opt/homebrew/bin/yabai -m window --focus last")
@@ -327,7 +353,21 @@
             (shell-command ["right_command" "left_shift"] "o" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard di\"")
             (shell-command ["right_command" "left_shift"] "d" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard de\"")
 
-            ])
+            {:description "alternative layout",
+             :manipulators (concat [{:type "basic",
+                                     :from {:key-code "y"
+                                            :modifiers {:mandatory ["left_command"] :optional []}},
+                                     :to [{:set-variable {:name "alternative layout", :value 1}}
+                                          {:shell-command "osascript -e 'display notification \"oeita\"'"}]
+                                     :conditions [{:type "variable_if", :name "alternative layout", :value 0}]}
+
+                                    {:type "basic",
+                                     :from {:key-code "y"
+                                            :modifiers {:mandatory ["left_command"] :optional []}},
+                                     :to [{:set-variable {:name "alternative layout", :value 0}}
+                                          {:shell-command "osascript -e 'display notification \"qwerty\"'"}]
+                                     :conditions [{:type "variable_if", :name "alternative layout", :value 1}]}]
+                                   (alternative-layout-rules (:layout layout/oeita)))}])
 
 (defn update-config-file []
   (spit config-file-path
@@ -341,6 +381,9 @@
             (write-json-string))))
 
 (comment
+
   (update-config-file)
 
-  (read-json-string (slurp "temp/rule.json")))
+  (read-json-string (slurp "temp/rule.json"))
+
+  )
