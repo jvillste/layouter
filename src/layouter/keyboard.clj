@@ -15,7 +15,7 @@
                     {:cocoa-key-code 9  :java-key-code 86       :finger 3 :class :sideways   :row 2 :column 4  :qwerty-character "v" :disabled? false}
                     {:cocoa-key-code 11 :java-key-code 66       :finger 3 :class :middle     :row 2 :column 4  :qwerty-character "b" :disabled? false}
                     {:cocoa-key-code 12 :java-key-code 81       :finger 0 :class :regular    :row 0 :column 0  :qwerty-character "q" :disabled? false}
-                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :class :sideways   :row 0 :column 0  :qwerty-character "w" :disabled? false}
+                    {:cocoa-key-code 13 :java-key-code 87       :finger 1 :class :w          :row 0 :column 0  :qwerty-character "w" :disabled? false}
                     {:cocoa-key-code 14 :java-key-code 69       :finger 1 :class :regular    :row 0 :column 1  :qwerty-character "e" :disabled? false}
                     {:cocoa-key-code 15 :java-key-code 82       :finger 2 :class :regular    :row 0 :column 2  :qwerty-character "r" :disabled? false}
                     {:cocoa-key-code 16 :java-key-code 89       :finger 4 :class :middle     :row 0 :column 5  :qwerty-character "y" :disabled? false}

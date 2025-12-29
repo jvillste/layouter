@@ -212,7 +212,7 @@
                                                    :trigram-roll 0.0,
                                                    :hand-balance 0.1,
                                                    :hand-alternation 1,
-                                                   :distance-from-colemak 0.0,
+                                                   :dist-from-colemak 0.0,
                                                    :finger-type 1,
                                                    :digram-roll 0.0,
                                                    :horizontal-movement 1}})
@@ -350,6 +350,51 @@
                                                          {:cocoa-key-code 12, :character "w"}},
                                                        :name "7"})
 
+(def oeita {:layout
+            #{{:character "p", :cocoa-key-code 17}
+              {:character "t", :cocoa-key-code 37}
+              {:character "l", :cocoa-key-code 12}
+              {:character "q", :cocoa-key-code 11}
+              {:character "i", :cocoa-key-code 40}
+              {:character "f", :cocoa-key-code 8}
+              {:character "g", :cocoa-key-code 7}
+              {:character "k", :cocoa-key-code 31}
+              {:character "e", :cocoa-key-code 38}
+              {:character "", :cocoa-key-code 16}
+              {:character "o", :cocoa-key-code 4}
+              {:character "c", :cocoa-key-code 15}
+              {:character "z", :cocoa-key-code 32}
+              {:character "n", :cocoa-key-code 3}
+              {:character "u", :cocoa-key-code 39}
+              {:character "j", :cocoa-key-code 46}
+              {:character "ä", :cocoa-key-code 33}
+              {:character "y", :cocoa-key-code 34}
+              {:character "b", :cocoa-key-code 45}
+              {:character "w", :cocoa-key-code 6}
+              {:character "s", :cocoa-key-code 1}
+              {:character "v", :cocoa-key-code 9}
+              {:character "m", :cocoa-key-code 14}
+              {:character "ö", :cocoa-key-code 35}
+              {:character "a", :cocoa-key-code 41}
+              {:character "r", :cocoa-key-code 0}
+              {:character "x", :cocoa-key-code 13}
+              {:character "h", :cocoa-key-code 5}
+              {:character "d", :cocoa-key-code 2}},
+            :multipliers
+            {:key-rating 1,
+             :vertical-movement-in-skipgram 1,
+             :vertical-movement 1,
+             :trigram-roll 0.0,
+             :hand-balance 0.1,
+             :hand-alternation 1,
+             :finger-type 0.1,
+             :digram-roll 0.0,
+             :horizontal-movement 1,
+             :dist-from-colemak 0.0},
+            :name "oeita",
+            :description
+            "xcv on left, y is left empty, least vertical movement, worse finger"})
+
 
 
 (defn replace-character [layout from-character to-character]
@@ -431,8 +476,8 @@
                        [(when-some [name (:name layout)]
                           name)
                         #_(when-some [multipliers (:multipliers layout)]
-                          #_(multipliers-to-layout-name multipliers)
-                          (multipliers-to-short-layout-name multipliers))
+                            #_(multipliers-to-layout-name multipliers)
+                            (multipliers-to-short-layout-name multipliers))
                         (homerow-string (:layout layout))
                         (:text-statistics-name layout)])))
 

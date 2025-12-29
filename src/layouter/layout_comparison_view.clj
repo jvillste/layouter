@@ -331,7 +331,7 @@
                                                   (map (fn [value]
                                                          (cell (visuals/text (str value))))
                                                        ratings))))
-                                      (take 30 (get rating-description aspect))))))))
+                                      (take 60 (get rating-description aspect))))))))
 
 (defn distribtion-rating-description-view [layout _rating distribution-rating-description]
   (let [state-atom (dependable-atom/atom {:highlighted-characters #{}})
@@ -602,6 +602,24 @@
                                                           multiplier-key)
                                                      0)))))))))
 
+(defn tooltip [_tooltip-node _trigger-node]
+  (let [state-atom (dependable-atom/atom {})]
+    (fn [tooltip-node trigger-node]
+      (layouts/vertically-2 {:margin 0}
+                            {:node trigger-node
+                             :mouse-event-handler (fn [node event]
+                                                    (when (= :nodes-under-mouse-changed (:type event))
+                                                      (swap! state-atom assoc :mouse-over? (contains? (set (map :id (:nodes-under-mouse event)))
+                                                                                                      (:id node))))
+
+                                                    event)}
+
+                            (when (and (some? tooltip-node)
+                                       (:mouse-over? @state-atom))
+                              (layouts/hover (gui/box tooltip-node
+                                                      {:padding 10
+                                                       :fill-color [0 0 0 0.8]})))))))
+
 (defn multipliers-view [_multipliers]
   (let [state-atom (dependable-atom/atom {})]
     (fn [multipliers]
@@ -645,9 +663,18 @@
                    {:join? true})
   )
 
-(defn optimization-parameters [state-or-layout]
-  (select-keys state-or-layout
-               [:multipliers :text-statistics-name]))
+
+(def alter-rating-multipliers {:key-rating 1.0
+                               :finger-type 0.5
+                               :vertical-movement-in-skipgram 1,
+                               :vertical-movement 1,
+                               :horizontal-movement 1
+                               :hand-balance 0.5
+                               :hand-alternation 1,
+
+                               :digram-roll 0
+                               :trigram-roll 0
+                               :dist-from-colemak 0})
 
 (defn layout-rating-comparison-view [_statistics _selected-named-layout-atom _layouts]
   (let [state-atom (dependable-atom/atom {})]
@@ -680,23 +707,13 @@
                                      :summary (-> summary
                                                   (merge-summary)
                                                   (assoc :alter-rating (rating/rate-layout statistics (:layout layout)
-                                                                                           {:key-rating 1
-                                                                                            :vertical-movement-in-skipgram 1,
-                                                                                            :vertical-movement 1,
-                                                                                            :hand-balance 0.5
-                                                                                            :hand-alternation 1,
-                                                                                            :finger-type 0.4
-                                                                                            :horizontal-movement 1
-
-                                                                                            :digram-roll 0
-                                                                                            :trigram-roll 0
-                                                                                            :dist-from-colemak 0}))
+                                                                                           alter-rating-multipliers))
                                                   (assoc :runs (->> @optimize/layout-optimization-log-atom
                                                                     (filter (fn [state]
-                                                                              (= (optimization-parameters layout)
-                                                                                 (optimization-parameters state))))
-                                                                    (count)
-                                                                    (double))))))))
+                                                                              (= (optimize/optimization-parameters layout)
+                                                                                 (optimize/optimization-parameters state))))
+                                                                    (count)))
+                                                  (assoc :rating-version (:rating-version layout 1)))))))
               columns (for [column [:alter-rating
 
                                     :vertical-movement
@@ -709,9 +726,12 @@
                                     :hand-alternation
                                     :hand-balance
 
+                                    :runs
+                                    :rating-version
+
                                     :2-roll
                                     :3-roll
-                                    :runs
+
                                     :dist-from-colemak]
                             #_(into #{} (apply concat (map keys (map :summary layouts))))]
                         {:key column
@@ -737,11 +757,14 @@
                                                                           [multipliers-view (:multipliers layout)]
                                                                           (on-click (fn []
                                                                                       (reset! selected-named-layout-atom (:original-named-layout layout)))
-                                                                                    (gui/text (layout/layout-name layout)
-                                                                                              {:color (if (= (:original-named-layout layout)
-                                                                                                             @selected-named-layout-atom)
-                                                                                                        [255 255 255 255]
-                                                                                                        [200 200 200 255])})))]
+                                                                                    [tooltip
+                                                                                     (when-some [description (:description layout)]
+                                                                                       (gui/text description))
+                                                                                     (gui/text (layout/layout-name layout)
+                                                                                               {:color (if (= (:original-named-layout layout)
+                                                                                                              @selected-named-layout-atom)
+                                                                                                         [255 255 255 255]
+                                                                                                         [200 200 200 255])})]))]
                                                  (for [column columns]
                                                    (on-click (fn []
                                                                (swap! state-atom
@@ -766,8 +789,11 @@
                                                                                                                  offset)
                                                                                                               (- (:maximum column)
                                                                                                                  offset))))))
-                                                                                        (gui/text (str (format "%.4f" (get (:summary layout)
-                                                                                                                           (:key column))))
+                                                                                        (gui/text (str (let [value (get (:summary layout)
+                                                                                                                        (:key column))]
+                                                                                                         (if (integer? value)
+                                                                                                           value
+                                                                                                           (format "%.4f" value))))
                                                                                                   {:color (if (= (:original-named-layout layout)
                                                                                                                  @selected-named-layout-atom)
                                                                                                             [100 100 100 255]
@@ -796,14 +822,15 @@
                                                       n-gram))))))
 
 
-(defn layout-editor [_layout-atom _key-colors _statistics]
+(defn layout-editor [_layout-atom _key-colors _statistics _multipliers]
   (let [state-atom (dependable-atom/atom {})]
-    (fn [layout-atom key-colors statistics]
+    (fn [layout-atom key-colors statistics multipliers]
       (let [cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character @layout-atom)
             character-to-cocoa-key-code (layout/layout-to-character-to-cocoa-key-code @layout-atom)
             state @state-atom
             current-effort (rating/rate-layout statistics
-                                               @layout-atom)
+                                               @layout-atom
+                                               multipliers)
             on-key-event (fn [event]
                            (case (:type event)
                              :mouse-entered-character
@@ -837,7 +864,8 @@
                                                    (rating/rate-layout statistics
                                                                        (optimize/swap-mappings @layout-atom
                                                                                                selected-mapping
-                                                                                               mapping))]))
+                                                                                               mapping)
+                                                                       multipliers)]))
                  all-efforts (conj (vals cocoa-key-code-to-effort)
                                    current-effort)
                  maximum-effort (apply max all-efforts)
@@ -904,7 +932,7 @@
   (into {}
         (for [differing-cocoa-keycode (differing-cocoa-keycodes named-layout-1
                                                                 named-layout-2)]
-          [differing-cocoa-keycode [0.5 0.2 0.2 1.0]])))
+          [differing-cocoa-keycode [191, 25, 183 1.0]])))
 
 
 (defn layout-comparison-view [named-layout-atoms statistics]
@@ -1108,12 +1136,10 @@
   (layouts/vertically-2 {:margin 10}
 
                         [multipliers-view (:multipliers (last @optimize/layout-optimization-log-atom))]
-                        (gui/text (str "runs: " (count (filter (let [key (select-keys (last @optimize/layout-optimization-log-atom)
-                                                                                      [:multipliers :text-statistics-name])]
+                        (gui/text (str "runs: " (count (filter (let [key (optimize/optimization-parameters (last @optimize/layout-optimization-log-atom))]
                                                                  (fn [run]
                                                                    (= key
-                                                                      (select-keys run
-                                                                                   [:multipliers :text-statistics-name]))))
+                                                                      (optimize/optimization-parameters run))))
                                                                @optimize/layout-optimization-log-atom))))
                         (gui/text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
                         (gui/text (str "best rating: " (when-some [ratings (:ratings (last @optimize/optimization-history-atom))]
@@ -1179,8 +1205,36 @@
 (defonce selected-named-layout-atom (dependable-atom/atom {:layout layout/qwerty
                                                            :name "qwerty"}))
 
+(def saved-layouts-file-name "temp/saved-layouts.edn")
+
+(defn load-saved-layouts! []
+  (def saved-layouts (optimize/read-log saved-layouts-file-name)))
+
+(load-saved-layouts!)
+
+(defn save-layout [layout]
+  (optimize/alter-log saved-layouts-file-name (fn [saved-layouts]
+                                                (remove (fn [saved-layout]
+                                                          (= (:name layout)
+                                                             (:name saved-layout)))
+                                                        saved-layouts)))
+  (optimize/write-log saved-layouts-file-name [layout])
+  (load-saved-layouts!))
+
+(comment
+  (save-layout {:layout @edited-layout-atom
+                :multipliers (:multipliers @selected-named-layout-atom)
+                :name "alter-3"
+                :description "xcv on left, y is left empty, least vertical movement, worse finger"})
+
+  (:layout @selected-named-layout-atom)
+
+  )
+
+
+
 (defn optimized-layouts-comparison-view-2 []
-  (let [english-demo-text "kehitella varahdysliike" #_ (excercise/english-demo-text)
+  (let [english-demo-text #_"kehitella varahdysliike" (excercise/english-demo-text)
         finnish-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
                                                                    5004 5100)
                                                              "\n" " "))
@@ -1192,19 +1246,76 @@
         ]
     (fn []
       (let [named-layouts (concat [{:layout layout/qwerty
-                                    :name "qwerty"}
-                                   {:layout layout/colemak-dh
-                                    :name "colemak"}
-                                   {:layout layout/dvorak
-                                    :name "dvorak"}
-                                   {:layout (:layout layout/alternating-copy-paste-on-left)
-                                    :name "cp on left"}
+                                      :name "qwerty"}
+                                   #_{:layout layout/colemak-dh
+                                      :name "colemak"}
+                                   #_{:layout layout/dvorak
+                                      :name "dvorak"}
+                                   #_(passoc layout/alternating-copy-paste-on-left
+                                            :name "cp on left")
                                    #_{:layout random-layout
                                       :name "random"}
+                                   ;; hot-right-now TODO: remove me
+                                   #_(assoc optimization-progress-view/optimized-layout
+                                            :name "optimized")
                                    ;; hill-climbed-layout
                                    ;;last-layout
+                                   layout/oeita
                                    ]
-                                  (best-layouts-per-statistics-and-multipliers-with-names 1 0)
+                                  (filter (fn [named-layout]
+                                            #_(:multipliers @selected-named-layout-atom)
+                                            #_(<= 2 (:rating-version named-layout 1))
+                                            (== 0.0 (-> named-layout :multipliers :digram-roll))
+                                            #_(or (= {:key-rating 1.0,
+                                                      :vertical-movement-in-skipgram 1,
+                                                      :vertical-movement 1,
+                                                      :trigram-roll 0.0,
+                                                      :hand-balance 0.1,
+                                                      :hand-alternation 1,
+                                                      :finger-type 0.5,
+                                                      :digram-roll 0.0,
+                                                      :horizontal-movement 1,
+                                                      :dist-from-colemak 0.0}
+                                                     (:multipliers named-layout))
+                                                  (= {:key-rating 0.5,
+                                                      :vertical-movement-in-skipgram 1,
+                                                      :vertical-movement 1,
+                                                      :trigram-roll 0.0,
+                                                      :hand-balance 0.1,
+                                                      :hand-alternation 1,
+                                                      :dist-from-colemak 0.0,
+                                                      :finger-type 0.1,
+                                                      :digram-roll 0.0,
+                                                      :horizontal-movement 1}
+                                                     (:multipliers named-layout))
+                                                  (= {:key-rating 0.5,
+                                                      :vertical-movement-in-skipgram 1,
+                                                      :vertical-movement 1,
+                                                      :trigram-roll 0.0,
+                                                      :hand-balance 0.1,
+                                                      :hand-alternation 1,
+                                                      :dist-from-colemak 0.0,
+                                                      :finger-type 0.2,
+                                                      :digram-roll 0.0,
+                                                      :horizontal-movement 1}
+                                                     (:multipliers named-layout))
+                                                  (= {:key-rating 0.5,
+                                                      :vertical-movement-in-skipgram 1,
+                                                      :vertical-movement 1,
+                                                      :trigram-roll 0.0,
+                                                      :hand-balance 0.1,
+                                                      :hand-alternation 1,
+                                                      :dist-from-colemak 0.0,
+                                                      :finger-type 0.5,
+                                                      :digram-roll 0.0,
+                                                      :horizontal-movement 1}
+                                                     (:multipliers named-layout))
+                                                  ;; hot-right-now TODO: remove me
+                                                  )
+                                            #_(and (== 0 (-> named-layout :multipliers :digram-roll ))
+                                                   (== 0 (-> named-layout :multipliers :trigram-roll ))))
+                                          (best-layouts-per-statistics-and-multipliers-with-names 1 0))
+                                  saved-layouts
                                   #_(map (fn [named-layout]
                                            (update named-layout :layout (partial optimize/hill-climb-all text/keyboard-design-com-english-text-statistics)))
                                          (best-layouts-per-statistics-and-multipliers-with-names 1 0)))
@@ -1252,7 +1363,6 @@
                                                                                                                                      (do (reset! selected-named-layout-atom
                                                                                                                                                  named-layout)
                                                                                                                                          (swap! state-atom assoc
-                                                                                                                                                :selected-named-layout named-layout
                                                                                                                                                 :previously-selected-named-layout selected-named-layout)))
                                                                                                                                event)}
                                                                                                        (gui/text (layout/layout-name named-layout)))))
@@ -1276,7 +1386,8 @@
                                                                                                                        (when selected-named-layout
                                                                                                                          (differing-key-color-mapping selected-named-layout
                                                                                                                                                       {:layout @edited-layout-atom})))
-                                                                                                                selected-text-statistics]
+                                                                                                                selected-text-statistics
+                                                                                                                alter-rating-multipliers]
                                                                                                                (on-click (fn []
                                                                                                                            (reset! selected-named-layout-atom
                                                                                                                                    {:layout @edited-layout-atom
@@ -1340,6 +1451,7 @@
                                                         [text-statistics-view highlighted-character on-mouse-enter on-mouse-leave text/wikinews-hybrid-statistics]
                                                         )))))))
 
+
 (comment
   (view/start-view #'optimized-layouts-comparison-view)
   (view/start-view #'optimization-status-with-rating-comparison-view)
@@ -1389,7 +1501,9 @@
 
        (map :multipliers (best-layouts-per-statistics-and-multipliers-with-names 1 0))
        )
+
   (:multipliers @selected-named-layout-atom)
+
   (layout/homerow-string @edited-layout-atom)
 
   (reset! edited-layout-atom layout/edited-alternating-oeitau)
