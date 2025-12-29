@@ -391,7 +391,7 @@
 
 (defn best-layouts-per-statistics-and-multipliers [number-of-layouts-per-group minimum-number-of-differing-keys log]
   (->> log
-       (group-by (juxt :text-statistics-name :multipliers))
+       (group-by optimize/optimization-parameters)
        (medley/map-vals (fn [states]
                           (->> states
                                (mapcat :ratings)
@@ -401,8 +401,7 @@
                                (sample-items-by-distance minimum-number-of-differing-keys layout/number-of-differing-keys)
                                (take number-of-layouts-per-group)
                                (map (fn [layout]
-                                      (assoc (select-keys (first states)
-                                                          [:text-statistics-name :multipliers])
+                                      (assoc (optimize/optimization-parameters (first states))
                                              :layout layout))))))
        (vals)
        (apply concat)))
@@ -638,40 +637,39 @@
         ;;  :horizontal-movement 1,
         ;;  :dist-from-colemak 0.0}
 
-        {:key-rating 1.0,
+        #_{:key-rating 0.5,
+           :vertical-movement-in-skipgram 1,
+           :vertical-movement 1,
+           :trigram-roll 0.0,
+           :hand-balance 0.1,
+           :hand-alternation 1,
+           :dist-from-colemak 0.0,
+           :finger-type 0.2,
+           :digram-roll 0.0,
+           :horizontal-movement 1}
+
+        {:key-rating 1,
          :vertical-movement-in-skipgram 1,
          :vertical-movement 1,
          :trigram-roll 0.0,
-         :hand-balance 0.0,
+         :hand-balance 0.1,
          :hand-alternation 1,
-         :distance-from-colemak 0.0,
-         :finger-type 1.0,
+         :finger-type 0.1,
          :digram-roll 0.0,
-         :horizontal-movement 1}
-        ]
+         :horizontal-movement 1,
+         :dist-from-colemak 0.0}]
     #_(:multipliers @layouter.layout-comparison-view/selected-named-layout-atom)
 
+    (optimize/optimize-layout static-metaparameters
+                              #_emphasize-roll-key-and-vertical-movement-multipliers
+                              multipliers
+                              text-statistics
+                              optimize/layout-optimization-log-file-path
+                              {:maximum-number-of-generations-without-improvement 200})))
 
-    (-> (optimize/optimize-layout static-metaparameters
-                                  #_emphasize-roll-key-and-vertical-movement-multipliers
-                                  multipliers
-                                  text-statistics
-                                  optimize/layout-optimization-log-file-path
-                                  {:maximum-number-of-generations-without-improvement 200})
-        (update :ratings (fn [ratings]
-                           (let [hill-climbed-layout (optimize/hill-climb-all text-statistics
-                                                                              multipliers
-                                                                              (->> ratings
-                                                                                   (sort-by second)
-                                                                                   (first)
-                                                                                   (first)))]
-                             (->> (conj ratings
-                                        [(set hill-climbed-layout)
-                                         (rating/rate-layout text-statistics
-                                                             hill-climbed-layout
-                                                             multipliers)])
-                                  (sort-by second))))))))
+
 (comment
+
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
                    (optimize/optimize-repeatedly! optimize-layout)))
@@ -680,7 +678,21 @@
   (reset! optimize/stop-requested?-atom true)
   ;; hot-right-now TODO: remove me
 
+  (def optimization-state (optimize-layout))
 
+  (do (reset! optimize/stop-requested?-atom false)
+      (= optimize/the-layout
+         (->> (optimize-layout)
+              #_(optimization-state)
+              (:ratings)
+              (sort-by second)
+              (first)
+              (first))))
+
+  (->> (:ratings optimization-state)
+       (map first)
+       (distinct)
+       (count))
 
   (do (reset! optimize/optimization-history-atom [])
       (reset! optimize/metaoptimization-history-atom []))
@@ -805,7 +817,7 @@
 
   (do (.delete (io/file optimize/layout-optimization-log-file-path))
       (->> #_@optimize/layout-optimization-log-atom
-           (optimize/read-log "/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 8.edn"
+           (optimize/read-log "/Users/jukka/google-drive/src/layouter/temp/layout-optimization-log copy 9.edn"
                               #_optimize/layout-optimization-log-file-path)
            (remove (fn [state]
                      (->> state
@@ -825,11 +837,11 @@
                                   optimize/layout-optimization-log-file-path))
 
   (->> @optimize/layout-optimization-log-atom
-       (filter (comp :distance-from-colemak
+       (filter (comp :dist-from-colemak
                      :multipliers))
        (count))
 
-   (count @optimized-layouts-atom)
+  (count @optimized-layouts-atom)
   (reset! optimized-layouts-atom [])
 
   (optimize-layout (assoc static-metaparameters

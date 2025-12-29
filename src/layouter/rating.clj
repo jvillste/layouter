@@ -6,6 +6,7 @@
    [layouter.layout :as layout]
    [layouter.text :as text]))
 
+(def rating-version 5)
 
 (def finger-hand {0 0
                   1 0
@@ -42,8 +43,9 @@
 (def key-class-effort {:home 0
                        :easy-index 0.15
                        :regular 0.25
-                       :sideways 0.55
-                       :middle 1})
+                       :sideways 0.35
+                       :middle 1.5
+                       :w 1.5})
 
 (defn key-rating [key]
   {:rating :key
@@ -54,7 +56,7 @@
                       :trigram-rol
 
                       :key-rating
-                      :finger-typ
+                      :finger-type
 
                       :horizontal-movement
                       :vertical-movement
@@ -71,6 +73,7 @@
                                 (into {})))
 
 (defn multiplier [multiplier-key]
+  (assert (not (contains? multipliers :distance-from-colemak)))
   (or (get multipliers multiplier-key)
       1))
 
@@ -491,7 +494,6 @@
   ([text-statistics layout]
    (assert (and (set? layout)
                 (every? :cocoa-key-code layout)))
-
    (let [character-to-key (comp keyboard/cocoa-key-code-to-key
                                 (layout/layout-to-character-to-cocoa-key-code layout))]
      (+ (rate-distribution (fn [digram]

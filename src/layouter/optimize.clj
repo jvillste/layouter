@@ -13,6 +13,10 @@
    [layouter.view :as view]
    [medley.core :as medley]))
 
+(defn optimization-parameters [state-or-layout]
+  (select-keys state-or-layout
+               [:multipliers :text-statistics-name :rating-version]))
+
 (defn mutate-layout [layout]
   (let [layout-vector (vec layout)
         mapping-1 (random/pick-random layout-vector)
@@ -621,6 +625,12 @@
                "\n")
           :append true)))
 
+(defn alter-log [log-file-path alter-rows]
+  (let [log-rows (read-log log-file-path)]
+    (spit log-file-path "")
+    (write-log log-file-path
+               (alter-rows log-rows))))
+
 (comment
 
   (do (reset! layout-optimization-log-atom (read-log layout-optimization-log-file-path))
@@ -647,7 +657,21 @@
                                     :history-atom optimization-history-atom}
                                    options))
                   (assoc :text-statistics-name (:name text-statistics)
-                         :multipliers multipliers)
+                         :multipliers multipliers
+                         :rating-version rating/rating-version)
+                  (update :ratings (fn [ratings]
+                                     (let [hill-climbed-layout (hill-climb-all text-statistics
+                                                                               multipliers
+                                                                               (->> ratings
+                                                                                    (sort-by second)
+                                                                                    (first)
+                                                                                    (first)))]
+                                       (->> (conj ratings
+                                                  [(set hill-climbed-layout)
+                                                   (rating/rate-layout text-statistics
+                                                                       hill-climbed-layout
+                                                                       multipliers)])
+                                            (sort-by second)))))
                   (update :ratings (fn [ratings]
                                      (->> ratings
                                           (sort-by second)
