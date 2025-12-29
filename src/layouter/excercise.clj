@@ -1,9 +1,12 @@
 (ns layouter.excercise
   (:require
+   [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.string :as string]
    [clojure.test :refer [deftest is]]
+   [flow-gl.gui.visuals :as visuals]
+   [fungl.color :as color]
    [fungl.dependable-atom :as dependable-atom]
    [fungl.layouts :as layouts]
    [layouter.gui :as gui]
@@ -46,11 +49,14 @@
                            (io/reader)
                            (line-seq)))
 
-(defn take-most-common-characters [number-of-used-characters character-distribution]
+(defn characters-from-common-to-rare [character-distribution]
   (->> character-distribution
        (sort-by second)
        (reverse)
-       (map first)
+       (map first)))
+
+(defn take-most-common-characters [number-of-used-characters character-distribution]
+  (->> (characters-from-common-to-rare character-distribution)
        (take number-of-used-characters)))
 
 (deftest test-take-most-common-characters
@@ -74,14 +80,20 @@
                                       "ab"
                                       "aa"]))))
 
+(defn excericise-word-for-characters [characters]
+  (first (filter-words-by-characters characters
+                                     (shuffle (concat english-words
+                                                      finnish-words)))))
+
 (defn excericise-word-from-text-statistics [text-statistics number-of-characters]
   (first (filter-words-by-characters (take-most-common-characters number-of-characters
                                                                   (:character-distribution text-statistics))
                                      (shuffle (concat english-words
                                                       finnish-words)))))
 
-(defn layout-excercise-view [text-statistics _layout]
-  (let [generate-excercise-word (partial excericise-word-from-text-statistics text-statistics)
+(defn layout-excercise-view [all-characters target-word-for-characters _layout]
+  (let [generate-excercise-word (fn [character-count]
+                                  (target-word-for-characters (take character-count all-characters)))
         state-atom (dependable-atom/atom {:xp 0
                                           :next-level-xp 50
                                           :next-level-xp-increment 50
@@ -89,11 +101,11 @@
                                           :typed-text ""
                                           :cocoa-key-code-down nil
                                           :target-word (generate-excercise-word 4)})]
-    (fn [text-statistics layout]
+    (fn [all-characters _target-word-for-characters layout]
       (let [cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character layout)
             character-to-cocoa-key-code (layout/layout-to-character-to-cocoa-key-code layout)
-            characters (take-most-common-characters (:character-count @state-atom)
-                                                    (:character-distribution text-statistics))]
+            selected-characters (take (:character-count @state-atom)
+                                      all-characters)]
 
         {:node (layouts/vertically-2 {:margin 10 :centered? true}
                                      (gui/text (:target-word @state-atom))
@@ -102,19 +114,19 @@
                                                                   (merge keyboard-view/key-colors-for-fingers
                                                                          (-> (into {}
                                                                                    (for [character (set/difference (set (keys character-to-cocoa-key-code))
-                                                                                                                   (set characters))
-                                                                                         #_(drop-last characters)]
+                                                                                                                   (set selected-characters))
+                                                                                         #_(drop-last selected-characters)]
                                                                                      [(character-to-cocoa-key-code character)
                                                                                       (let [[r g b _a] (keyboard-view/key-colors-for-fingers (character-to-cocoa-key-code character))]
                                                                                         [r g b 0.6]
                                                                                         #_[0 0 0 255])]))
-                                                                             (assoc (character-to-cocoa-key-code (last characters))
+                                                                             (assoc (character-to-cocoa-key-code (last selected-characters))
                                                                                     [0.5 0 0 255])
                                                                              (assoc (:cocoa-key-code-down @state-atom)
                                                                                     [0 0.8 0 255]))))
                                      (gui/text (str (:character-count @state-atom)
                                                     " / "
-                                                    (last characters)))
+                                                    (last selected-characters)))
                                      (gui/text (str (:xp @state-atom)
                                                     " / "
                                                     (:next-level-xp @state-atom))))
@@ -182,6 +194,115 @@
                                                                         :character-count (inc (:character-count state))
                                                                         :next-level-xp-increment (+ 10
                                                                                                     (:next-level-xp-increment state))))))))))}))))
+
+
+(def maximum-duration 5000)
+(def minimum-duration 1000)
+
+(defn next-target-character [state-atom durations-atom character-distribution]
+  (let [characters (map first character-distribution)
+        target-character (let [remaining-characters (->> characters
+                                                         (remove (fn [character]
+                                                                   (or (= (:target-character @state-atom)
+                                                                          character)
+                                                                       (> 1000
+                                                                          (get @durations-atom
+                                                                               character
+                                                                               maximum-duration))))))]
+                           (->> remaining-characters
+                                (concat (take (max 0 (- 5 (count remaining-characters)))
+                                              (shuffle (remove (fn [character]
+                                                                 (= (:target-character @state-atom)
+                                                                    character))
+                                                               characters))))
+                                (sort-by (fn [character]
+                                           [(get @durations-atom
+                                                 character
+                                                 maximum-duration)
+                                            (- 1
+                                               (get character-distribution
+                                                    character))]))
+                                (take 5)
+                                (rand-nth)))
+        current-duration (when (:start-time @state-atom)
+                           (min maximum-duration
+                                (- (System/currentTimeMillis)
+                                   (:start-time @state-atom))))]
+
+    (when (:target-character @state-atom)
+      (swap! durations-atom
+             update
+             (:target-character @state-atom)
+             (fn [duration]
+               (double (min maximum-duration
+                            (/ (+ (or duration maximum-duration)
+                                  current-duration)
+                               2))))))
+    (swap! state-atom assoc
+           :previous-duration current-duration
+           :previous-target-character (:target-character @state-atom)
+           :start-time (System/currentTimeMillis)
+           :target-character target-character)
+
+    target-character))
+
+
+(defn duration-cell [character duration]
+  (let [width 200]
+    (layouts/with-margin 10
+      (layouts/with-minimum-size width nil
+        (layouts/with-maximum-size nil 20
+          (layouts/center-vertically
+           (layouts/superimpose (assoc (visuals/rectangle-2 {:fill-color (if (< duration minimum-duration)
+                                                                           (conj (color/hsluv-to-rgb 135 1.0 0.4) 1.0)
+                                                                           (conj (color/hsluv-to-rgb 0 0.0 0.4) 1.0))})
+                                       :height gui/font-size
+                                       :width (* width
+                                                 (abs (/ duration
+                                                         maximum-duration))))
+                                (gui/text (str character ":" duration)
+                                          {:color [200 200 200 255]}))))))))
+
+(defn character-excercise-view [durations-atom character-distribution _layout]
+  (let [state-atom (dependable-atom/atom {:typed-character ""
+                                          :cocoa-key-code-down nil})]
+    (swap! state-atom assoc :target-character (next-target-character state-atom durations-atom character-distribution))
+    (fn [durations-atom character-distribution layout]
+      (let [cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character layout)]
+        {:node (layouts/vertically-2 {:margin 20 :centered? true}
+                                     (gui/text (:target-character @state-atom))
+                                     (gui/text (:typed-character @state-atom))
+                                     (keyboard-view/keyboard-view cocoa-key-code-to-character
+                                                                  (assoc keyboard-view/key-colors-for-fingers
+                                                                         (:cocoa-key-code-down @state-atom)
+                                                                         [0 0.8 0 255]))
+                                     (when (:previous-target-character @state-atom)
+                                       (gui/text (str (:previous-target-character @state-atom) ": " (:previous-duration @state-atom) " -> " (int (get @durations-atom (:previous-target-character @state-atom))))))
+                                     (layouts/with-maximum-size 1000 nil
+                                       (layouts/flow (for [character (->> character-distribution
+                                                                          (sort-by second)
+                                                                          (reverse)
+                                                                          (map first))]
+                                                       (duration-cell character (int (get @durations-atom character maximum-duration)))))))
+         :can-gain-focus? true
+         :keyboard-event-handler (fn [_subtree event]
+                                   (when (= :key-released
+                                            (:type event))
+                                     (swap! state-atom dissoc :cocoa-key-code-down))
+
+                                   (when (= :key-pressed
+                                            (:type event))
+
+                                     (when-some [character (cocoa-key-code-to-character (keyboard/java-key-code-to-cocoa-key-code (:key-code event) ))]
+                                       (swap! state-atom assoc
+                                              :cocoa-key-code-down (keyboard/java-key-code-to-cocoa-key-code (:key-code event))
+                                              :typed-character character))
+
+                                     (when (= (:target-character @state-atom)
+                                              (:typed-character @state-atom))
+                                       (swap! state-atom assoc
+                                              :target-character (next-target-character state-atom durations-atom character-distribution )
+                                              :typed-character ""))))}))))
 
 (defn make-sequencer [sequence]
   (let [state (atom (cycle sequence))]
@@ -267,26 +388,114 @@
                                                                   :typed-text ""
                                                                   :target-word (generate-excercise-word)))))))}))))
 
+(defn create-next-target-character [durations-atom character-distribution]
+  (let [state-atom (atom {})
+        maximum-duration 5000]
+    (fn [characters]
+      (let [target-character (let [remaining-characters (->> characters
+                                                             (remove (fn [character]
+                                                                       (or (= (:target-character @state-atom)
+                                                                              character)
+                                                                           (> 1000
+                                                                              (get @durations-atom
+                                                                                   character
+                                                                                   maximum-duration))))))]
+                               (->> remaining-characters
+                                    (concat (take (max 0 (- 5 (count remaining-characters)))
+                                                  (shuffle characters)))
+                                    (sort-by (fn [character]
+                                               [(get @durations-atom
+                                                     character
+                                                     maximum-duration)
+                                                (- 1
+                                                   (get character-distribution
+                                                        character))]))
+                                    (take 5)
+                                    (rand-nth)))]
+        (when (:target-character @state-atom)
+          (swap! durations-atom
+                 update
+                 (:target-character @state-atom)
+                 (fn [duration]
+                   (double (min maximum-duration
+                                (/ (+ (or duration maximum-duration)
+                                      (- (System/currentTimeMillis)
+                                         (:start-time @state-atom)))
+                                   2)))))
+          #_(prn (:durations @state-atom)))
+        (swap! state-atom assoc
+               :start-time (System/currentTimeMillis)
+               :target-character target-character)
+
+        target-character))))
 
 
+(def durations-file-path "temp/durations-edn")
+(defonce durations-atom (atom (if (.exists (io/file durations-file-path))
+                                (edn/read-string (slurp durations-file-path))
+                                {})))
+;; (defonce next-target-character (create-next-target-character durations-atom
+;;                                                              (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
 (comment
+  (spit durations-file-path (pr-str @durations-atom))
+
+  (set/difference (set (map first (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
+                  (->> @durations-atom
+                       (remove (fn [[character duration]]
+                                 (< duration 1000)))
+                       (map first)
+                       (set)))
+
+  (->> @durations-atom
+       (remove (fn [[character duration]]
+                 (< duration 1000))))
+
+  (next-target-character (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
+
+
 
   (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'layout-excercise-view text/english-statistics #_text/finnish-statistics layout/qwerty]))))
+                     (gui/black-background (layouts/center [#'character-excercise-view
+                                                            #_durations-atom
+                                                            (atom {})
+                                                            (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
+                                                            (:layout layout/oeita)]))))
+
+    (view/start-view (fn []
+                     (gui/black-background (layouts/center [#'character-excercise-view
+                                                            (atom {})
+                                                            (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
+                                                            layout/qwerty]))))
 
   (view/start-view (fn []
-                     (gui/black-background (layouts/center [;; #'layout-demo-view
+                     (gui/black-background (layouts/center [#'layout-excercise-view
+                                                            (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
+                                                            next-target-character
+                                                            (:layout layout/oeita)]))))
+
+
+
+  (view/start-view (fn []
+                     (gui/black-background (layouts/center [#'layout-excercise-view
+                                                            (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
+                                                            excericise-word-for-characters
+                                                            (:layout layout/oeita)]))))
+
+
+
+  (view/start-view (fn []
+                     (gui/black-background (layouts/center [ ;; #'layout-demo-view
                                                             #'layout-excercise-view
 
                                                             #_(->> (-> "temp/text/the-hacker-crackdown.txt"
-                                                                     slurp
-                                                                     (subs 0 500)
-                                                                     (string/replace #"\s+" " "))
-                                                                 (map str)
-                                                                 (map string/lower-case)
-                                                                 (filter (conj (set text/english-characters)
-                                                                               " "))
-                                                                 (apply str))
+                                                                       slurp
+                                                                       (subs 0 500)
+                                                                       (string/replace #"\s+" " "))
+                                                                   (map str)
+                                                                   (map string/lower-case)
+                                                                   (filter (conj (set text/english-characters)
+                                                                                 " "))
+                                                                   (apply str))
                                                             layout/qwerty #_layout/colemak-dh]))))
   )
 

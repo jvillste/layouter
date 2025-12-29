@@ -15,5 +15,6 @@
                  [com.google.guava/guava "21.0"]]
   :repl-options {:init-ns layouter.core}
 
-  :jvm-opts ["-Xmx2g" "-Djdk.attach.allowAttachSelf" ;; for clj-async-profiler
+  :jvm-opts ["-Xmx5g"
+             "-Djdk.attach.allowAttachSelf" ;; for clj-async-profiler
              "-XX:-OmitStackTraceInFastThrow"])
