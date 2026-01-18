@@ -2,25 +2,26 @@
   (:import
    (java.util Random)))
 
-(defn create-random-double-function
-  ([] (create-random-double-function nil))
-  ([seed] (let [random (if (some? seed)
-                         (Random. seed)
-                         (Random.))]
-            (fn ([minimum maximum]
-                 (+ minimum
-                    (* (.nextDouble random)
-                       (- maximum minimum))))
-              ([]
-               (.nextDouble random))))))
+(def ^:dynamic random (Random.))
 
-(def ^:dynamic random-double (create-random-double-function))
-
-(defmacro with-fixed-random-seed [& body]
-  `(binding [random-double (create-random-double-function 1)]
-     ~@body))
+(defn random-double
+  ([minimum maximum]
+   (+ minimum
+      (* (.nextDouble random)
+         (- maximum minimum))))
+  ([]
+   (.nextDouble random)))
 
 (defn pick-random [collection]
   (nth collection
        (* (random-double)
           (count collection))))
+
+(defn shuffle-collection [^java.util.Collection coll]
+  (let [array-list (java.util.ArrayList. coll)]
+    (java.util.Collections/shuffle array-list random)
+    (clojure.lang.RT/vector (.toArray array-list))))
+
+(defmacro with-fixed-random-seed [& body]
+  `(binding [random (Random. 1)]
+     ~@body))

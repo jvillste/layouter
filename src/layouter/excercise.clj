@@ -83,7 +83,7 @@
 (defn excericise-word-for-characters [characters]
   (first (filter-words-by-characters characters
                                      (shuffle (concat english-words
-                                                      finnish-words)))))
+                                                      #_finnish-words)))))
 
 (defn excericise-word-from-text-statistics [text-statistics number-of-characters]
   (first (filter-words-by-characters (take-most-common-characters number-of-characters
@@ -182,22 +182,27 @@
                                               (:typed-text @state-atom))
                                        (swap! state-atom (fn [state]
                                                            (-> state
-                                                               (assoc :xp (+ (:xp state)
-                                                                             (count (:target-word state)))
-                                                                      :typed-text ""
-                                                                      :target-word (generate-excercise-word (:character-count @state-atom)))
-                                                               (cond-> (<= (:next-level-xp state)
-                                                                           (+ (:xp state)
-                                                                              (count (:target-word state))))
-                                                                 (assoc :next-level-xp (+ (:next-level-xp state)
-                                                                                          (:next-level-xp-increment state))
-                                                                        :character-count (inc (:character-count state))
-                                                                        :next-level-xp-increment (+ 10
-                                                                                                    (:next-level-xp-increment state))))))))))}))))
+                                                               (assoc :typed-text ""
+                                                                      :target-word (generate-excercise-word (:character-count @state-atom))))
+
+                                                           #_(-> state
+                                                                 (assoc :xp (+ (:xp state)
+                                                                               (count (:target-word state)))
+                                                                        :typed-text ""
+                                                                        :target-word (generate-excercise-word (:character-count @state-atom)))
+                                                                 (cond-> (<= (:next-level-xp state)
+                                                                             (+ (:xp state)
+                                                                                (count (:target-word state))))
+                                                                   (assoc :next-level-xp (+ (:next-level-xp state)
+                                                                                            (:next-level-xp-increment state))
+                                                                          :character-count (inc (:character-count state))
+                                                                          :next-level-xp-increment (+ 10
+                                                                                                      (:next-level-xp-increment state))))))))))}))))
 
 
 (def maximum-duration 5000)
 (def minimum-duration 1000)
+(def active-character-count 4)
 
 (defn next-target-character [state-atom durations-atom character-distribution]
   (let [characters (map first character-distribution)
@@ -210,7 +215,8 @@
                                                                                character
                                                                                maximum-duration))))))]
                            (->> remaining-characters
-                                (concat (take (max 0 (- 5 (count remaining-characters)))
+                                (concat (take (max 0 (- active-character-count
+                                                        (count remaining-characters)))
                                               (shuffle (remove (fn [character]
                                                                  (= (:target-character @state-atom)
                                                                     character))
@@ -222,7 +228,7 @@
                                             (- 1
                                                (get character-distribution
                                                     character))]))
-                                (take 5)
+                                (take active-character-count)
                                 (rand-nth)))
         current-duration (when (:start-time @state-atom)
                            (min maximum-duration
@@ -246,6 +252,14 @@
 
     target-character))
 
+(def ready-color (conj (color/hsluv-to-rgb 135 1.0 0.4) 1.0))
+(def almost-ready-color (conj (color/hsluv-to-rgb 67 1.0 0.4) 1.0))
+(def unready-color (conj (color/hsluv-to-rgb 0 0.0 0.4) 1.0))
+
+(defn duration-color [duration]
+  (if (< duration minimum-duration)
+    ready-color
+    unready-color))
 
 (defn duration-cell [character duration]
   (let [width 200]
@@ -253,15 +267,15 @@
       (layouts/with-minimum-size width nil
         (layouts/with-maximum-size nil 20
           (layouts/center-vertically
-           (layouts/superimpose (assoc (visuals/rectangle-2 {:fill-color (if (< duration minimum-duration)
-                                                                           (conj (color/hsluv-to-rgb 135 1.0 0.4) 1.0)
-                                                                           (conj (color/hsluv-to-rgb 0 0.0 0.4) 1.0))})
+           (layouts/superimpose (assoc (visuals/rectangle-2 {:fill-color (duration-color duration)})
                                        :height gui/font-size
                                        :width (* width
                                                  (abs (/ duration
                                                          maximum-duration))))
                                 (gui/text (str character ":" duration)
                                           {:color [200 200 200 255]}))))))))
+
+(def durations-file-path "temp/durations-edn")
 
 (defn character-excercise-view [durations-atom character-distribution _layout]
   (let [state-atom (dependable-atom/atom {:typed-character ""
@@ -272,12 +286,25 @@
         {:node (layouts/vertically-2 {:margin 20 :centered? true}
                                      (gui/text (:target-character @state-atom))
                                      (gui/text (:typed-character @state-atom))
+                                     (when (:previous-target-character @state-atom)
+                                       (let [duration (get @durations-atom (:previous-target-character @state-atom))]
+                                         (layouts/box 5
+                                                      (visuals/rectangle-2 {:fill-color (cond (< duration
+                                                                                                 minimum-duration)
+                                                                                              ready-color
+
+                                                                                              (< (:previous-duration @state-atom)
+                                                                                                 minimum-duration)
+                                                                                              almost-ready-color
+
+                                                                                              :else
+                                                                                              unready-color)})
+                                                      (gui/text (str (:previous-target-character @state-atom) ": " (:previous-duration @state-atom) " -> " (int duration))
+                                                                #_{:color (duration-color duration)}))))
                                      (keyboard-view/keyboard-view cocoa-key-code-to-character
                                                                   (assoc keyboard-view/key-colors-for-fingers
                                                                          (:cocoa-key-code-down @state-atom)
                                                                          [0 0.8 0 255]))
-                                     (when (:previous-target-character @state-atom)
-                                       (gui/text (str (:previous-target-character @state-atom) ": " (:previous-duration @state-atom) " -> " (int (get @durations-atom (:previous-target-character @state-atom))))))
                                      (layouts/with-maximum-size 1000 nil
                                        (layouts/flow (for [character (->> character-distribution
                                                                           (sort-by second)
@@ -300,6 +327,11 @@
 
                                      (when (= (:target-character @state-atom)
                                               (:typed-character @state-atom))
+                                       (swap! state-atom update :characters-after-save (fnil inc 0))
+                                       (when (< (:characters-after-save @state-atom)
+                                                10)
+                                         (spit durations-file-path (pr-str @durations-atom))
+                                         (swap! state-atom assoc :characters-after-save 0))
                                        (swap! state-atom assoc
                                               :target-character (next-target-character state-atom durations-atom character-distribution )
                                               :typed-character ""))))}))))
@@ -430,13 +462,17 @@
         target-character))))
 
 
-(def durations-file-path "temp/durations-edn")
+
 (defonce durations-atom (atom (if (.exists (io/file durations-file-path))
                                 (edn/read-string (slurp durations-file-path))
                                 {})))
+
 ;; (defonce next-target-character (create-next-target-character durations-atom
 ;;                                                              (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
 (comment
+
+  (reset! durations-atom {})
+
   (spit durations-file-path (pr-str @durations-atom))
 
   (set/difference (set (map first (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
@@ -450,9 +486,7 @@
        (remove (fn [[character duration]]
                  (< duration 1000))))
 
-  (next-target-character (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
-
-
+  ;; (next-target-character (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
 
   (view/start-view (fn []
                      (gui/black-background (layouts/center [#'character-excercise-view
@@ -461,17 +495,17 @@
                                                             (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
                                                             (:layout layout/oeita)]))))
 
-    (view/start-view (fn []
+  (view/start-view (fn []
                      (gui/black-background (layouts/center [#'character-excercise-view
                                                             (atom {})
                                                             (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
                                                             layout/qwerty]))))
 
-  (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'layout-excercise-view
-                                                            (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
-                                                            next-target-character
-                                                            (:layout layout/oeita)]))))
+  ;; (view/start-view (fn []
+  ;;                    (gui/black-background (layouts/center [#'layout-excercise-view
+  ;;                                                           (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
+  ;;                                                           next-target-character
+  ;;                                                           (:layout layout/oeita)]))))
 
 
 

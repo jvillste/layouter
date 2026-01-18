@@ -26,7 +26,7 @@
                                     :corner-arc-radius corner-arc-radius)
                content))
 
-(def font-size 35)
+(def font-size 45)
 (def font (font/create-by-name "CourierNewPSMT" font-size))
 
 (defn text [string & [{:keys [font color] :or {font font
