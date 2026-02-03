@@ -488,12 +488,7 @@
 
   ;; (next-target-character (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
 
-  (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'character-excercise-view
-                                                            #_durations-atom
-                                                            (atom {})
-                                                            (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
-                                                            (:layout layout/oeita)]))))
+
 
   (view/start-view (fn []
                      (gui/black-background (layouts/center [#'character-excercise-view
@@ -506,14 +501,6 @@
   ;;                                                           (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
   ;;                                                           next-target-character
   ;;                                                           (:layout layout/oeita)]))))
-
-
-
-  (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'layout-excercise-view
-                                                            (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
-                                                            excericise-word-for-characters
-                                                            (:layout layout/oeita)]))))
 
 
 
@@ -531,6 +518,20 @@
                                                                                  " "))
                                                                    (apply str))
                                                             layout/qwerty #_layout/colemak-dh]))))
+
+
+  (view/start-view (fn []
+                     (gui/black-background (layouts/center [#'character-excercise-view
+                                                            #_durations-atom
+                                                            (atom {})
+                                                            (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
+                                                            (:layout layout/oeita)]))))
+
+  (view/start-view (fn []
+                     (gui/black-background (layouts/center [#'layout-excercise-view
+                                                            (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
+                                                            excericise-word-for-characters
+                                                            (:layout layout/oeita)]))))
   )
 
 (view/hard-refresh-view!)
