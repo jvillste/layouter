@@ -45,7 +45,7 @@
 
 (defn random-layout
   ([]
-   (random-layout text/finnish-characters-without-å))
+   (random-layout text/english-characters #_text/finnish-characters-without-å))
   ([characters]
    (loop [remaining-cocoa-key-codes (sort (map :cocoa-key-code (remove :disabled? keyboard/keyboard-keys)))
           remaining-characters characters
