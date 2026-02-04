@@ -216,14 +216,13 @@
              {:character "x", :qwerty-character "w"}
              {:character "y", :qwerty-character "j"}
              {:character "z", :qwerty-character "k"})
-           (make-readable
-            (hill-climb-one (text/text-statistics "abc" ["a" "b" "c"])
-                            #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
-                              {:character "b" :cocoa-key-code (qwerty-key-code "w")}
-                              {:character "c" :cocoa-key-code (qwerty-key-code "e")}
-                              {:character "x" :cocoa-key-code (qwerty-key-code "f")}
-                              {:character "y" :cocoa-key-code (qwerty-key-code "j")}
-                              {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))))
+           (make-readable (hill-climb-one (text/text-statistics "abc" ["a" "b" "c"])
+                                          #{{:character "a" :cocoa-key-code (qwerty-key-code "q")}
+                                            {:character "b" :cocoa-key-code (qwerty-key-code "w")}
+                                            {:character "c" :cocoa-key-code (qwerty-key-code "e")}
+                                            {:character "x" :cocoa-key-code (qwerty-key-code "f")}
+                                            {:character "y" :cocoa-key-code (qwerty-key-code "j")}
+                                            {:character "z" :cocoa-key-code (qwerty-key-code "k")}}))))))
 
 
 
@@ -677,7 +676,6 @@
   )
 
 (defonce layout-optimization-log-atom (dependable-atom/atom (read-log layout-optimization-log-file-path)))
-
 
 (defn optimize-layout [metaparameters multipliers text-statistics log-file-path & [options]]
   (let [state (-> (optimize random-layout
