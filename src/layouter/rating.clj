@@ -6,7 +6,7 @@
    [layouter.layout :as layout]
    [layouter.text :as text]))
 
-(def rating-version 5)
+(def rating-version 11)
 
 (def finger-hand {0 0
                   1 0
@@ -41,7 +41,8 @@
          (rate-finger-type {:finger 2}))))
 
 (def key-class-effort {:home 0
-                       :easy-index 0.15
+                       :easy-index 0.05
+                       :curl 0.1
                        :regular 0.25
                        :sideways 0.35
                        :middle 1.5
