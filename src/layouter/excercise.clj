@@ -467,6 +467,17 @@
                                 (edn/read-string (slurp durations-file-path))
                                 {})))
 
+(defn english-demo-text []
+  (->> (-> "temp/text/the-hacker-crackdown.txt"
+           slurp
+           (subs 0 500)
+           (string/replace #"\s+" " "))
+       (map str)
+       (map string/lower-case)
+       (filter (conj (set text/english-characters)
+                     " "))
+       (apply str)))
+
 ;; (defonce next-target-character (create-next-target-character durations-atom
 ;;                                                              (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
 (comment
@@ -505,19 +516,11 @@
 
 
   (view/start-view (fn []
-                     (gui/black-background (layouts/center [ ;; #'layout-demo-view
-                                                            #'layout-excercise-view
-
-                                                            #_(->> (-> "temp/text/the-hacker-crackdown.txt"
-                                                                       slurp
-                                                                       (subs 0 500)
-                                                                       (string/replace #"\s+" " "))
-                                                                   (map str)
-                                                                   (map string/lower-case)
-                                                                   (filter (conj (set text/english-characters)
-                                                                                 " "))
-                                                                   (apply str))
-                                                            layout/qwerty #_layout/colemak-dh]))))
+                     (gui/black-background (layouts/center [#'layout-demo-view
+                                                            (english-demo-text)
+                                                            (:layout layout/yeita)
+                                                            #_layout/qwerty
+                                                            #_layout/colemak-dh]))))
 
 
   (view/start-view (fn []
@@ -525,24 +528,15 @@
                                                             #_durations-atom
                                                             (atom {})
                                                             (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
-                                                            (:layout layout/oeita)]))))
+                                                            (:layout #_layout/oeita
+                                                                     layout/yeita)]))))
 
   (view/start-view (fn []
                      (gui/black-background (layouts/center [#'layout-excercise-view
                                                             (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
                                                             excericise-word-for-characters
-                                                            (:layout layout/oeita)]))))
+                                                            (:layout #_layout/oeita
+                                                                     layout/yeita)]))))
   )
 
 (view/hard-refresh-view!)
-
-(defn english-demo-text []
-  (->> (-> "temp/text/the-hacker-crackdown.txt"
-           slurp
-           (subs 0 500)
-           (string/replace #"\s+" " "))
-       (map str)
-       (map string/lower-case)
-       (filter (conj (set text/english-characters)
-                     " "))
-       (apply str)))
