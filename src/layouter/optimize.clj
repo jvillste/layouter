@@ -63,11 +63,37 @@
                 (conj layout {:character character
                               :cocoa-key-code cocoa-key-code})))))))
 
+(defn remove-one-value [predicate a-map]
+  (dissoc a-map
+          (first (medley/find-first (comp predicate second)
+                                    a-map))))
+
+(deftest test-remove-one-value
+  (is (= {2 "b", 3 "a"}
+         (remove-one-value #{"a"}
+                           {1 "a"
+                            2 "b"
+                            3 "a"})))
+
+  (is (= {1 "c", 3 "b", 4 "a"}
+         (remove-one-value #{"a"}
+                           {1 "c"
+                            2 "a"
+                            3 "b"
+                            4 "a"})))
+
+  (is (= {1 "c", 2 "b"}
+         (remove-one-value #{"a"}
+                           {1 "c"
+                            2 "b"
+                            3 "a"}))))
+
 (defn crossbreed-layouts [layout-1 layout-2]
   (loop [cocoa-key-code-to-character-1 (layouter.layout/layout-to-cocoa-key-code-to-character layout-1)
          cocoa-key-code-to-character-2 (layouter.layout/layout-to-cocoa-key-code-to-character layout-2)
          new-layout #{}
          cocoa-key-codes (map :cocoa-key-code layout-1)]
+
     (if (empty? cocoa-key-codes)
       new-layout
       (let [cocoa-key-code (first cocoa-key-codes)
@@ -78,10 +104,9 @@
                         (or (cocoa-key-code-to-character-2 cocoa-key-code)
                             (cocoa-key-code-to-character-1 cocoa-key-code)
                             (first (vals cocoa-key-code-to-character-2))))]
-        (recur (medley/remove-vals #{character}
-                                   cocoa-key-code-to-character-1)
-               (medley/remove-vals #{character}
-                                   cocoa-key-code-to-character-2)
+
+        (recur (remove-one-value #{character} cocoa-key-code-to-character-1)
+               (remove-one-value #{character} cocoa-key-code-to-character-2)
                (conj new-layout
                      {:cocoa-key-code cocoa-key-code
                       :character character})
@@ -95,6 +120,20 @@
                                  {:character "b" :cocoa-key-code 1}}
                                #{{:character "a" :cocoa-key-code 1}
                                  {:character "b" :cocoa-key-code 0}}))))
+
+  (is (= #{{:cocoa-key-code 1, :character ""}
+           {:cocoa-key-code 0, :character "a"}
+           {:cocoa-key-code 3, :character ""}
+           {:cocoa-key-code 2, :character "b"}}
+         (random/with-fixed-random-seed
+           (crossbreed-layouts #{{:character "a" :cocoa-key-code 0}
+                                 {:character "b" :cocoa-key-code 1}
+                                 {:character "" :cocoa-key-code 2}
+                                 {:character "" :cocoa-key-code 3}}
+                               #{{:character "a" :cocoa-key-code 0}
+                                 {:character "" :cocoa-key-code 1}
+                                 {:character "b" :cocoa-key-code 2}
+                                 {:character "" :cocoa-key-code 3}}))))
 
   (is (= #{{:cocoa-key-code 3, :character "c"}
            {:cocoa-key-code 0, :character "a"}
