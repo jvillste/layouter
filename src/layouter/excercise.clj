@@ -518,7 +518,8 @@
   (view/start-view (fn []
                      (gui/black-background (layouts/center [#'layout-demo-view
                                                             (english-demo-text)
-                                                            (:layout layout/yeita)
+                                                            (:layout layout/xaei)
+                                                            #_(:layout layout/yeita)
                                                             #_layout/qwerty
                                                             #_layout/colemak-dh]))))
 
