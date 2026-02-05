@@ -474,6 +474,43 @@
                                                              "l" "d"
                                                              "o" "f"})))))
 
+(defn keypair-ratings [layout]
+  (->> (for [digram (->> (text/normalized-digram-distribution (excercise/english-demo-text 5000))
+                         (sort-by second)
+                         (reverse)
+                         (map first))]
+         (let [ratings (->> digram
+                            (map (comp keyboard/cocoa-key-code-to-key
+                                       (layout/layout-to-character-to-cocoa-key-code #_@edited-layout-atom layout)))
+                            rating/rate-key-pair
+                            (filter (comp #{:vertical-movement :horizontal-movement} :rating))
+                            (remove (comp #{0} :effort)))]
+           [digram (map :label ratings)]
+
+           #_(string/join " " (concat digram (->> ratings
+                                                  (map :label)
+                                                  (map name))))))
+       (remove (comp empty? second))
+       (mapcat second)
+       (frequencies)))
+
+(comment
+
+  (for [layout [layout/oeita
+                layout/yeita
+                {:name "edited"
+                 :layout @edited-layout-atom}
+                {:name "colemak"
+                 :layout layout/colemak-dh}
+                {:name "qwerty"
+                 :layout layout/qwerty}]]
+    [(:name layout)
+     (:same-finger-one-row-leap (keypair-ratings (:layout layout)))
+     (:same-finger-two-row-leap (keypair-ratings (:layout layout)))])
+
+  )
+
+
 (defn summarize-rating-aspect [rating-description]
   (apply merge-with +
          (for [row rating-description]
@@ -664,17 +701,27 @@
   )
 
 
-(def alter-rating-multipliers {:key-rating 1.0
-                               :finger-type 0.5
-                               :vertical-movement-in-skipgram 1,
+(def alter-rating-multipliers {:key-rating 1,
+                               :vertical-movement-in-skipgram 0.7,
                                :vertical-movement 1,
-                               :horizontal-movement 1
-                               :hand-balance 0.5
+                               :trigram-roll 0.0,
+                               :hand-balance 0.1,
                                :hand-alternation 1,
+                               :finger-type 0.1,
+                               :digram-roll 0.0,
+                               :horizontal-movement 1,
+                               :dist-from-colemak 0.0}
+  #_{:key-rating 1.0
+     :finger-type 0.5
+     :vertical-movement-in-skipgram 1,
+     :vertical-movement 1,
+     :horizontal-movement 1
+     :hand-balance 0.5
+     :hand-alternation 1,
 
-                               :digram-roll 0
-                               :trigram-roll 0
-                               :dist-from-colemak 0})
+     :digram-roll 0
+     :trigram-roll 0
+     :dist-from-colemak 0})
 
 (defn layout-rating-comparison-view [_statistics _selected-named-layout-atom _layouts]
   (let [state-atom (dependable-atom/atom {})]
@@ -1072,7 +1119,7 @@
   (->> @optimize/layout-optimization-log-atom
        (map-indexed (fn [index state]
                       (assoc state :index index)))
-       (group-by (juxt :text-statistics-name :multipliers))
+       (group-by (juxt :text-statistics-name :multipliers :rating-version))
        (medley/map-vals (fn [states]
                           (let [ratings (->> states
                                              (mapcat :ratings)
@@ -1144,17 +1191,18 @@
                         (gui/text (str "generation number: " (:generation-number (last @optimize/optimization-history-atom))))
                         (gui/text (str "best rating: " (when-some [ratings (:ratings (last @optimize/optimization-history-atom))]
                                                          (optimize/best-rating ratings))))
-                        (for [[[text-statistics-name multipliers] status] (sort-by (comp :runsnumber-of-optimization-runs
-                                                                                         second)
-                                                                                   (optimization-status))]
-                          (layouts/vertically-2 {:margin 10}
-                                                #_(gui/text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
-                                                [multipliers-view multipliers]
-                                                (for [key (sort-by name (keys status))]
-                                                  (gui/text (str key ": " (pr-str (key status)))))
-                                                (layouts/horizontally-2 {:margin 10}
-                                                                        (best-ratings-per-run-graph optimization-progress-view/scale-to-view-but-preserve-full-y-scale status)
-                                                                        #_(best-ratings-per-run-graph optimization-progress-view/scale-to-view status))))))
+                        #_(for [[[text-statistics-name multipliers rating-version] status] (sort-by (comp :runsnumber-of-optimization-runs
+                                                                                                          second)
+                                                                                                    (optimization-status))]
+                            (layouts/vertically-2 {:margin 10}
+                                                  #_(gui/text (str text-statistics-name " " (layout/multipliers-to-layout-name multipliers)))
+                                                  [multipliers-view multipliers]
+                                                  (for [key (sort-by name (keys status))]
+                                                    (gui/text (str key ": " (pr-str (key status)))))
+                                                  (gui/text (str ":rating-version " rating-version))
+                                                  (layouts/horizontally-2 {:margin 10}
+                                                                          (best-ratings-per-run-graph optimization-progress-view/scale-to-view-but-preserve-full-y-scale status)
+                                                                          #_(best-ratings-per-run-graph optimization-progress-view/scale-to-view status))))))
 
 (defn optimization-status-with-rating-comparison-view []
   (let [named-layouts (concat [{:layout layout/qwerty
@@ -1224,8 +1272,9 @@
 (comment
   (save-layout {:layout @edited-layout-atom
                 :multipliers (:multipliers @selected-named-layout-atom)
-                :name "alter-3"
-                :description "xcv on left, y is left empty, least vertical movement, worse finger"})
+                :rating-version rating/rating-version
+                :name "xaei"
+                :description "more weight for key type and appreciate curling keys, fixed n-key hand in rating"})
 
   (:layout @selected-named-layout-atom)
 
@@ -1246,13 +1295,13 @@
         ]
     (fn []
       (let [named-layouts (concat [{:layout layout/qwerty
-                                      :name "qwerty"}
-                                   #_{:layout layout/colemak-dh
-                                      :name "colemak"}
-                                   #_{:layout layout/dvorak
-                                      :name "dvorak"}
+                                    :name "qwerty"}
+                                   {:layout layout/colemak-dh
+                                    :name "colemak"}
+                                   {:layout layout/dvorak
+                                    :name "dvorak"}
                                    #_(passoc layout/alternating-copy-paste-on-left
-                                            :name "cp on left")
+                                             :name "cp on left")
                                    #_{:layout random-layout
                                       :name "random"}
                                    ;; hot-right-now TODO: remove me
@@ -1260,12 +1309,14 @@
                                             :name "optimized")
                                    ;; hill-climbed-layout
                                    ;;last-layout
+                                   layout/yeita
                                    layout/oeita
+                                   #_layout/jeita
                                    ]
                                   (filter (fn [named-layout]
                                             #_(:multipliers @selected-named-layout-atom)
-                                            #_(<= 2 (:rating-version named-layout 1))
-                                            (== 0.0 (-> named-layout :multipliers :digram-roll))
+                                            (<= 9 (:rating-version named-layout 1))
+                                            #_(== 0.0 (-> named-layout :multipliers :digram-roll))
                                             #_(or (= {:key-rating 1.0,
                                                       :vertical-movement-in-skipgram 1,
                                                       :vertical-movement 1,
@@ -1315,7 +1366,7 @@
                                             #_(and (== 0 (-> named-layout :multipliers :digram-roll ))
                                                    (== 0 (-> named-layout :multipliers :trigram-roll ))))
                                           (best-layouts-per-statistics-and-multipliers-with-names 1 0))
-                                  saved-layouts
+                                  #_saved-layouts
                                   #_(map (fn [named-layout]
                                            (update named-layout :layout (partial optimize/hill-climb-all text/keyboard-design-com-english-text-statistics)))
                                          (best-layouts-per-statistics-and-multipliers-with-names 1 0)))
@@ -1324,7 +1375,7 @@
             selected-text-statistics (:selected-text-statistics state)]
         (gui/black-background [scroll-pane (layouts/vertically-2 {:margin 10}
                                                                  (for [text-statistics [text/keyboard-design-com-english-text-statistics
-                                                                                        ;; text/wikinews-finnish-statistics
+                                                                                        #_text/wikinews-finnish-statistics
 
                                                                                         ;; text/hybrid-statistics-without-å
                                                                                         ;; text/english-statistics

@@ -45,7 +45,7 @@
 
   layout/qwerty
 
-  (view/start-view (fn [] (->> layout/qwerty
+  (view/start-view (fn [] (->> (:layout layout/oeita)
                                layout/layout-to-cocoa-key-code-to-character
                                keyboard-view/keyboard-view
                                gui/black-background)))

@@ -467,10 +467,10 @@
                                 (edn/read-string (slurp durations-file-path))
                                 {})))
 
-(defn english-demo-text []
+(defn english-demo-text [& [length]]
   (->> (-> "temp/text/the-hacker-crackdown.txt"
            slurp
-           (subs 0 500)
+           (subs 0 (or length 500))
            (string/replace #"\s+" " "))
        (map str)
        (map string/lower-case)

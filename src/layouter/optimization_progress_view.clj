@@ -649,7 +649,7 @@
            :horizontal-movement 1}
 
         {:key-rating 1,
-         :vertical-movement-in-skipgram 1,
+         :vertical-movement-in-skipgram 0.7,
          :vertical-movement 1,
          :trigram-roll 0.0,
          :hand-balance 0.1,
@@ -669,7 +669,8 @@
 
 
 (comment
-
+  (do (reset! optimize/stop-requested?-atom false)
+      (optimize-layout))
   (doto (Thread. (fn []
                    (reset! optimize/stop-requested?-atom false)
                    (optimize/optimize-repeatedly! optimize-layout)))
