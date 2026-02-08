@@ -265,15 +265,13 @@
   (let [width 200]
     (layouts/with-margin 10
       (layouts/with-minimum-size width nil
-        (layouts/with-maximum-size nil 20
-          (layouts/center-vertically
-           (layouts/superimpose (assoc (visuals/rectangle-2 {:fill-color (duration-color duration)})
-                                       :height gui/font-size
-                                       :width (* width
-                                                 (abs (/ duration
-                                                         maximum-duration))))
-                                (gui/text (str character ":" duration)
-                                          {:color [200 200 200 255]}))))))))
+        (layouts/superimpose (assoc (visuals/rectangle-2 {:fill-color (duration-color duration)})
+                                    :height gui/font-size
+                                    :width (* width
+                                              (abs (/ duration
+                                                      maximum-duration))))
+                             (gui/text (str character ":" duration)
+                                       {:color [200 200 200 255]}))))))
 
 (def durations-file-path "temp/durations-edn")
 
@@ -330,7 +328,7 @@
                                        (swap! state-atom update :characters-after-save (fnil inc 0))
                                        (when (< (:characters-after-save @state-atom)
                                                 10)
-                                         (spit durations-file-path (pr-str @durations-atom))
+                                         #_(spit durations-file-path (pr-str @durations-atom))
                                          (swap! state-atom assoc :characters-after-save 0))
                                        (swap! state-atom assoc
                                               :target-character (next-target-character state-atom durations-atom character-distribution )
@@ -478,66 +476,53 @@
                      " "))
        (apply str)))
 
-;; (defonce next-target-character (create-next-target-character durations-atom
-;;                                                              (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
+(def layouts {:xaei {:layout (:layout layout/xaei)
+                     :hue 250}
+              :qwerty {:layout layout/qwerty
+                       :hue 350}})
+
+(def layout-key :xaei)
+
+(defn colored-exercise-view [layout-key exercise-view]
+  (layouts/superimpose (visuals/rectangle-2 {:fill-color (conj (color/hsluv-to-rgb (-> layouts layout-key :hue)
+                                                                                   1.0
+                                                                                   0.2)
+                                                               1.0)})
+                       (layouts/center (exercise-view (-> layouts layout-key :layout)))))
+
+
+(defn colored-character-exercise-view []
+  (colored-exercise-view layout-key
+                         (fn [layout]
+                           [#'character-excercise-view
+                            (atom {})
+                            (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
+                            layout])))
+
+(defn colored-layout-exercise-view []
+  (colored-exercise-view layout-key
+                         (fn [layout]
+                           [#'layout-excercise-view
+                            (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
+                            excericise-word-for-characters
+                            layout])))
+
+
+(defn colored-layout-demo-view []
+  (layouts/superimpose (visuals/rectangle-2 {:fill-color (conj (color/hsluv-to-rgb (-> layouts :qwerty :hue)
+                                                                                   1.0
+                                                                                   0.2)
+                                                               1.0)})
+                       (layouts/center [#'layout-demo-view
+                                        (english-demo-text)
+                                        (-> layouts layout-key :layout)])))
+
+
 (comment
-
-  (reset! durations-atom {})
-
-  (spit durations-file-path (pr-str @durations-atom))
-
-  (set/difference (set (map first (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
-                  (->> @durations-atom
-                       (remove (fn [[character duration]]
-                                 (< duration 1000)))
-                       (map first)
-                       (set)))
-
-  (->> @durations-atom
-       (remove (fn [[character duration]]
-                 (< duration 1000))))
-
-  ;; (next-target-character (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)))
-
-
-
-  (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'character-excercise-view
-                                                            (atom {})
-                                                            (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
-                                                            layout/qwerty]))))
-
-  ;; (view/start-view (fn []
-  ;;                    (gui/black-background (layouts/center [#'layout-excercise-view
-  ;;                                                           (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
-  ;;                                                           next-target-character
-  ;;                                                           (:layout layout/oeita)]))))
-
-
-
-  (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'layout-demo-view
-                                                            (english-demo-text)
-                                                            (:layout layout/xaei)
-                                                            #_(:layout layout/yeita)
-                                                            #_layout/qwerty
-                                                            #_layout/colemak-dh]))))
-
-
-  (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'character-excercise-view
-                                                            #_durations-atom
-                                                            (atom {})
-                                                            (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
-                                                            (:layout #_layout/oeita
-                                                                     layout/yeita)]))))
-
-  (view/start-view (fn []
-                     (gui/black-background (layouts/center [#'layout-excercise-view
-                                                            (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
-                                                            excericise-word-for-characters
-                                                            (:layout #_layout/oeita
-                                                                     layout/yeita)]))))
+  (view/start-view #'colored-layout-exercise-view)
+  (view/start-view #'colored-character-exercise-view)
+  (view/start-view #'colored-layout-demo-view)
   )
+
 
 (view/hard-refresh-view!)
