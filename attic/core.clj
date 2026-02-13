@@ -19,7 +19,7 @@
    [fungl.component.text-area :as text-area]
    [fungl.dependable-atom :as dependable-atom]
    [fungl.layouts :as layouts]
-   [layouter.excercise :as excercise]
+   [layouter.exercise :as exercise]
    [logga.core :as logga]
    [medley.core :as medley]
    [medley.core :as meldey])
@@ -959,7 +959,7 @@
 
 
 (comment
-  (start-view #'layout-excercise-view)
+  (start-view #'layout-exercise-view)
 
   (reset! optimized-layouts-atom [])
 

@@ -12,7 +12,7 @@
    [fungl.dependable-atom :as dependable-atom]
    [fungl.layouts :as layouts]
    [fungl.layouts :as layouts]
-   [layouter.excercise :as excercise]
+   [layouter.exercise :as exercise]
    [layouter.gui :as gui]
    [layouter.key-log :as key-log]
    [layouter.keyboard :as keyboard]
@@ -475,7 +475,7 @@
                                                              "o" "f"})))))
 
 (defn keypair-ratings [layout]
-  (->> (for [digram (->> (text/normalized-digram-distribution (excercise/english-demo-text 5000))
+  (->> (for [digram (->> (text/normalized-digram-distribution (exercise/english-demo-text 5000))
                          (sort-by second)
                          (reverse)
                          (map first))]
@@ -1283,7 +1283,7 @@
 
 
 (defn optimized-layouts-comparison-view-2 []
-  (let [english-demo-text #_"kehitella varahdysliike" (excercise/english-demo-text)
+  (let [english-demo-text #_"kehitella varahdysliike" (exercise/english-demo-text)
         finnish-demo-text (string/lower-case (string/replace (subs (slurp "temp/text/kirjoja-ja-kirjailijoita.txt")
                                                                    5004 5100)
                                                              "\n" " "))
@@ -1310,6 +1310,7 @@
                                    ;; hill-climbed-layout
                                    ;;last-layout
                                    layout/yeita
+                                   layout/xaei
                                    layout/oeita
                                    #_layout/jeita
                                    ]
@@ -1418,7 +1419,7 @@
                                                                                                                                event)}
                                                                                                        (gui/text (layout/layout-name named-layout)))))
                                                                  (layouts/horizontally-2 {:margin 10}
-                                                                                         {:node [excercise/layout-demo-view (:demo-text state)
+                                                                                         {:node [exercise/layout-demo-view (:demo-text state)
                                                                                                  (:layout selected-named-layout)]
                                                                                           :local-id (take 5 (:demo-text state))}
 

@@ -1,4 +1,4 @@
-(ns layouter.excercise
+(ns layouter.exercise
   (:require
    [clojure.edn :as edn]
    [clojure.java.io :as io]
@@ -91,8 +91,8 @@
                                      (shuffle (concat english-words
                                                       finnish-words)))))
 
-(defn layout-excercise-view [all-characters target-word-for-characters _layout]
-  (let [generate-excercise-word (fn [character-count]
+(defn layout-exercise-view [all-characters target-word-for-characters _layout]
+  (let [generate-exercise-word (fn [character-count]
                                   (target-word-for-characters (take character-count all-characters)))
         state-atom (dependable-atom/atom {:xp 0
                                           :next-level-xp 50
@@ -100,7 +100,7 @@
                                           :character-count 4
                                           :typed-text ""
                                           :cocoa-key-code-down nil
-                                          :target-word (generate-excercise-word 4)})]
+                                          :target-word (generate-exercise-word 4)})]
     (fn [all-characters _target-word-for-characters layout]
       (let [cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character layout)
             character-to-cocoa-key-code (layout/layout-to-character-to-cocoa-key-code layout)
@@ -162,7 +162,7 @@
                                                              (assoc state
                                                                     :character-count new-character-count
                                                                     :typed-text ""
-                                                                    :target-word (generate-excercise-word new-character-count))))))
+                                                                    :target-word (generate-exercise-word new-character-count))))))
                                      (when (and (= :down (:key event))
                                                 (< 2 (:character-count @state-atom)))
                                        (swap! state-atom (fn [state]
@@ -172,7 +172,7 @@
                                                              (assoc state
                                                                     :character-count new-character-count
                                                                     :typed-text ""
-                                                                    :target-word (generate-excercise-word new-character-count))))))
+                                                                    :target-word (generate-exercise-word new-character-count))))))
 
                                      (when-some [character (cocoa-key-code-to-character (keyboard/java-key-code-to-cocoa-key-code (:key-code event) ))]
                                        (swap! state-atom assoc :cocoa-key-code-down (keyboard/java-key-code-to-cocoa-key-code (:key-code event)))
@@ -183,13 +183,13 @@
                                        (swap! state-atom (fn [state]
                                                            (-> state
                                                                (assoc :typed-text ""
-                                                                      :target-word (generate-excercise-word (:character-count @state-atom))))
+                                                                      :target-word (generate-exercise-word (:character-count @state-atom))))
 
                                                            #_(-> state
                                                                  (assoc :xp (+ (:xp state)
                                                                                (count (:target-word state)))
                                                                         :typed-text ""
-                                                                        :target-word (generate-excercise-word (:character-count @state-atom)))
+                                                                        :target-word (generate-exercise-word (:character-count @state-atom)))
                                                                  (cond-> (<= (:next-level-xp state)
                                                                              (+ (:xp state)
                                                                                 (count (:target-word state))))
@@ -275,7 +275,7 @@
 
 (def durations-file-path "temp/durations-edn")
 
-(defn character-excercise-view [durations-atom character-distribution _layout]
+(defn character-exercise-view [durations-atom character-distribution _layout]
   (let [state-atom (dependable-atom/atom {:typed-character ""
                                           :cocoa-key-code-down nil})]
     (swap! state-atom assoc :target-character (next-target-character state-atom durations-atom character-distribution))
@@ -341,14 +341,14 @@
         (swap! state rest)
         (first current)))))
 
-(defn make-excercise-word-generator-from-text [text]
+(defn make-exercise-word-generator-from-text [text]
   (make-sequencer (string/split text #"\s")))
 
 (defn layout-demo-view [sample-text _layout]
-  (let [generate-excercise-word (make-excercise-word-generator-from-text sample-text)
+  (let [generate-exercise-word (make-exercise-word-generator-from-text sample-text)
         state-atom (dependable-atom/atom {:typed-text ""
                                           :cocoa-key-code-down nil
-                                          :target-word (generate-excercise-word)})
+                                          :target-word (generate-exercise-word)})
         qwerty-cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character layout/qwerty)]
     (fn [_sample-text layout]
       (let [cocoa-key-code-to-character (layout/layout-to-cocoa-key-code-to-character layout)
@@ -416,7 +416,7 @@
                                        (swap! state-atom (fn [state]
                                                            (assoc state
                                                                   :typed-text ""
-                                                                  :target-word (generate-excercise-word)))))))}))))
+                                                                  :target-word (generate-exercise-word)))))))}))))
 
 (defn create-next-target-character [durations-atom character-distribution]
   (let [state-atom (atom {})
@@ -494,7 +494,7 @@
 (defn colored-character-exercise-view []
   (colored-exercise-view layout-key
                          (fn [layout]
-                           [#'character-excercise-view
+                           [#'character-exercise-view
                             (atom {})
                             (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics)
                             layout])))
@@ -502,7 +502,7 @@
 (defn colored-layout-exercise-view []
   (colored-exercise-view layout-key
                          (fn [layout]
-                           [#'layout-excercise-view
+                           [#'layout-exercise-view
                             (characters-from-common-to-rare (:character-distribution text/keyboard-design-com-english-text-statistics #_text/finnish-statistics))
                             excericise-word-for-characters
                             layout])))
@@ -519,9 +519,9 @@
 
 
 (comment
-  (view/start-view #'colored-layout-exercise-view)
-  (view/start-view #'colored-character-exercise-view)
   (view/start-view #'colored-layout-demo-view)
+  (view/start-view #'colored-character-exercise-view)
+  (view/start-view #'colored-layout-exercise-view)
   )
 
 
