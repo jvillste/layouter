@@ -358,15 +358,13 @@
              {:cocoa-key-code 0, :character "n"}
              {:cocoa-key-code 4, :character "x"}
              {:cocoa-key-code 41, :character "h"}
-             {:cocoa-key-code 13, :character ""}
-             {:cocoa-key-code 16, :character ""}
+             {:cocoa-key-code 16, :character "å"}
              {:cocoa-key-code 32, :character "z"}
              {:cocoa-key-code 12, :character "p"}
              {:cocoa-key-code 35, :character "k"}
              {:cocoa-key-code 17, :character "f"}
              {:cocoa-key-code 34, :character "g"}
              {:cocoa-key-code 39, :character "u"}
-             {:cocoa-key-code 33, :character ""}
              {:cocoa-key-code 6, :character "c"}
              {:cocoa-key-code 45, :character "j"}
              {:cocoa-key-code 7, :character "l"}
@@ -378,7 +376,9 @@
              {:cocoa-key-code 5, :character "m"}
              {:cocoa-key-code 31, :character "y"}
              {:cocoa-key-code 37, :character "i"}
-             {:cocoa-key-code 15, :character "w"}},
+             {:cocoa-key-code 15, :character "w"}
+             {:cocoa-key-code 13, :character "ö"}
+             {:cocoa-key-code 33, :character "ä"}},
            :multipliers
            {:key-rating 1,
             :vertical-movement-in-skipgram 0.7,
