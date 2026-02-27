@@ -358,7 +358,7 @@
                                      :from {:key-code "y"
                                             :modifiers {:mandatory ["left_command"] :optional []}},
                                      :to [{:set-variable {:name "alternative layout", :value 1}}
-                                          {:shell-command "osascript -e 'display notification \"oeita\"'"}]
+                                          {:shell-command "osascript -e 'display notification \"xaei\"'"}]
                                      :conditions [{:type "variable_if", :name "alternative layout", :value 0}]}
 
                                     {:type "basic",
@@ -367,7 +367,7 @@
                                      :to [{:set-variable {:name "alternative layout", :value 0}}
                                           {:shell-command "osascript -e 'display notification \"qwerty\"'"}]
                                      :conditions [{:type "variable_if", :name "alternative layout", :value 1}]}]
-                                   (alternative-layout-rules (:layout layout/oeita)))}])
+                                   (alternative-layout-rules (:layout layout/xaei)))}])
 
 (defn update-config-file []
   (spit config-file-path
