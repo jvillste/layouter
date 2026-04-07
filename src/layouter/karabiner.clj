@@ -284,7 +284,7 @@
               ;; applications
 
               {:key-code "g" :modifiers {:mandatory ["right_command"]}}
-              {:shell-command "open '/Applications/Google Chrome.app'"}
+              {:shell-command "osascript -e 'tell application \"Google Chrome\" to make new window'"}
 
               {:key-code "t" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open -n '/System/Applications/Utilities/Terminal.app'"}
