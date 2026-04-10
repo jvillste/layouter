@@ -287,7 +287,7 @@
               {:shell-command "osascript -e 'tell application \"Google Chrome\" to make new window'"}
 
               {:key-code "t" :modifiers {:mandatory ["right_command"]}}
-              {:shell-command "open -n '/System/Applications/Utilities/Terminal.app'"}
+              {:shell-command " osascript -e 'tell application \"Terminal\" to do script \"\"'"}
 
               {:key-code "f" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open '/System/Library/CoreServices/Finder.app'"}
