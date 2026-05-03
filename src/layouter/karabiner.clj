@@ -342,8 +342,8 @@
             (shell-command ["right_command"] "n" "/opt/homebrew/bin/yabai -m window --swap next || /opt/homebrew/bin/yabai -m window --swap first")
             (shell-command ["right_command"] "m" "/opt/homebrew/bin/yabai -m window --swap prev || /opt/homebrew/bin/yabai -m window --swap last")
             (shell-command ["right_command"] "o" "/opt/homebrew/bin/yabai -m window --insert north")
-            (shell-command ["right_command"] "z" "/opt/homebrew/bin/displayplacer \"id:1C794DBC-DA89-41CD-B7DB-71583EBC644E degree:0\"")
-            (shell-command ["right_command"] "x" "/opt/homebrew/bin/displayplacer \"id:1C794DBC-DA89-41CD-B7DB-71583EBC644E degree:90\"")
+            (shell-command ["right_command"] "z" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:0\"")
+            (shell-command ["right_command"] "x" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:90\"")
             (shell-command ["right_command" "left_shift"] "k" "/opt/homebrew/bin/yabai -m window --focus stack.next || /opt/homebrew/bin/yabai -m window --focus stack.first")
             (shell-command ["right_command" "left_shift"] "j" "/opt/homebrew/bin/yabai -m window --focus stack.prev || /opt/homebrew/bin/yabai -m window --focus stack.last")
 
