@@ -347,11 +347,13 @@
             (shell-command ["right_command" "left_shift"] "k" "/opt/homebrew/bin/yabai -m window --focus stack.next || /opt/homebrew/bin/yabai -m window --focus stack.first")
             (shell-command ["right_command" "left_shift"] "j" "/opt/homebrew/bin/yabai -m window --focus stack.prev || /opt/homebrew/bin/yabai -m window --focus stack.last")
 
-            (shell-command ["right_command" "left_shift"] "a" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard a\"")
-            (shell-command ["right_command" "left_shift"] "p" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard p\"")
-            (shell-command ["right_command" "left_shift"] "i" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard d\"")
-            (shell-command ["right_command" "left_shift"] "o" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard di\"")
-            (shell-command ["right_command" "left_shift"] "d" "zsh --login -c \"pwcopy copy-password-from-keychain-to-clipboard de\"")
+            (shell-command ["right_command" "left_shift"] "a" "zsh --login -c \"$HOME/bin/pwcopy copy-password-from-keychain-to-clipboard a\"")
+            (shell-command ["right_command" "left_shift"] "p" "zsh --login -c \"$HOME/bin/pwcopy copy-password-from-keychain-to-clipboard p\"")
+            (shell-command ["right_command" "left_shift"] "i" "zsh --login -c \"$HOME/bin/pwcopy copy-password-from-keychain-to-clipboard d\"")
+            (shell-command ["right_command" "left_shift"] "o" "zsh --login -c \"$HOME/bin/pwcopy copy-password-from-keychain-to-clipboard di\"")
+            (shell-command ["right_command" "left_shift"] "d" "zsh --login -c \"$HOME/bin/pwcopy copy-password-from-keychain-to-clipboard de\"")
+
+            (shell-command ["right_command" "left_shift"] "s" "zsh --login -c \"gh auth switch\"")
 
             {:description "alternative layout",
              :manipulators (concat [{:type "basic",
