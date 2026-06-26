@@ -96,7 +96,7 @@
 (defn alternative-layout-rules [alternative-layout]
   (let [alternative-layout-character-to-qwerty-character (comp (layout/layout-to-cocoa-key-code-to-character layout/qwerty)
                                                                (layout/layout-to-character-to-cocoa-key-code alternative-layout))]
-    (for [alternative-layout-character (map :character (:layout layout/oeita))]
+    (for [alternative-layout-character (map :character alternative-layout)]
       {:type "basic",
        :conditions [{:type "variable_if", :name "alternative layout", :value 1}],
        :from {:key-code (qwerty-character-to-karabiner-key-code (alternative-layout-character-to-qwerty-character alternative-layout-character)) :modifiers {:optional ["any"]}},
@@ -354,6 +354,8 @@
             (shell-command ["right_command" "left_shift"] "d" "zsh --login -c \"$HOME/bin/pwcopy copy-password-from-keychain-to-clipboard de\"")
 
             (shell-command ["right_command" "left_shift"] "s" "zsh --login -c \"gh auth switch\"")
+
+            (shell-command ["left_command" "right_command"] "c" "open -a \"Google Chrome\" https://notionnet.org/files/calendar.html")
 
             {:description "alternative layout",
              :manipulators (concat [{:type "basic",
