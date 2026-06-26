@@ -509,7 +509,7 @@
 
 
 (defn colored-layout-demo-view []
-  (layouts/superimpose (visuals/rectangle-2 {:fill-color (conj (color/hsluv-to-rgb (-> layouts :qwerty :hue)
+  (layouts/superimpose (visuals/rectangle-2 {:fill-color (conj (color/hsluv-to-rgb (-> layouts layout-key :hue)
                                                                                    1.0
                                                                                    0.2)
                                                                1.0)})
