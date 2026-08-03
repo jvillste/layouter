@@ -342,8 +342,8 @@
             (shell-command ["right_command"] "n" "/opt/homebrew/bin/yabai -m window --swap next || /opt/homebrew/bin/yabai -m window --swap first")
             (shell-command ["right_command"] "m" "/opt/homebrew/bin/yabai -m window --swap prev || /opt/homebrew/bin/yabai -m window --swap last")
             (shell-command ["right_command"] "o" "/opt/homebrew/bin/yabai -m window --insert north")
-            (shell-command ["right_command"] "z" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:0\"; /opt/homebrew/bin/displayplacer \"id:901D96D4-7FC3-4E0E-99BD-F8CFD52B0B78 degree:0\"")
-            (shell-command ["right_command"] "x" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:90\"; /opt/homebrew/bin/displayplacer \"id:901D96D4-7FC3-4E0E-99BD-F8CFD52B0B78 degree:90\"")
+            (shell-command ["right_command"] "z" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:0\"; /opt/homebrew/bin/displayplacer \"id:0722DC7E-3832-4DC7-922C-A86A9EFAEDE1 degree:0\"")
+            (shell-command ["right_command"] "x" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:90\"; /opt/homebrew/bin/displayplacer \"id:0722DC7E-3832-4DC7-922C-A86A9EFAEDE1 degree:90\"")
             (shell-command ["right_command" "left_shift"] "k" "/opt/homebrew/bin/yabai -m window --focus stack.next || /opt/homebrew/bin/yabai -m window --focus stack.first")
             (shell-command ["right_command" "left_shift"] "j" "/opt/homebrew/bin/yabai -m window --focus stack.prev || /opt/homebrew/bin/yabai -m window --focus stack.last")
 
@@ -355,7 +355,7 @@
 
             (shell-command ["right_command" "left_shift"] "s" "zsh --login -c \"gh auth switch\"")
 
-            (shell-command ["left_command" "right_command"] "c" "open -a \"Google Chrome\" https://notionnet.org/files/calendar.html")
+            (shell-command ["left_command" "right_command"] "semicolon" "open -a \"Google Chrome\" https://notionnet.org/files/calendar.html")
 
             {:description "alternative layout",
              :manipulators (concat [{:type "basic",
