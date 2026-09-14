@@ -334,14 +334,15 @@
             (shell-command ["right_command"] "d" "/opt/homebrew/bin/yabai -m window --toggle split")
             (shell-command ["right_command"] "r" "/opt/homebrew/bin/yabai -m window --toggle float")
             (shell-command ["right_command"] "u" "/opt/homebrew/bin/yabai -m space --rotate 90")
-            ;; (shell-command ["right_command"] "y" "/opt/homebrew/bin/yabai -m space --mirror x-axis")
-            ;; (shell-command ["right_command"] "h" "/opt/homebrew/bin/yabai -m space --mirror y-axis")
+
             (shell-command ["right_command"] "l" "/opt/homebrew/bin/yabai -m space --balance")
             (shell-command ["right_command"] "j" "/opt/homebrew/bin/yabai -m window --focus next || /opt/homebrew/bin/yabai -m window --focus first")
             (shell-command ["right_command"] "k" "/opt/homebrew/bin/yabai -m window --focus prev || /opt/homebrew/bin/yabai -m window --focus last")
             (shell-command ["right_command"] "n" "/opt/homebrew/bin/yabai -m window --swap next || /opt/homebrew/bin/yabai -m window --swap first")
             (shell-command ["right_command"] "m" "/opt/homebrew/bin/yabai -m window --swap prev || /opt/homebrew/bin/yabai -m window --swap last")
             (shell-command ["right_command"] "o" "/opt/homebrew/bin/yabai -m window --insert north")
+            (shell-command ["right_command"] "y" "killall yabai")
+
             (shell-command ["right_command"] "z" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:0\"; /opt/homebrew/bin/displayplacer \"id:0722DC7E-3832-4DC7-922C-A86A9EFAEDE1 degree:0\"")
             (shell-command ["right_command"] "x" "/opt/homebrew/bin/displayplacer \"id:BF650054-689C-4B0C-B1AA-05DB16723F79 degree:90\"; /opt/homebrew/bin/displayplacer \"id:0722DC7E-3832-4DC7-922C-A86A9EFAEDE1 degree:90\"")
             (shell-command ["right_command" "left_shift"] "k" "/opt/homebrew/bin/yabai -m window --focus stack.next || /opt/homebrew/bin/yabai -m window --focus stack.first")
