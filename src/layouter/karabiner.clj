@@ -123,7 +123,7 @@
              [{:type "basic",
                :from
                {:key-code "close_bracket",
-;;                :modifiers {:mandatory [], :optional []}
+                ;;                :modifiers {:mandatory [], :optional []}
                 },
                :to [{:key-code "delete_or_backspace"}]}]}
 
@@ -287,7 +287,8 @@
               {:shell-command "osascript -e 'tell application \"Google Chrome\" to make new window'"}
 
               {:key-code "t" :modifiers {:mandatory ["right_command"]}}
-              {:shell-command " osascript -e 'tell application \"Terminal\" to do script \"\"'"}
+              {:shell-command "osascript -e 'tell application \"iTerm2\" to create window with default profile'"}
+              #_{:shell-command "osascript -e 'tell application \"Terminal\" to do script \"\"'"}
 
               {:key-code "f" :modifiers {:mandatory ["right_command"]}}
               {:shell-command "open '/System/Library/CoreServices/Finder.app'"}
@@ -357,6 +358,7 @@
             (shell-command ["right_command" "left_shift"] "s" "zsh --login -c \"gh auth switch\"")
 
             (shell-command ["left_command" "right_command"] "semicolon" "open -a \"Google Chrome\" https://notionnet.org/files/calendar.html")
+            (shell-command ["left_command" "right_command"] "l" "open -a \"Google Chrome\" https://google.com/ai")
 
             {:description "alternative layout",
              :manipulators (concat [{:type "basic",
